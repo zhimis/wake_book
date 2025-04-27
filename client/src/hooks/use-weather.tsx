@@ -9,20 +9,12 @@ export function useWeather() {
       if (!res.ok) throw new Error('Failed to fetch weather data');
       
       const data = await res.json();
-      
-      // Map API response to WeatherForecast type
-      return data.forecast.map((day: any) => ({
-        date: new Date(day.date),
-        dayName: day.day_name,
-        temperature: day.temperature,
-        condition: day.condition,
-        icon: day.icon
-      }));
+      return data;
     }
   });
   
   return {
-    forecast: data as WeatherForecast[] || [],
+    forecast: data?.forecast || [],
     isLoading,
     error
   };

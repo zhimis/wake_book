@@ -188,7 +188,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
             {days.map((day, index) => {
               // Find weather for this day if available
               const dayStr = format(day.date, "yyyy-MM-dd");
-              const dayWeather = weatherForecast?.find(w => format(w.date, "yyyy-MM-dd") === dayStr);
+              const dayWeather = weatherForecast?.find(w => w.date === dayStr);
               
               // Determine weather icon
               const getWeatherIcon = () => {
