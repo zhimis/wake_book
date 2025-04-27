@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { format, addDays } from "date-fns";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -188,7 +189,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
             {days.map((day, index) => {
               // Find weather for this day if available
               const dayStr = format(day.date, "yyyy-MM-dd");
-              const dayWeather = weatherForecast?.find(w => w.date === dayStr);
+              const dayWeather = weatherForecast?.find((w: any) => w.date === dayStr);
               
               // Determine weather icon
               const getWeatherIcon = () => {
@@ -320,7 +321,9 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">Total: €{calculateTotalPrice()}</p>
-                <Button size="sm" className="mt-2">Proceed to Booking</Button>
+                <Link href={`/booking?slots=${selectedSlots.join(',')}`}>
+                  <Button size="sm" className="mt-2">Proceed to Booking</Button>
+                </Link>
               </div>
             </div>
           </div>
