@@ -402,19 +402,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mock weather API - in a real application, this would call an external weather API
+  // Mock weather API for Adazi, Latvia
   app.get("/api/weather", async (req, res) => {
     try {
-      // Create a mock 7-day forecast starting from today for Adazi, Latvia
+      // Create a realistic 7-day forecast for Adazi, Latvia in April
       const today = new Date();
       
-      // Adazi, Latvia weather conditions (approximate for late spring/early summer)
-      const conditions = [
-        { text: "Sunny", icon: "113", probability: 0.2 },
-        { text: "Partly cloudy", icon: "116", probability: 0.3 },
-        { text: "Cloudy", icon: "119", probability: 0.2 },
-        { text: "Light rain", icon: "176", probability: 0.2 },
-        { text: "Moderate rain", icon: "302", probability: 0.1 }
+      // Adazi, Latvia weather conditions - April averages
+      // Source: https://www.weather-atlas.com/en/latvia/adazi-climate
+      // April in Adazi, Latvia: Temperatures typically 2°C to 11°C, cool and often cloudy with rain
+      const adaziWeatherPatterns = [
+        { text: "Partly cloudy", icon: "116", temp_range: [5, 12], probability: 0.35 },
+        { text: "Cloudy", icon: "119", temp_range: [4, 10], probability: 0.25 },
+        { text: "Light rain", icon: "176", temp_range: [2, 8], probability: 0.20 },
+        { text: "Sunny", icon: "113", temp_range: [7, 13], probability: 0.15 },
+        { text: "Moderate rain", icon: "302", temp_range: [1, 7], probability: 0.05 }
       ];
       
       const forecast = [];
@@ -428,34 +430,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let cumulativeProbability = 0;
         let selectedConditionIndex = 0;
         
-        for (let j = 0; j < conditions.length; j++) {
-          cumulativeProbability += conditions[j].probability;
+        for (let j = 0; j < adaziWeatherPatterns.length; j++) {
+          cumulativeProbability += adaziWeatherPatterns[j].probability;
           if (random <= cumulativeProbability) {
             selectedConditionIndex = j;
             break;
           }
         }
         
-        // Typical temperature range for Adazi, Latvia in spring/summer (15-25°C)
-        const randomTemp = Math.floor(Math.random() * 10) + 15;
+        const pattern = adaziWeatherPatterns[selectedConditionIndex];
+        // Temperature within the appropriate range for selected condition
+        const minTemp = pattern.temp_range[0];
+        const maxTemp = pattern.temp_range[1];
+        const temperature = Math.floor(Math.random() * (maxTemp - minTemp + 1)) + minTemp;
         
         forecast.push({
           date: format(forecastDate, "yyyy-MM-dd"),
           day_name: format(forecastDate, "EEE"),
-          temperature: randomTemp,
-          condition: conditions[selectedConditionIndex].text,
-          icon: `https://cdn.weatherapi.com/weather/64x64/day/${conditions[selectedConditionIndex].icon}.png`,
+          temperature: temperature,
+          condition: pattern.text,
+          icon: `https://cdn.weatherapi.com/weather/64x64/day/${pattern.icon}.png`,
           location: "Adazi, Latvia"
         });
       }
+      
+      // Use first day's weather as current weather
+      const currentWeather = forecast[0];
       
       res.json({ 
         forecast,
         location: "Adazi, Latvia",
         current: {
-          temperature: 22,
-          condition: "Partly cloudy",
-          icon: "https://cdn.weatherapi.com/weather/64x64/day/116.png"
+          temperature: currentWeather.temperature,
+          condition: currentWeather.condition,
+          icon: currentWeather.icon
         }
       });
     } catch (error) {
