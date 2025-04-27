@@ -405,16 +405,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mock weather API - in a real application, this would call an external weather API
   app.get("/api/weather", async (req, res) => {
     try {
-      // Create a mock 7-day forecast starting from today
+      // Create a mock 7-day forecast starting from today for Adazi, Latvia
       const today = new Date();
       
-      // Generate random weather conditions
+      // Adazi, Latvia weather conditions (approximate for late spring/early summer)
       const conditions = [
-        { text: "Sunny", icon: "113" },
-        { text: "Partly cloudy", icon: "116" },
-        { text: "Cloudy", icon: "119" },
-        { text: "Light rain", icon: "176" },
-        { text: "Moderate rain", icon: "302" }
+        { text: "Sunny", icon: "113", probability: 0.2 },
+        { text: "Partly cloudy", icon: "116", probability: 0.3 },
+        { text: "Cloudy", icon: "119", probability: 0.2 },
+        { text: "Light rain", icon: "176", probability: 0.2 },
+        { text: "Moderate rain", icon: "302", probability: 0.1 }
       ];
       
       const forecast = [];
@@ -423,19 +423,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const forecastDate = new Date(today);
         forecastDate.setDate(forecastDate.getDate() + i);
         
-        const randomConditionIndex = Math.floor(Math.random() * conditions.length);
-        const randomTemp = Math.floor(Math.random() * 11) + 20; // Random temp between 20-30°C
+        // Select weather condition based on probability
+        const random = Math.random();
+        let cumulativeProbability = 0;
+        let selectedConditionIndex = 0;
+        
+        for (let j = 0; j < conditions.length; j++) {
+          cumulativeProbability += conditions[j].probability;
+          if (random <= cumulativeProbability) {
+            selectedConditionIndex = j;
+            break;
+          }
+        }
+        
+        // Typical temperature range for Adazi, Latvia in spring/summer (15-25°C)
+        const randomTemp = Math.floor(Math.random() * 10) + 15;
         
         forecast.push({
           date: format(forecastDate, "yyyy-MM-dd"),
           day_name: format(forecastDate, "EEE"),
           temperature: randomTemp,
-          condition: conditions[randomConditionIndex].text,
-          icon: `https://cdn.weatherapi.com/weather/64x64/day/${conditions[randomConditionIndex].icon}.png`
+          condition: conditions[selectedConditionIndex].text,
+          icon: `https://cdn.weatherapi.com/weather/64x64/day/${conditions[selectedConditionIndex].icon}.png`,
+          location: "Adazi, Latvia"
         });
       }
       
-      res.json({ forecast });
+      res.json({ 
+        forecast,
+        location: "Adazi, Latvia",
+        current: {
+          temperature: 22,
+          condition: "Partly cloudy",
+          icon: "https://cdn.weatherapi.com/weather/64x64/day/116.png"
+        }
+      });
     } catch (error) {
       console.error("Error fetching weather:", error);
       res.status(500).json({ error: "Failed to fetch weather forecast" });
