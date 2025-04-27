@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,12 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Euro,
+  Cloud,
+  CloudRain,
+  Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWeather } from "@/hooks/use-weather";
 
 type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
 
@@ -31,6 +35,7 @@ interface BookingCalendarProps {
 const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   const [currentDate] = useState<Date>(new Date());
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const { forecast: weatherForecast, isLoading: weatherLoading } = useWeather();
   
   // Create 7 day week starting today
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -157,12 +162,11 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
 
   return (
     <Card className="w-full">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 pt-4">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl flex items-center">
-            <CalendarIcon className="mr-2 h-5 w-5" />
-            Select Date & Time
-          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {format(currentDate, "MMMM d")} - {format(addDays(currentDate, 6), "MMMM d, yyyy")}
+          </p>
           <div className="flex space-x-2">
             <Button variant="outline" size="icon" className="h-8 w-8">
               <ChevronLeft className="h-4 w-4" />
@@ -172,9 +176,6 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
             </Button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {format(currentDate, "MMMM d")} - {format(addDays(currentDate, 6), "MMMM d, yyyy")}
-        </p>
       </CardHeader>
       <CardContent className="p-0 overflow-visible">
         {/* Time and day headers */}
@@ -184,12 +185,36 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
           
           {/* Day columns headers */}
           <div className="flex-1 grid grid-cols-7 gap-1">
-            {days.map((day, index) => (
-              <div key={index} className="text-center">
-                <div className="font-medium text-sm">{day.name}</div>
-                <div className="text-xs text-muted-foreground">{day.day}</div>
-              </div>
-            ))}
+            {days.map((day, index) => {
+              // Find weather for this day if available
+              const dayStr = format(day.date, "yyyy-MM-dd");
+              const dayWeather = weatherForecast?.find(w => format(w.date, "yyyy-MM-dd") === dayStr);
+              
+              // Determine weather icon
+              const getWeatherIcon = () => {
+                if (!dayWeather) return <Cloud className="h-5 w-5 text-gray-400" />;
+                const condition = dayWeather.condition.toLowerCase();
+                
+                if (condition.includes('rain') || condition.includes('shower')) {
+                  return <CloudRain className="h-5 w-5 text-blue-500" />;
+                } else if (condition.includes('cloud')) {
+                  return <Cloud className="h-5 w-5 text-gray-400" />;
+                } else {
+                  return <Sun className="h-5 w-5 text-yellow-500" />;
+                }
+              };
+              
+              return (
+                <div key={index} className="text-center py-2">
+                  <div className="font-medium text-sm">{day.name}</div>
+                  <div className="text-xs text-muted-foreground">{day.day}</div>
+                  <div className="mt-1">{getWeatherIcon()}</div>
+                  {dayWeather && (
+                    <div className="text-xs font-medium mt-1">{dayWeather.temperature}°C</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
         
@@ -226,7 +251,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                             variant="outline"
                             size="sm"
                             className={cn(
-                              "h-9 py-0 px-1 justify-center items-center text-center text-xs",
+                              "h-14 py-0 px-1 justify-center items-center text-center text-xs",
                               getSlotClass(slot.status, isSelected)
                             )}
                             disabled={slot.status !== "available" && !isAdmin}
@@ -262,7 +287,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                           variant="outline"
                           size="sm"
                           className={cn(
-                            "h-9 py-0 px-1 justify-center items-center text-center text-xs",
+                            "h-14 py-0 px-1 justify-center items-center text-center text-xs",
                             getSlotClass(slot.status, isSelected)
                           )}
                           disabled={slot.status !== "available" && !isAdmin}

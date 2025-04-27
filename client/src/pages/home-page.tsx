@@ -4,10 +4,9 @@ import BookingCalendar from "@/components/booking-calendar";
 
 const HomePage = () => {
   return (
-    <main className="container mx-auto px-4 py-6 md:py-8">
+    <main className="container mx-auto px-4 py-2 md:py-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">Hi Wake 2.0 Booking</h1>
-        <p className="text-center mb-8">Book your wakeboarding session at Riga, Latvia's premier facility</p>
+        <h1 className="text-2xl font-bold mb-2 text-center">Hi Wake 2.0</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-4">
