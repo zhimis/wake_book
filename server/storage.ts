@@ -2,11 +2,14 @@ import {
   User, InsertUser, TimeSlot, InsertTimeSlot, 
   Booking, InsertBooking, OperatingHours, InsertOperatingHours,
   Pricing, InsertPricing, Configuration, InsertConfiguration,
-  BookingTimeSlot, InsertBookingTimeSlot
+  BookingTimeSlot, InsertBookingTimeSlot,
+  users, timeSlots, bookings, bookingTimeSlots, operatingHours, pricing, configuration
 } from "@shared/schema";
 import { nanoid } from 'nanoid';
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { eq, and, gte, lte } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -50,6 +53,389 @@ export interface IStorage {
   
   // Session store
   sessionStore: session.SessionStore;
+}
+
+import { db, pool } from "./db";
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.SessionStore;
+
+  constructor() {
+    // Initialize session store with PostgreSQL
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true 
+    });
+    
+    // Initialize default data
+    this.initializeDefaults();
+  }
+
+  private async initializeDefaults() {
+    try {
+      // Create admin user if not exists
+      const adminExists = await this.getUserByUsername("admin");
+      if (!adminExists) {
+        await this.createUser({
+          username: "admin",
+          password: "$2b$10$dQzBpumlXf5yUhBI4HBKvuPVL3Mh2xF6Y/tQZB/FVJsfhL9LJpB9m", // "admin123"
+          email: "admin@example.com",
+          fullName: "Admin User",
+          role: "admin",
+          phone: "+1234567890"
+        });
+        console.log("Default admin user created");
+      }
+      
+      // Create default operating hours (8:00 - 22:00)
+      const existingOperatingHours = await db.select().from(operatingHours);
+      if (existingOperatingHours.length === 0) {
+        for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+          await db.insert(operatingHours).values({
+            dayOfWeek,
+            openTime: "08:00",
+            closeTime: "22:00",
+            isClosed: false
+          });
+        }
+      }
+      
+      // Create default pricing options
+      const existingPricing = await db.select().from(pricing);
+      if (existingPricing.length === 0) {
+        await db.insert(pricing).values([
+          {
+            name: 'standard',
+            price: 50,
+            startTime: null,
+            endTime: null,
+            applyToWeekends: false,
+            weekendMultiplier: null
+          },
+          {
+            name: 'peak',
+            price: 60,
+            startTime: '12:00',
+            endTime: '16:00',
+            applyToWeekends: false,
+            weekendMultiplier: null
+          },
+          {
+            name: 'weekend',
+            price: 0, // Base price not used for weekends
+            startTime: null,
+            endTime: null,
+            applyToWeekends: true,
+            weekendMultiplier: 1.2
+          }
+        ]);
+      }
+      
+      // Create default configuration
+      const existingConfig = await db.select().from(configuration);
+      if (existingConfig.length === 0) {
+        await db.insert(configuration).values([
+          {
+            name: 'visibility_weeks',
+            value: '4'
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error("Error initializing default data:", error);
+    }
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+  
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+  
+  async getTimeSlot(id: number): Promise<TimeSlot | undefined> {
+    const [timeSlot] = await db.select().from(timeSlots).where(eq(timeSlots.id, id));
+    return timeSlot;
+  }
+  
+  async getTimeSlotsByDateRange(startDate: Date, endDate: Date): Promise<TimeSlot[]> {
+    return db.select()
+      .from(timeSlots)
+      .where(
+        and(
+          gte(timeSlots.startTime, startDate.toISOString()),
+          lte(timeSlots.startTime, endDate.toISOString())
+        )
+      );
+  }
+  
+  async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
+    const [newTimeSlot] = await db.insert(timeSlots).values(timeSlot).returning();
+    return newTimeSlot;
+  }
+  
+  async updateTimeSlot(id: number, timeSlot: Partial<TimeSlot>): Promise<TimeSlot | undefined> {
+    const [updatedTimeSlot] = await db.update(timeSlots)
+      .set(timeSlot)
+      .where(eq(timeSlots.id, id))
+      .returning();
+    return updatedTimeSlot;
+  }
+  
+  async reserveTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined> {
+    const [updatedTimeSlot] = await db.update(timeSlots)
+      .set({ 
+        status: "reserved",
+        reservationExpiry: expiryTime.toISOString()
+      })
+      .where(eq(timeSlots.id, id))
+      .returning();
+    return updatedTimeSlot;
+  }
+  
+  async releaseReservation(id: number): Promise<TimeSlot | undefined> {
+    const [updatedTimeSlot] = await db.update(timeSlots)
+      .set({ 
+        status: "available",
+        reservationExpiry: null
+      })
+      .where(eq(timeSlots.id, id))
+      .returning();
+    return updatedTimeSlot;
+  }
+  
+  async getBooking(id: number): Promise<Booking | undefined> {
+    const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
+    return booking;
+  }
+  
+  async getBookingByReference(reference: string): Promise<Booking | undefined> {
+    const [booking] = await db.select().from(bookings).where(eq(bookings.reference, reference));
+    return booking;
+  }
+  
+  async createBooking(booking: InsertBooking): Promise<Booking> {
+    const reference = `WB-${nanoid(8).toUpperCase()}`;
+    
+    const bookingToInsert = {
+      ...booking,
+      reference,
+      createdAt: new Date().toISOString()
+    };
+    
+    const [newBooking] = await db.insert(bookings).values(bookingToInsert).returning();
+    return newBooking;
+  }
+  
+  async deleteBooking(id: number): Promise<boolean> {
+    // First get the booking time slots to update their status
+    const bookingTimeSlotEntries = await db.select()
+      .from(bookingTimeSlots)
+      .where(eq(bookingTimeSlots.bookingId, id));
+    
+    // Update time slots to available
+    for (const bts of bookingTimeSlotEntries) {
+      await db.update(timeSlots)
+        .set({ 
+          status: "available",
+          reservationExpiry: null
+        })
+        .where(eq(timeSlots.id, bts.timeSlotId));
+    }
+    
+    // Delete booking time slots
+    await db.delete(bookingTimeSlots)
+      .where(eq(bookingTimeSlots.bookingId, id));
+    
+    // Delete the booking
+    const result = await db.delete(bookings).where(eq(bookings.id, id));
+    return result.rowCount > 0;
+  }
+  
+  async getBookingTimeSlots(bookingId: number): Promise<TimeSlot[]> {
+    const bookingSlots = await db.select({
+        timeSlot: timeSlots
+      })
+      .from(bookingTimeSlots)
+      .innerJoin(timeSlots, eq(bookingTimeSlots.timeSlotId, timeSlots.id))
+      .where(eq(bookingTimeSlots.bookingId, bookingId));
+    
+    return bookingSlots.map(item => item.timeSlot);
+  }
+  
+  async addTimeSlotToBooking(bookingTimeSlot: InsertBookingTimeSlot): Promise<BookingTimeSlot> {
+    // First update the time slot status to booked
+    await db.update(timeSlots)
+      .set({
+        status: "booked",
+        reservationExpiry: null
+      })
+      .where(eq(timeSlots.id, bookingTimeSlot.timeSlotId));
+    
+    // Then add the booking time slot entry
+    const [newBookingTimeSlot] = await db.insert(bookingTimeSlots)
+      .values(bookingTimeSlot)
+      .returning();
+    
+    return newBookingTimeSlot;
+  }
+  
+  async getOperatingHours(): Promise<OperatingHours[]> {
+    return db.select().from(operatingHours);
+  }
+  
+  async updateOperatingHours(id: number, hours: Partial<OperatingHours>): Promise<OperatingHours | undefined> {
+    const [updatedHours] = await db.update(operatingHours)
+      .set(hours)
+      .where(eq(operatingHours.id, id))
+      .returning();
+    
+    return updatedHours;
+  }
+  
+  async createOperatingHours(hours: InsertOperatingHours): Promise<OperatingHours> {
+    const [newHours] = await db.insert(operatingHours).values(hours).returning();
+    return newHours;
+  }
+  
+  async getPricing(): Promise<Pricing[]> {
+    return db.select().from(pricing);
+  }
+  
+  async updatePricing(id: number, pricingData: Partial<Pricing>): Promise<Pricing | undefined> {
+    const [updatedPricing] = await db.update(pricing)
+      .set(pricingData)
+      .where(eq(pricing.id, id))
+      .returning();
+    
+    return updatedPricing;
+  }
+  
+  async createPricing(pricingData: InsertPricing): Promise<Pricing> {
+    const [newPricing] = await db.insert(pricing).values(pricingData).returning();
+    return newPricing;
+  }
+  
+  async getConfiguration(name: string): Promise<Configuration | undefined> {
+    const [config] = await db.select().from(configuration).where(eq(configuration.name, name));
+    return config;
+  }
+  
+  async updateConfiguration(name: string, value: string): Promise<Configuration | undefined> {
+    const [updatedConfig] = await db.update(configuration)
+      .set({ value })
+      .where(eq(configuration.name, name))
+      .returning();
+    
+    return updatedConfig;
+  }
+  
+  async createConfiguration(config: InsertConfiguration): Promise<Configuration> {
+    const [newConfig] = await db.insert(configuration).values(config).returning();
+    return newConfig;
+  }
+  
+  async getBookingStats(startDate: Date, endDate: Date): Promise<any> {
+    // Get all bookings in date range
+    const bookingsInRange = await db.select()
+      .from(bookings)
+      .where(
+        and(
+          gte(bookings.createdAt, startDate.toISOString()),
+          lte(bookings.createdAt, endDate.toISOString())
+        )
+      );
+    
+    const totalBookings = bookingsInRange.length;
+    
+    // Get time slots for these bookings
+    let totalSlots = 0;
+    let totalIncome = 0;
+    let totalDuration = 0;
+    
+    const bookingsByDay = new Map<string, number>();
+    const timeSlotCounts = new Map<string, number>();
+    
+    // Initialize days of week
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    days.forEach(day => bookingsByDay.set(day, 0));
+    
+    // Initialize time slots
+    for (let hour = 8; hour < 22; hour++) {
+      for (let minute of [0, 30]) {
+        const timeKey = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        timeSlotCounts.set(timeKey, 0);
+      }
+    }
+    
+    // Process each booking
+    for (const booking of bookingsInRange) {
+      const bookingDate = new Date(booking.createdAt);
+      
+      // Add to day counts
+      const dayOfWeek = days[bookingDate.getDay()];
+      bookingsByDay.set(dayOfWeek, (bookingsByDay.get(dayOfWeek) || 0) + 1);
+      
+      // Get time slots for this booking
+      const bookingSlots = await this.getBookingTimeSlots(booking.id);
+      
+      totalSlots += bookingSlots.length;
+      totalIncome += bookingSlots.reduce((sum, slot) => sum + slot.price, 0);
+      
+      // Count time slot popularity
+      for (const slot of bookingSlots) {
+        const slotDate = new Date(slot.startTime);
+        const timeKey = `${slotDate.getHours().toString().padStart(2, '0')}:${slotDate.getMinutes().toString().padStart(2, '0')}`;
+        
+        timeSlotCounts.set(timeKey, (timeSlotCounts.get(timeKey) || 0) + 1);
+        
+        if (bookingSlots.length > 0) {
+          totalDuration += 30; // Each slot is 30 minutes
+        }
+      }
+    }
+    
+    // Calculate booking rate (% of total time slots that were booked)
+    const totalAvailableSlots = (await this.getTimeSlotsByDateRange(startDate, endDate)).length;
+    const bookingRate = totalAvailableSlots > 0 ? (totalSlots / totalAvailableSlots) * 100 : 0;
+    
+    // Format booking by day percentages
+    const bookingsByDayFormatted = days.map(day => {
+      const count = bookingsByDay.get(day) || 0;
+      return {
+        day,
+        count,
+        percentage: totalBookings > 0 ? (count / totalBookings) * 100 : 0
+      };
+    });
+    
+    // Find most popular time slots
+    const timeSlotsSorted = Array.from(timeSlotCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([time, count]) => ({
+        time,
+        percentage: totalSlots > 0 ? (count / totalSlots) * 100 : 0
+      }));
+    
+    return {
+      bookingRate: parseFloat(bookingRate.toFixed(1)),
+      totalBookings,
+      forecastedIncome: totalIncome,
+      avgSessionLength: totalBookings > 0 ? totalDuration / totalBookings : 0,
+      bookingsByDay: bookingsByDayFormatted,
+      popularTimeSlots: timeSlotsSorted
+    };
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -569,4 +955,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
