@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { format, addDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -201,17 +201,52 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
             const minute = parseInt(minuteStr);
             const slots = getTimeSlotsForTime(hour, minute);
             
-            return (
-              <>
-                {/* Hourly separator */}
-                {minute === 0 && (
-                  <div className="flex w-full mb-2 mt-3 first:mt-0">
+            // Add hourly separator
+            if (minute === 0) {
+              return (
+                <div key={`time-block-${timeString}`}>
+                  <div className="flex w-full mb-1 mt-2 first:mt-0">
                     <div className="w-10 flex-shrink-0"></div>
                     <div className="flex-1 border-t border-gray-200"></div>
                   </div>
-                )}
-                
-                <div key={timeString} className="flex mb-2 items-start">
+                  
+                  <div className="flex mb-1 items-start">
+                    {/* Time column */}
+                    <div className="w-10 flex-shrink-0 pt-2 pr-1 text-right">
+                      <span className="text-xs font-medium text-gray-500">{timeString}</span>
+                    </div>
+                    
+                    {/* Slots for this time */}
+                    <div className="flex-1 grid grid-cols-7 gap-1">
+                      {slots.map(slot => {
+                        const isSelected = selectedSlots.includes(slot.id);
+                        return (
+                          <Button
+                            key={slot.id}
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                              "h-9 py-0 px-1 justify-center items-center text-center text-xs",
+                              getSlotClass(slot.status, isSelected)
+                            )}
+                            disabled={slot.status !== "available" && !isAdmin}
+                            onClick={() => toggleSlot(slot.id, slot.status)}
+                          >
+                            <div className="text-center w-full">
+                              <Badge variant="outline" className="px-1 h-4 text-[10px]">
+                                €{slot.price}
+                              </Badge>
+                            </div>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            } else {
+              return (
+                <div key={`time-block-${timeString}`} className="flex mb-1 items-start">
                   {/* Time column */}
                   <div className="w-10 flex-shrink-0 pt-2 pr-1 text-right">
                     <span className="text-xs font-medium text-gray-500">{timeString}</span>
@@ -243,8 +278,8 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                     })}
                   </div>
                 </div>
-              </>
-            );
+              );
+            }
           })}
         </div>
         
