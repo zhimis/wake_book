@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useMutation } from "@tanstack/react-query";
 import { 
   CalendarIcon, 
   ChevronLeft, 
@@ -15,6 +16,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWeather } from "@/hooks/use-weather";
+import { useBooking } from "@/context/booking-context";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
 
@@ -25,6 +29,9 @@ interface TimeSlot {
   minute: number; // 0 or 30
   price: number;
   status: TimeSlotStatus;
+  startTime?: Date;  // Added to match context expectations
+  endTime?: Date;    // Added to match context expectations
+  reservationExpiry?: Date | null; // Added to match context expectations
 }
 
 interface BookingCalendarProps {
@@ -35,8 +42,14 @@ interface BookingCalendarProps {
 // Simplified booking calendar with mock data
 const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   const [currentDate] = useState<Date>(new Date());
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  
+  // Use the booking context
+  const { selectedTimeSlots, toggleTimeSlot, setReservationExpiry } = useBooking();
   const { forecast: weatherForecast, isLoading: weatherLoading } = useWeather();
+  const { toast } = useToast();
+  
+  // Keep track of selected slot IDs
+  const selectedSlotIds = selectedTimeSlots.map(slot => slot.id);
   
   // Create 7 day week starting today
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -72,13 +85,24 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         if (rand < 0.1) status = "booked";
         else if (rand < 0.2) status = "reserved";
         
+        // Create slot date and times
+        const slotDate = addDays(currentDate, day);
+        const startTime = new Date(slotDate);
+        startTime.setHours(hour, minute, 0, 0);
+        
+        const endTime = new Date(startTime);
+        endTime.setMinutes(endTime.getMinutes() + 30);
+        
         timeSlots.push({
           id: `day-${day}-${hour}-${minute}`,
           day,
           hour,
           minute,
           price,
-          status
+          status,
+          startTime,
+          endTime,
+          reservationExpiry: null
         });
       }
     }
@@ -100,16 +124,45 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   };
   
   // Toggle slot selection
-  const toggleSlot = (slotId: string, status: TimeSlotStatus) => {
+  const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
     if (status !== "available" && !isAdmin) return;
     
-    setSelectedSlots(prev => {
-      if (prev.includes(slotId)) {
-        return prev.filter(id => id !== slotId);
-      } else {
-        return [...prev, slotId];
+    // Find the actual slot object
+    const slot = timeSlots.find(s => s.id === slotId);
+    if (!slot) return;
+    
+    // Update booking context
+    toggleTimeSlot(slot);
+  };
+  
+  // Reserve time slots on the server and navigate to booking form
+  const reserveAndProceed = async () => {
+    try {
+      if (selectedTimeSlots.length === 0) {
+        toast({
+          title: "No Time Slots Selected",
+          description: "Please select at least one time slot before proceeding.",
+          variant: "destructive"
+        });
+        return;
       }
-    });
+      
+      // Set a temporary 15-minute reservation expiry
+      const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
+      setReservationExpiry(expiryTime);
+      
+      toast({
+        title: "Time Slots Reserved",
+        description: "Your selected time slots have been reserved for 15 minutes.",
+        variant: "default"
+      });
+    } catch (error) {
+      toast({
+        title: "Reservation Failed",
+        description: "There was an error reserving your time slots. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   // Get CSS class for time slot based on status
@@ -132,33 +185,32 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   
   // Calculate total price
   const calculateTotalPrice = () => {
-    return timeSlots
-      .filter(slot => selectedSlots.includes(slot.id))
-      .reduce((total, slot) => total + slot.price, 0);
+    return selectedTimeSlots.reduce((total, slot) => total + slot.price, 0);
   };
   
   // Get selected time range for display
   const getSelectedTimeRange = () => {
-    if (selectedSlots.length === 0) return null;
+    if (selectedTimeSlots.length === 0) return null;
     
-    const selected = timeSlots.filter(slot => selectedSlots.includes(slot.id))
-      .sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute));
+    // Sort the slots by their start time
+    const selected = [...selectedTimeSlots].sort((a, b) => 
+      a.startTime && b.startTime 
+        ? a.startTime.getTime() - b.startTime.getTime() 
+        : 0
+    );
     
     if (selected.length === 0) return null;
     
     const firstSlot = selected[0];
     const lastSlot = selected[selected.length - 1];
     
-    // Calculate end time of last slot (30 min after start)
-    let endHour = lastSlot.hour;
-    let endMinute = lastSlot.minute + 30;
+    if (!firstSlot.startTime || !lastSlot.endTime) return null;
     
-    if (endMinute >= 60) {
-      endHour += 1;
-      endMinute -= 60;
-    }
+    // Format using the date-fns format
+    const startTimeStr = format(firstSlot.startTime, 'HH:mm');
+    const endTimeStr = format(lastSlot.endTime, 'HH:mm');
     
-    return `${formatTime(firstSlot.hour, firstSlot.minute)} - ${formatTime(endHour, endMinute)}`;
+    return `${startTimeStr} - ${endTimeStr}`;
   };
 
   return (
@@ -245,7 +297,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                     {/* Slots for this time */}
                     <div className="flex-1 grid grid-cols-7 gap-1">
                       {slots.map(slot => {
-                        const isSelected = selectedSlots.includes(slot.id);
+                        const isSelected = selectedSlotIds.includes(slot.id);
                         return (
                           <Button
                             key={slot.id}
@@ -256,7 +308,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                               getSlotClass(slot.status, isSelected)
                             )}
                             disabled={slot.status !== "available" && !isAdmin}
-                            onClick={() => toggleSlot(slot.id, slot.status)}
+                            onClick={() => handleSlotToggle(slot.id, slot.status)}
                           >
                             <div className="text-center w-full">
                               <Badge variant="outline" className="px-1 h-4 text-[10px]">
@@ -281,7 +333,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                   {/* Slots for this time */}
                   <div className="flex-1 grid grid-cols-7 gap-1">
                     {slots.map(slot => {
-                      const isSelected = selectedSlots.includes(slot.id);
+                      const isSelected = selectedSlotIds.includes(slot.id);
                       return (
                         <Button
                           key={slot.id}
@@ -292,7 +344,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                             getSlotClass(slot.status, isSelected)
                           )}
                           disabled={slot.status !== "available" && !isAdmin}
-                          onClick={() => toggleSlot(slot.id, slot.status)}
+                          onClick={() => handleSlotToggle(slot.id, slot.status)}
                         >
                           <div className="text-center w-full">
                             <Badge variant="outline" className="px-1 h-4 text-[10px]">
@@ -310,18 +362,18 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         </div>
         
         {/* Selection summary */}
-        {selectedSlots.length > 0 && (
+        {selectedTimeSlots.length > 0 && (
           <div className="mt-4 pt-4 border-t px-4 pb-4">
             <div className="flex justify-between items-center">
               <div>
-                <h4 className="font-medium text-sm">Selected Slots: {selectedSlots.length}</h4>
+                <h4 className="font-medium text-sm">Selected Slots: {selectedTimeSlots.length}</h4>
                 <p className="text-xs text-muted-foreground">
                   {format(currentDate, "EEE, MMM d")} {getSelectedTimeRange()}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium">Total: €{calculateTotalPrice()}</p>
-                <Link href={`/booking?slots=${selectedSlots.join(',')}`}>
+                <Link href="/booking" onClick={reserveAndProceed}>
                   <Button size="sm" className="mt-2">Proceed to Booking</Button>
                 </Link>
               </div>
