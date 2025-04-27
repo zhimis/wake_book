@@ -9,7 +9,7 @@ const Footer = () => {
             <Link href="/">
               <span className="text-primary font-heading font-bold text-xl cursor-pointer">Hi Wake 2.0</span>
             </Link>
-            <p className="text-gray-500 text-sm mt-1">Adazi, Latvia's premier wakeboarding facility</p>
+            <p className="text-gray-500 text-sm mt-1">Riga, Latvia's premier wakeboarding facility</p>
           </div>
           <div className="flex flex-col md:flex-row items-center md:space-x-8">
             <button className="text-gray-600 hover:text-primary mb-2 md:mb-0">Contact Us</button>

@@ -94,7 +94,7 @@ export default function WeatherWidget() {
       <CardHeader className="pb-2">
         <CardTitle className="text-xl flex items-center">
           {getWeatherIcon(weather.current.condition)}
-          <span className="ml-2">Adazi Weather</span>
+          <span className="ml-2">Riga Weather</span>
         </CardTitle>
       </CardHeader>
       <CardContent>

@@ -402,21 +402,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mock weather API for Adazi, Latvia
+  // Mock weather API for Riga, Latvia
   app.get("/api/weather", async (req, res) => {
     try {
-      // Create a realistic 7-day forecast for Adazi, Latvia in April
+      // Create a realistic 7-day forecast for Riga, Latvia in April
       const today = new Date();
       
-      // Adazi, Latvia weather conditions - April averages
-      // Source: https://www.weather-atlas.com/en/latvia/adazi-climate
-      // April in Adazi, Latvia: Temperatures typically 2°C to 11°C, cool and often cloudy with rain
-      const adaziWeatherPatterns = [
-        { text: "Partly cloudy", icon: "116", temp_range: [5, 12], probability: 0.35 },
-        { text: "Cloudy", icon: "119", temp_range: [4, 10], probability: 0.25 },
-        { text: "Light rain", icon: "176", temp_range: [2, 8], probability: 0.20 },
-        { text: "Sunny", icon: "113", temp_range: [7, 13], probability: 0.15 },
-        { text: "Moderate rain", icon: "302", temp_range: [1, 7], probability: 0.05 }
+      // Riga, Latvia weather conditions - April/May averages
+      // Source: https://www.weatherbase.com/weather/weather.php3?s=6616&cityname=Riga-Latvia
+      // Spring in Riga, Latvia: Temperatures typically 4°C to 15°C
+      const rigaWeatherPatterns = [
+        { text: "Partly cloudy", icon: "116", temp_range: [6, 14], probability: 0.35 },
+        { text: "Cloudy", icon: "119", temp_range: [5, 12], probability: 0.25 },
+        { text: "Light rain", icon: "176", temp_range: [4, 10], probability: 0.20 },
+        { text: "Sunny", icon: "113", temp_range: [8, 15], probability: 0.15 },
+        { text: "Moderate rain", icon: "302", temp_range: [3, 8], probability: 0.05 }
       ];
       
       const forecast = [];
@@ -430,15 +430,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let cumulativeProbability = 0;
         let selectedConditionIndex = 0;
         
-        for (let j = 0; j < adaziWeatherPatterns.length; j++) {
-          cumulativeProbability += adaziWeatherPatterns[j].probability;
+        for (let j = 0; j < rigaWeatherPatterns.length; j++) {
+          cumulativeProbability += rigaWeatherPatterns[j].probability;
           if (random <= cumulativeProbability) {
             selectedConditionIndex = j;
             break;
           }
         }
         
-        const pattern = adaziWeatherPatterns[selectedConditionIndex];
+        const pattern = rigaWeatherPatterns[selectedConditionIndex];
         // Temperature within the appropriate range for selected condition
         const minTemp = pattern.temp_range[0];
         const maxTemp = pattern.temp_range[1];
@@ -450,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           temperature: temperature,
           condition: pattern.text,
           icon: `https://cdn.weatherapi.com/weather/64x64/day/${pattern.icon}.png`,
-          location: "Adazi, Latvia"
+          location: "Riga, Latvia"
         });
       }
       
@@ -459,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ 
         forecast,
-        location: "Adazi, Latvia",
+        location: "Riga, Latvia",
         current: {
           temperature: currentWeather.temperature,
           condition: currentWeather.condition,

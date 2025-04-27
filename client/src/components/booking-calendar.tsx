@@ -8,7 +8,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Euro,
-  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +15,9 @@ type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
 
 interface TimeSlot {
   id: string;
-  startTime: string; // Using string to avoid date conversion issues
+  day: number; // 0-6 for day of week
+  hour: number; // hour in 24-hour format
+  minute: number; // 0 or 30
   price: number;
   status: TimeSlotStatus;
 }
@@ -41,62 +42,55 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
     };
   });
   
-  // Pre-generated time slots with prices and availability
-  const timeSlots: Record<string, TimeSlot[]> = {
-    "9:00": [
-      { id: "mon-9-00", startTime: "9:00", price: 15, status: "available" },
-      { id: "tue-9-00", startTime: "9:00", price: 15, status: "booked" },
-      { id: "wed-9-00", startTime: "9:00", price: 15, status: "available" },
-      { id: "thu-9-00", startTime: "9:00", price: 15, status: "available" },
-      { id: "fri-9-00", startTime: "9:00", price: 15, status: "available" },
-      { id: "sat-9-00", startTime: "9:00", price: 20, status: "reserved" },
-      { id: "sun-9-00", startTime: "9:00", price: 20, status: "available" },
-    ],
-    "9:30": [
-      { id: "mon-9-30", startTime: "9:30", price: 15, status: "available" },
-      { id: "tue-9-30", startTime: "9:30", price: 15, status: "available" },
-      { id: "wed-9-30", startTime: "9:30", price: 15, status: "available" },
-      { id: "thu-9-30", startTime: "9:30", price: 15, status: "booked" },
-      { id: "fri-9-30", startTime: "9:30", price: 15, status: "available" },
-      { id: "sat-9-30", startTime: "9:30", price: 20, status: "reserved" },
-      { id: "sun-9-30", startTime: "9:30", price: 20, status: "available" },
-    ],
-    "10:00": [
-      { id: "mon-10-00", startTime: "10:00", price: 15, status: "booked" },
-      { id: "tue-10-00", startTime: "10:00", price: 15, status: "available" },
-      { id: "wed-10-00", startTime: "10:00", price: 15, status: "available" },
-      { id: "thu-10-00", startTime: "10:00", price: 15, status: "available" },
-      { id: "fri-10-00", startTime: "10:00", price: 15, status: "available" },
-      { id: "sat-10-00", startTime: "10:00", price: 20, status: "available" },
-      { id: "sun-10-00", startTime: "10:00", price: 20, status: "available" },
-    ],
-    "10:30": [
-      { id: "mon-10-30", startTime: "10:30", price: 15, status: "available" },
-      { id: "tue-10-30", startTime: "10:30", price: 15, status: "available" },
-      { id: "wed-10-30", startTime: "10:30", price: 15, status: "available" },
-      { id: "thu-10-30", startTime: "10:30", price: 15, status: "available" },
-      { id: "fri-10-30", startTime: "10:30", price: 15, status: "booked" },
-      { id: "sat-10-30", startTime: "10:30", price: 20, status: "available" },
-      { id: "sun-10-30", startTime: "10:30", price: 20, status: "available" },
-    ],
-    "11:00": [
-      { id: "mon-11-00", startTime: "11:00", price: 18, status: "available" },
-      { id: "tue-11-00", startTime: "11:00", price: 18, status: "available" },
-      { id: "wed-11-00", startTime: "11:00", price: 18, status: "reserved" },
-      { id: "thu-11-00", startTime: "11:00", price: 18, status: "available" },
-      { id: "fri-11-00", startTime: "11:00", price: 18, status: "available" },
-      { id: "sat-11-00", startTime: "11:00", price: 23, status: "available" },
-      { id: "sun-11-00", startTime: "11:00", price: 23, status: "booked" },
-    ],
-    "11:30": [
-      { id: "mon-11-30", startTime: "11:30", price: 18, status: "available" },
-      { id: "tue-11-30", startTime: "11:30", price: 18, status: "available" },
-      { id: "wed-11-30", startTime: "11:30", price: 18, status: "reserved" },
-      { id: "thu-11-30", startTime: "11:30", price: 18, status: "available" },
-      { id: "fri-11-30", startTime: "11:30", price: 18, status: "available" },
-      { id: "sat-11-30", startTime: "11:30", price: 23, status: "available" },
-      { id: "sun-11-30", startTime: "11:30", price: 23, status: "booked" },
-    ],
+  // Create time slots from 8:00 to 22:00 in 30 minute increments
+  const timeSlots: TimeSlot[] = [];
+  const daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // 0 = Monday, 6 = Sunday in our view
+  
+  // Generate all time slots
+  daysOfWeek.forEach(day => {
+    // From 8:00 to 22:00
+    for (let hour = 8; hour < 22; hour++) {
+      for (let minute of [0, 30]) {
+        // Base price: 15€ for mornings, 18€ for afternoons, 20€ for evenings
+        let price = 15;
+        if (hour >= 12 && hour < 17) price = 18;
+        if (hour >= 17) price = 20;
+        
+        // Weekend price increase
+        if (day >= 5) price += 5;
+        
+        // Random status with weighted probabilities
+        const rand = Math.random();
+        let status: TimeSlotStatus = "available";
+        
+        if (rand < 0.1) status = "booked";
+        else if (rand < 0.2) status = "reserved";
+        
+        timeSlots.push({
+          id: `day-${day}-${hour}-${minute}`,
+          day,
+          hour,
+          minute,
+          price,
+          status
+        });
+      }
+    }
+  });
+  
+  // Get time slots for a specific time (e.g. "8:00")
+  const getTimeSlotsForTime = (hour: number, minute: number) => {
+    return timeSlots.filter(slot => slot.hour === hour && slot.minute === minute);
+  };
+  
+  // Get all time strings in format "HH:MM"
+  const allTimeStrings = Array.from(new Set(timeSlots.map(slot => 
+    `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`
+  ))).sort();
+  
+  // Format time from hour and minute
+  const formatTime = (hour: number, minute: number) => {
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
   
   // Toggle slot selection
@@ -132,23 +126,33 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   
   // Calculate total price
   const calculateTotalPrice = () => {
-    return Object.values(timeSlots)
-      .flatMap(slots => slots)
+    return timeSlots
       .filter(slot => selectedSlots.includes(slot.id))
       .reduce((total, slot) => total + slot.price, 0);
   };
   
-  // Get a sample selected slot for display
+  // Get selected time range for display
   const getSelectedTimeRange = () => {
     if (selectedSlots.length === 0) return null;
     
-    const allSlots = Object.values(timeSlots).flatMap(slots => slots);
-    const selected = allSlots.filter(slot => selectedSlots.includes(slot.id));
+    const selected = timeSlots.filter(slot => selectedSlots.includes(slot.id))
+      .sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute));
+    
+    if (selected.length === 0) return null;
     
     const firstSlot = selected[0];
     const lastSlot = selected[selected.length - 1];
     
-    return `${firstSlot.startTime} - ${parseInt(lastSlot.startTime.split(':')[0]) + 1}:${lastSlot.startTime.split(':')[1]}`;
+    // Calculate end time of last slot (30 min after start)
+    let endHour = lastSlot.hour;
+    let endMinute = lastSlot.minute + 30;
+    
+    if (endMinute >= 60) {
+      endHour += 1;
+      endMinute -= 60;
+    }
+    
+    return `${formatTime(firstSlot.hour, firstSlot.minute)} - ${formatTime(endHour, endMinute)}`;
   };
 
   return (
@@ -173,49 +177,68 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         </p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-7 gap-1 mb-4 text-center">
-          {days.map((day, index) => (
-            <div key={index} className="text-sm font-medium">
-              <div className="mb-1">{day.name}</div>
-              <div className="text-xs text-muted-foreground">{day.day}</div>
-            </div>
-          ))}
+        {/* Time and day headers */}
+        <div className="flex">
+          {/* Time column header */}
+          <div className="w-16 flex-shrink-0"></div>
+          
+          {/* Day columns headers */}
+          <div className="flex-1 grid grid-cols-7 gap-1">
+            {days.map((day, index) => (
+              <div key={index} className="text-center">
+                <div className="font-medium text-sm">{day.name}</div>
+                <div className="text-xs text-muted-foreground">{day.day}</div>
+              </div>
+            ))}
+          </div>
         </div>
         
-        <div className="grid grid-cols-7 gap-1 overflow-y-auto max-h-[400px]">
-          {Object.entries(timeSlots).map(([time, slots]) => (
-            <>
-              {slots.map((slot, index) => {
-                const isSelected = selectedSlots.includes(slot.id);
-                return (
-                  <Button
-                    key={slot.id}
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "h-auto py-1 px-2 justify-between flex-col items-start text-left text-xs",
-                      getSlotClass(slot.status, isSelected)
-                    )}
-                    disabled={slot.status !== "available" && !isAdmin}
-                    onClick={() => toggleSlot(slot.id, slot.status)}
-                  >
-                    <div className="flex items-center w-full justify-between">
-                      <span className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {slot.startTime}
-                      </span>
-                      <Badge variant="outline" className="ml-1 px-1 h-4">
-                        <Euro className="h-2 w-2 mr-0.5" />
-                        {slot.price}
-                      </Badge>
-                    </div>
-                  </Button>
-                );
-              })}
-            </>
-          ))}
+        {/* Calendar grid with time slots */}
+        <div className="mt-4 overflow-y-auto max-h-[500px]">
+          {allTimeStrings.map(timeString => {
+            const [hourStr, minuteStr] = timeString.split(':');
+            const hour = parseInt(hourStr);
+            const minute = parseInt(minuteStr);
+            const slots = getTimeSlotsForTime(hour, minute);
+            
+            return (
+              <div key={timeString} className="flex mb-1 items-start">
+                {/* Time column */}
+                <div className="w-16 flex-shrink-0 pt-1 pr-2 text-right">
+                  <span className="text-xs font-medium text-gray-500">{timeString}</span>
+                </div>
+                
+                {/* Slots for this time */}
+                <div className="flex-1 grid grid-cols-7 gap-1">
+                  {slots.map(slot => {
+                    const isSelected = selectedSlots.includes(slot.id);
+                    return (
+                      <Button
+                        key={slot.id}
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-6 py-0 px-1 justify-center items-center text-center text-xs",
+                          getSlotClass(slot.status, isSelected)
+                        )}
+                        disabled={slot.status !== "available" && !isAdmin}
+                        onClick={() => toggleSlot(slot.id, slot.status)}
+                      >
+                        <div className="text-center w-full">
+                          <Badge variant="outline" className="px-1 h-4 text-[10px]">
+                            €{slot.price}
+                          </Badge>
+                        </div>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
         
+        {/* Selection summary */}
         {selectedSlots.length > 0 && (
           <div className="mt-4 pt-4 border-t">
             <div className="flex justify-between items-center">

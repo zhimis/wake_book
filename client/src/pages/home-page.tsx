@@ -7,7 +7,7 @@ const HomePage = () => {
     <main className="container mx-auto px-4 py-6 md:py-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-center">Hi Wake 2.0 Booking</h1>
-        <p className="text-center mb-8">Book your wakeboarding session at Adazi, Latvia's premier facility</p>
+        <p className="text-center mb-8">Book your wakeboarding session at Riga, Latvia's premier facility</p>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-3">
