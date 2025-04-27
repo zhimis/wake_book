@@ -176,11 +176,11 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
           {format(currentDate, "MMMM d")} - {format(addDays(currentDate, 6), "MMMM d, yyyy")}
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0 overflow-visible">
         {/* Time and day headers */}
-        <div className="flex">
+        <div className="flex pl-1">
           {/* Time column header */}
-          <div className="w-16 flex-shrink-0"></div>
+          <div className="w-10 flex-shrink-0"></div>
           
           {/* Day columns headers */}
           <div className="flex-1 grid grid-cols-7 gap-1">
@@ -194,7 +194,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         </div>
         
         {/* Calendar grid with time slots */}
-        <div className="mt-4 overflow-y-auto max-h-[500px]">
+        <div className="mt-2">
           {allTimeStrings.map(timeString => {
             const [hourStr, minuteStr] = timeString.split(':');
             const hour = parseInt(hourStr);
@@ -204,7 +204,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
             return (
               <div key={timeString} className="flex mb-1 items-start">
                 {/* Time column */}
-                <div className="w-16 flex-shrink-0 pt-1 pr-2 text-right">
+                <div className="w-10 flex-shrink-0 pt-1 pr-1 text-right">
                   <span className="text-xs font-medium text-gray-500">{timeString}</span>
                 </div>
                 
@@ -240,7 +240,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         
         {/* Selection summary */}
         {selectedSlots.length > 0 && (
-          <div className="mt-4 pt-4 border-t">
+          <div className="mt-4 pt-4 border-t px-4 pb-4">
             <div className="flex justify-between items-center">
               <div>
                 <h4 className="font-medium text-sm">Selected Slots: {selectedSlots.length}</h4>
