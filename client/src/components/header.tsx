@@ -14,13 +14,13 @@ const Header = () => {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
           <Link href="/">
-            <a className="text-primary font-heading font-bold text-2xl">WakeBook</a>
+            <span className="text-primary font-heading font-bold text-2xl cursor-pointer">WakeBook</span>
           </Link>
         </div>
         
         <div className="flex items-center space-x-4">
           <Link href="/admin/login">
-            <a className="hidden md:block text-primary font-semibold">Admin Login</a>
+            <span className="hidden md:block text-primary font-semibold cursor-pointer">Admin Login</span>
           </Link>
           
           <button 
@@ -41,10 +41,10 @@ const Header = () => {
       )}>
         <nav className="flex flex-col space-y-3 py-2">
           <Link href="/">
-            <a className="text-gray-700 hover:text-primary font-medium py-1">Home</a>
+            <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Home</span>
           </Link>
           <Link href="/admin/login">
-            <a className="text-gray-700 hover:text-primary font-medium py-1">Admin Login</a>
+            <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Admin Login</span>
           </Link>
         </nav>
       </div>
