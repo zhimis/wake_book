@@ -1,0 +1,147 @@
+Thank you for providing that additional information. Let's refine those specific aspects in our requirements prompt:
+
+# Wakeboarding Park Booking System - MVP Requirements Prompt
+
+## Overview
+Develop a mobile-first web application for a wakeboarding park with a 2-tower system that allows one rider at a time. The system will enable customers to view available time slots, book sessions, and provide administrators with management capabilities. The application should be designed as a responsive web app with potential for PWA functionality.
+
+## Core Functionality
+
+### User Roles
+1. **Customers** - People who want to book wakeboarding sessions
+2. **Administrators** - Staff who manage the booking system, time slots, and pricing
+
+### Customer Features
+
+#### 1. Calendar View
+- Display a weekly calendar view with time slots divided into 30-minute increments
+- Clearly indicate price for each time slot
+- Show availability status (available, booked, reserved)
+- Allow customers to select multiple consecutive time slots before proceeding to booking
+- Implement responsive design optimized for mobile devices
+- Limit calendar visibility to maximum 1 month ahead
+- Include current week's weather forecast integration
+
+#### 2. Detailed Booking Flow
+1. **Calendar Browsing**
+   - User views calendar with available slots
+   - Days are displayed in a week view with easy navigation between weeks
+   - Each slot shows availability and price
+   - Weather forecast displayed for current week
+
+2. **Slot Selection**
+   - User taps/clicks available time slot(s)
+   - Selected slot changes color to indicate selection
+   - Selected slot is locked for other users for 10 minutes
+   - Visual countdown timer showing reservation expiration
+   - Warning notification when 2 minutes remain
+   - Clear indication of total time and cost at bottom of screen
+   - "Proceed to Booking" button becomes active after selection
+
+3. **Booking Form**
+   - Simple form collecting:
+     - Full name (required)
+     - Phone number (required, with validation)
+   - Clear display of selected time slots and total cost
+   - Options to edit selections or return to calendar
+
+4. **Confirmation**
+   - Review screen showing all booking details
+   - "Confirm Booking" button
+   - On successful booking:
+     - Success message with booking reference
+     - Option to add to calendar
+     - SMS confirmation sent to provided phone number
+
+5. **Conflict Resolution**
+   - When a user selects a time slot, it's locked for 10 minutes
+   - Visual indication (different color/pattern) for temporarily locked slots
+   - Other users cannot select locked slots
+   - If booking not completed within 10 minutes:
+     - Warning notification shown to user
+     - Slots released back to available pool automatically
+     - User returned to selection screen if they attempt to proceed
+
+### Administrator Features
+
+#### 1. Booking Management
+- View all bookings in calendar format (similar to customer view)
+- Access detailed information for each booking
+- Ability to modify existing bookings (change time, adjust details)
+- Ability to delete bookings
+- Manually create bookings for customers (phone bookings)
+- Mark slots as unavailable (maintenance, private events, etc.)
+
+#### 2. System Configuration
+- Set standard operating hours for each day of the week (recurring schedule)
+- Configure pricing for different time slots:
+  - Standard pricing
+  - Special pricing for peak hours, weekends, holidays
+- Ability to override default availability for specific dates
+- Set visibility timeframe for booking calendar (up to 1 month)
+
+#### 3. Statistics Dashboard
+- Booking load percentage (booked hours vs. total available hours)
+- Daily, weekly, and monthly views
+- Forecasted income based on confirmed bookings
+- Popular booking times visualization
+- Utilization rate by day of week
+- Simple export functionality (CSV)
+
+### Security Implementation
+1. **Admin Authentication**
+   - Secure login with username/password
+   - Strong password requirements
+   - Session timeout after period of inactivity (30 minutes)
+   - IP-based login attempt limiting to prevent brute force attacks
+   - HTTPS implementation for all data transfer
+
+2. **Data Protection**
+   - Encryption of customer personal data
+   - Minimal data collection (only what's necessary)
+   - Secure database configuration with proper access controls
+   - Regular automated backups
+
+3. **Booking Security**
+   - Server-side validation of all booking requests
+   - Confirmation of slot availability before finalizing booking
+   - Transaction logging for all booking activities
+   - CSRF protection on all forms
+
+## Technical Considerations
+1. **Mobile-First Design**
+   - Responsive UI optimized for mobile devices
+   - Touch-friendly interface for slot selection
+   - Desktop version as an extension of mobile design
+   - Simplified booking flow to minimize friction
+
+2. **Compatibility**
+   - Support for all modern mobile browsers (Chrome, Safari, Firefox, Edge)
+   - Cross-platform functionality on iOS and Android devices
+   - Desktop browser compatibility
+   - Progressive Web App (PWA) capabilities for improved mobile experience
+
+3. **Data Management**
+   - Secure storage of customer information
+   - Automatic time slot management to prevent double bookings
+   - Data backup and recovery mechanisms
+
+4. **Weather Integration**
+   - Display current week's forecast in the booking view
+   - Simple visual indicators for weather conditions
+
+5. **Concurrent User Management**
+   - Real-time slot status updates
+   - Temporary reservation system (10-minute hold)
+   - Graceful handling of reservation timeouts
+   - Clear visual feedback on slot status
+
+## Future Phases (Not in MVP)
+1. Payment processing integration
+2. User registration and login (including Google sign-in)
+3. Automated booking reminders
+4. Waitlist functionality for fully booked periods
+5. Special pricing for returning customers or bulk bookings
+6. Weather-based dynamic pricing
+
+Would you like me to elaborate further on any specific aspects of the booking flow, security implementation, or any other part of the requirements?
