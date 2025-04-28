@@ -478,6 +478,7 @@ const AdminCalendarView = () => {
             <BookingCalendar 
               onDateRangeChange={handleDateRangeChange}
               isAdmin={true}
+              onAdminSlotSelect={handleTimeSlotSelect}
             />
           ) : (
             <Card>
