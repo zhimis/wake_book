@@ -474,16 +474,25 @@ const AdminCalendarView = () => {
                   <div className="font-semibold">Selected slots:</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
                     {selectedTimeSlots.map((slot) => {
-                      // Get actual time in local timezone
+                      // Get actual time in local timezone adjusted by -3 hours to fix display
                       const startTime = new Date(slot.startTime);
                       const endTime = new Date(slot.endTime);
                       
+                      // Adjust for the 3-hour difference (subtract 3 hours)
+                      const adjustedStartTime = new Date(startTime);
+                      adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                      
+                      const adjustedEndTime = new Date(endTime);
+                      adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
+                      
+                      console.log(`Displaying slot: original time ${startTime.toLocaleTimeString()}, adjusted time ${adjustedStartTime.toLocaleTimeString()}`);
+                      
                       return (
                         <div key={slot.id} className="text-xs flex gap-1">
-                          <span>{format(startTime, "EEE, MMM d")}</span>
+                          <span>{format(adjustedStartTime, "EEE, MMM d")}</span>
                           <span>•</span>
-                          <span>{startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}-
-                                {endTime.getHours()}:{endTime.getMinutes().toString().padStart(2, '0')}</span>
+                          <span>{adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
+                                {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}</span>
                         </div>
                       );
                     })}
@@ -573,12 +582,19 @@ const AdminCalendarView = () => {
                   const startTime = new Date(slot.startTime);
                   const endTime = new Date(slot.endTime);
                   
+                  // Adjust for the 3-hour difference (subtract 3 hours)
+                  const adjustedStartTime = new Date(startTime);
+                  adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                  
+                  const adjustedEndTime = new Date(endTime);
+                  adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
+                  
                   return (
                     <div key={slot.id} className="text-sm flex justify-between items-center">
                       <span>
-                        {format(startTime, "EEE, MMM d")} • 
-                        {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}-
-                        {endTime.getHours()}:{endTime.getMinutes().toString().padStart(2, '0')}
+                        {format(adjustedStartTime, "EEE, MMM d")} • 
+                        {adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
+                        {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}
                       </span>
                       <span>{formatPrice(slot.price)}</span>
                     </div>
@@ -683,11 +699,18 @@ const AdminCalendarView = () => {
                   const startTime = new Date(slot.startTime);
                   const endTime = new Date(slot.endTime);
                   
+                  // Adjust for the 3-hour difference (subtract 3 hours)
+                  const adjustedStartTime = new Date(startTime);
+                  adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                  
+                  const adjustedEndTime = new Date(endTime);
+                  adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
+                  
                   return (
                     <div key={slot.id} className="text-sm">
-                      {format(startTime, "EEEE, MMM d")} • 
-                      {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}-
-                      {endTime.getHours()}:{endTime.getMinutes().toString().padStart(2, '0')}
+                      {format(adjustedStartTime, "EEEE, MMM d")} • 
+                      {adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
+                      {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}
                     </div>
                   );
                 })}

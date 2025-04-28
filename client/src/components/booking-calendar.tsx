@@ -329,10 +329,10 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
   
   // Get CSS class for time slot based on status
   const getSlotClass = (status: TimeSlotStatus, isSelected: boolean) => {
-    // If admin mode and selected, this takes priority over everything else
+    // If admin mode and selected, force use of our special CSS class
     if (isAdmin && isSelected) {
-      // No need to return anything, we're using the admin-selected-slot global class
-      return "";
+      // Return the global admin-selected-slot class to override everything else
+      return "admin-selected-slot border-4 border-red-500 outline-2 outline-red-500 bg-red-100 text-red-900 font-bold transform scale-110 z-50 shadow-lg";
     }
     
     // For regular user view
@@ -545,8 +545,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
                             size="sm"
                             className={cn(
                               "h-14 py-0 px-1 justify-center items-center text-center text-xs",
-                              getSlotClass(slot.status, isSelected),
-                              isAdmin && isSelected ? "admin-selected-slot" : ""
+                              getSlotClass(slot.status, isSelected)
                             )}
                             data-admin-selected={isAdmin && isSelected ? "true" : "false"}
                             disabled={slot.status !== "available" && !isAdmin}
