@@ -404,8 +404,8 @@ const AdminCalendarView = () => {
   const hasError = timeSlotsError || bookingsError;
   
   return (
-    <div id="bookingsTab" className="admin-tab-content p-1">
-      <div className="flex flex-col space-y-2 mb-2">
+    <div id="bookingsTab" className="admin-tab-content p-0.5">
+      <div className="flex flex-col space-y-1 mb-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center space-x-2 mb-4 sm:mb-0">
             <Button variant="outline" size="icon" onClick={() => handleNavigateDates('prev')}>
