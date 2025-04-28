@@ -447,13 +447,16 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                 }
               };
               
+              // Check if this day is today
+              const isCurrentDay = isToday(day.date);
+              
               return (
-                <div key={index} className="text-center py-2">
-                  <div className="font-medium text-sm">{day.name}</div>
-                  <div className="text-xs text-muted-foreground">{day.day}</div>
+                <div key={index} className={`text-center py-2 ${isCurrentDay ? 'bg-blue-50 rounded-md' : ''}`}>
+                  <div className={`font-medium text-sm ${isCurrentDay ? 'text-blue-700' : ''}`}>{day.name}</div>
+                  <div className={`text-xs ${isCurrentDay ? 'text-blue-600' : 'text-muted-foreground'}`}>{day.day}</div>
                   <div className="mt-1">{getWeatherIcon()}</div>
                   {dayWeather && (
-                    <div className="text-xs font-medium mt-1">{dayWeather.temperature}°C</div>
+                    <div className={`text-xs font-medium mt-1 ${isCurrentDay ? 'text-blue-600' : ''}`}>{dayWeather.temperature}°C</div>
                   )}
                 </div>
               );
@@ -489,12 +492,16 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                       {Array.from({ length: 7 }).map((_, idx) => {
                         const slot = slots[idx];
                         
+                        // Find the corresponding day to check if it's today
+                        const day = days.find(d => d.latvianDayIndex === idx);
+                        const isCurrentDay = day ? isToday(day.date) : false;
+                        
                         // If slot is undefined, render an empty placeholder
                         if (!slot) {
                           return (
                             <div 
                               key={`empty-${idx}-${timeString}`} 
-                              className="h-14 bg-gray-50 rounded-md border border-gray-200"
+                              className={`h-14 rounded-md border border-gray-200 ${isCurrentDay ? 'bg-blue-50' : 'bg-gray-50'}`}
                             ></div>
                           );
                         }
@@ -537,17 +544,22 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                     {Array.from({ length: 7 }).map((_, idx) => {
                       const slot = slots[idx];
                       
+                      // Find the corresponding day to check if it's today
+                      const day = days.find(d => d.latvianDayIndex === idx);
+                      const isCurrentDay = day ? isToday(day.date) : false;
+                      
                       // If slot is undefined, render an empty placeholder
                       if (!slot) {
                         return (
                           <div 
                             key={`empty-${idx}-${timeString}`} 
-                            className="h-14 bg-gray-50 rounded-md border border-gray-200"
+                            className={`h-14 rounded-md border border-gray-200 ${isCurrentDay ? 'bg-blue-50' : 'bg-gray-50'}`}
                           ></div>
                         );
                       }
                       
                       const isSelected = isSlotSelected(slot.id);
+                      
                       return (
                         <Button
                           key={slot.id}
@@ -555,7 +567,8 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                           size="sm"
                           className={cn(
                             "h-14 py-0 px-1 justify-center items-center text-center text-xs",
-                            getSlotClass(slot.status, isSelected)
+                            getSlotClass(slot.status, isSelected),
+                            isCurrentDay && !isSelected && slot.status === "available" ? "border-blue-300" : ""
                           )}
                           disabled={slot.status !== "available" && !isAdmin}
                           onClick={() => handleSlotToggle(slot.id, slot.status)}
