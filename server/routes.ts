@@ -439,30 +439,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Operating hours not found" });
       }
       
-      // Regenerate timeslots for the next 4 weeks to apply the new operating hours
-      try {
-        // Get the current date
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // Get the end date (4 weeks from now)
-        const endDate = new Date(today);
-        endDate.setDate(endDate.getDate() + 28);
-        
-        // Delete all future time slots
-        await db.delete(timeSlots)
-          .where(
-            gte(timeSlots.startTime, today)
-          );
-        
-        // Call the private method to regenerate time slots
-        await storage.regenerateTimeSlots();
-        
-        console.log(`Regenerated time slots after operating hours update for day ${updatedHours.dayOfWeek}`);
-      } catch (error) {
-        console.error("Error regenerating time slots:", error);
-        // We don't want to fail the API call if regeneration fails, just log it
-      }
+      // We are not regenerating time slots here anymore because that's now
+      // handled directly in the storage.updateOperatingHours method to avoid
+      // multiple regenerations when batch updating operating hours
       
       res.json(updatedHours);
     } catch (error) {

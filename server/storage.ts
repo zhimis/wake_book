@@ -346,7 +346,21 @@ export class DatabaseStorage implements IStorage {
   
   // Public method to regenerate time slots
   async regenerateTimeSlots(): Promise<void> {
-    await this.generateTimeSlots();
+    try {
+      // First delete all future time slots
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      await db.delete(timeSlots)
+        .where(gte(timeSlots.startTime, today));
+      
+      // Now generate new time slots
+      await this.generateTimeSlots();
+      console.log("Time slots regenerated successfully.");
+    } catch (error) {
+      console.error("Error regenerating time slots:", error);
+      throw error; // Re-throw to handle in the calling function
+    }
   }
   
   async getBookings(): Promise<Booking[]> {
