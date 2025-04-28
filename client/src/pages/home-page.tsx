@@ -4,7 +4,7 @@ import BookingCalendar from "@/components/booking-calendar";
 
 const HomePage = () => {
   return (
-    <main className="container mx-auto px-4 py-0">
+    <main className="container mx-auto px-0.5 py-0">
       <div className="max-w-6xl mx-auto">
         
         
