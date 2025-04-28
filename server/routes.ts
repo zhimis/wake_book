@@ -53,15 +53,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const { timeSlotIds } = schema.parse(req.body);
+      console.log("Reservation request for time slots:", timeSlotIds);
       
       // Check if all requested time slots are available
       const timeSlots = await Promise.all(
         timeSlotIds.map(id => storage.getTimeSlot(id))
       );
       
+      console.log("Time slots from database:", timeSlots);
+      
       const unavailableSlots = timeSlots.filter(
-        slot => !slot || slot.status !== 'available'
+        slot => {
+          if (!slot) {
+            console.log("Slot is undefined");
+            return true;
+          }
+          console.log("Slot status:", slot.status);
+          return slot.status !== 'available';
+        }
       );
+      
+      console.log("Unavailable slots:", unavailableSlots.length);
       
       if (unavailableSlots.length > 0) {
         return res.status(400).json({ 
@@ -72,10 +84,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Reserve the time slots for 10 minutes
       const expiryTime = new Date();
       expiryTime.setMinutes(expiryTime.getMinutes() + 10);
+      console.log("Setting expiry time to:", expiryTime);
       
       const reservedSlots = await Promise.all(
         timeSlotIds.map(id => storage.reserveTimeSlot(id, expiryTime))
       );
+      
+      console.log("Reserved slots:", reservedSlots);
       
       res.json({
         reservedTimeSlots: reservedSlots,
@@ -122,12 +137,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timeSlotIds.map(id => storage.getTimeSlot(id))
       );
       
+      console.log("Time slots for booking:", timeSlots);
+      
       const now = new Date();
       
       // Check if any time slots are unavailable or reservations expired
       const invalidSlots = timeSlots.filter(
         slot => {
-          if (!slot || slot.status !== 'reserved') {
+          console.log("Checking slot:", slot);
+          if (!slot) {
+            console.log("Slot is undefined");
+            return true;
+          }
+          
+          console.log("Slot status:", slot.status);
+          if (slot.status !== 'reserved') {
+            console.log("Slot is not reserved");
             return true;
           }
           
@@ -135,6 +160,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return false;
         }
       );
+      
+      console.log("Invalid slots:", invalidSlots.length);
       
       if (invalidSlots.length > 0) {
         return res.status(400).json({ 
