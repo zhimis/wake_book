@@ -38,7 +38,12 @@ const AdminSystemConfig = () => {
   // Set initial state values when data is loaded
   useState(() => {
     if (data) {
-      setOperatingHoursState(data.operatingHours || []);
+      // Transform operating hours data to include isOpen (inverse of isClosed)
+      const transformedHours = (data.operatingHours || []).map(hour => ({
+        ...hour,
+        isOpen: !hour.isClosed
+      }));
+      setOperatingHoursState(transformedHours);
       setPricingState(data.pricing || []);
       setVisibilityWeeks(data.visibilityWeeks || 4);
     }
@@ -136,7 +141,7 @@ const AdminSystemConfig = () => {
         data: {
           openTime: hourToUpdate.openTime,
           closeTime: hourToUpdate.closeTime,
-          isClosed: hourToUpdate.isClosed
+          isClosed: !hourToUpdate.isOpen // Convert isOpen to isClosed (inverse)
         } 
       });
     }
@@ -196,13 +201,13 @@ const AdminSystemConfig = () => {
               <span className="font-medium text-gray-700 w-24">{getDayName(hour.dayOfWeek)}</span>
               <div className="flex items-center space-x-3">
                 <Select 
-                  value={new Date(hour.openTime).toTimeString().slice(0, 5)} 
+                  value={typeof hour.openTime === 'string' ? hour.openTime.slice(0, 5) : '08:00'} 
                   onValueChange={(value) => handleOperatingHoursUpdate(
                     hour.id, 
                     'openTime', 
-                    new Date(`1970-01-01T${value}:00`)
+                    value
                   )}
-                  disabled={hour.isClosed}
+                  disabled={!hour.isOpen}
                 >
                   <SelectTrigger className="w-24">
                     <SelectValue placeholder="Open" />
@@ -219,13 +224,13 @@ const AdminSystemConfig = () => {
                 <span className="text-gray-500">to</span>
                 
                 <Select 
-                  value={new Date(hour.closeTime).toTimeString().slice(0, 5)} 
+                  value={typeof hour.closeTime === 'string' ? hour.closeTime.slice(0, 5) : '22:00'} 
                   onValueChange={(value) => handleOperatingHoursUpdate(
                     hour.id, 
                     'closeTime', 
-                    new Date(`1970-01-01T${value}:00`)
+                    value
                   )}
-                  disabled={hour.isClosed}
+                  disabled={!hour.isOpen}
                 >
                   <SelectTrigger className="w-24">
                     <SelectValue placeholder="Close" />
@@ -241,12 +246,12 @@ const AdminSystemConfig = () => {
                 
                 <div className="flex items-center ml-2">
                   <Switch
-                    id={`closed-${hour.id}`}
-                    checked={hour.isClosed}
-                    onCheckedChange={(checked) => handleOperatingHoursUpdate(hour.id, 'isClosed', checked)}
+                    id={`open-${hour.id}`}
+                    checked={hour.isOpen}
+                    onCheckedChange={(checked) => handleOperatingHoursUpdate(hour.id, 'isOpen', checked)}
                   />
-                  <Label htmlFor={`closed-${hour.id}`} className="ml-2">
-                    Closed
+                  <Label htmlFor={`open-${hour.id}`} className="ml-2">
+                    Open
                   </Label>
                 </div>
               </div>

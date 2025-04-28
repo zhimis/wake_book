@@ -422,6 +422,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const data = schema.parse(req.body);
       
+      // Ensure times are in the correct format (HH:MM:SS)
+      if (data.openTime && !data.openTime.includes(':')) {
+        data.openTime = `${data.openTime}:00`;
+      }
+      
+      if (data.closeTime && !data.closeTime.includes(':')) {
+        data.closeTime = `${data.closeTime}:00`;
+      }
+      
       const updatedHours = await storage.updateOperatingHours(id, data);
       
       if (!updatedHours) {
