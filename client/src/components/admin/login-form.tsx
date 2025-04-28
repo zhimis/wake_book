@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { queryClient } from "@/lib/queryClient";
 import {
   Form,
   FormControl,
@@ -50,11 +51,15 @@ const LoginForm = () => {
         {
           onSuccess: (user) => {
             console.log("Login mutation success, user:", user);
-            // Add a slight delay before navigation to ensure data is updated
+            
+            // Force a cache invalidation to ensure we have the latest user data
+            queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+            
+            // Add a slightly longer delay before navigation to ensure data is fully updated
             setTimeout(() => {
               console.log("Navigating to admin page");
               navigate("/admin");
-            }, 300);
+            }, 500);
           },
           onError: (err) => {
             console.error("Login mutation error:", err);
