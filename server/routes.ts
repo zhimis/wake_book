@@ -159,15 +159,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
+      console.log("REGENERATE TIME SLOTS ENDPOINT CALLED");
+      
+      // Get operating hours to debug
+      const allOperatingHours = await db.select().from(operatingHours);
+      console.log("Current operating hours configuration:", JSON.stringify(allOperatingHours, null, 2));
+      
       // Delete all future time slots
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      await db.delete(timeSlots)
+      const deleteResult = await db.delete(timeSlots)
         .where(gte(timeSlots.startTime, today));
+      
+      console.log("Deleted existing future time slots");
       
       // Then regenerate time slots
       await storage.regenerateTimeSlots();
+      
+      // Verify the time slots were generated properly
+      const timeSlotCount = await db.select({ count: sql`count(*)` }).from(timeSlots);
+      console.log("Time slots after regeneration:", timeSlotCount[0].count);
       
       console.log("Time slots regenerated successfully after admin request");
       
