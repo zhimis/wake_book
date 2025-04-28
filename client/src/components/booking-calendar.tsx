@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
   CalendarIcon, 
   ChevronLeft, 
@@ -13,6 +13,7 @@ import {
   Cloud,
   CloudRain,
   Sun,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWeather } from "@/hooks/use-weather";
@@ -65,6 +66,26 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   const { forecast: weatherForecast, isLoading: weatherLoading } = useWeather();
   const { toast } = useToast();
   
+  // Date range for the current week view
+  const startDate = currentDate;
+  const endDate = addDays(currentDate, 6);
+  
+  // Fetch time slots from the server with their actual statuses
+  const { data: dbTimeSlots, isLoading: timeSlotsLoading } = useQuery({
+    queryKey: ['/api/timeslots', format(startDate, 'yyyy-MM-dd'), format(endDate, 'yyyy-MM-dd')],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/timeslots?startDate=${format(startDate, 'yyyy-MM-dd')}&endDate=${format(endDate, 'yyyy-MM-dd')}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch time slots');
+      }
+      
+      return response.json();
+    }
+  });
+  
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string): boolean => {
     // Parse the string ID to a number and compare directly
@@ -92,45 +113,115 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   // (In a real app, we would fetch this from the API)
   let slotIdCounter = 1; // Database starts from ID 1
   
-  daysOfWeek.forEach(day => {
-    // From 8:00 to 22:00
-    for (let hour = 8; hour < 22; hour++) {
-      for (let minute of [0, 30]) {
-        // Base price: 15€ for mornings, 18€ for afternoons, 20€ for evenings
-        let price = 15;
-        if (hour >= 12 && hour < 17) price = 18;
-        if (hour >= 17) price = 20;
-        
-        // Weekend price increase
-        if (day >= 5) price += 5;
-        
-        // Always available for now (we'll implement real status later)
-        let status: TimeSlotStatus = "available";
-        
-        // Create slot date and times
-        const slotDate = addDays(currentDate, day);
-        const startTime = new Date(slotDate);
-        startTime.setHours(hour, minute, 0, 0);
-        
-        const endTime = new Date(startTime);
-        endTime.setMinutes(endTime.getMinutes() + 30);
-        
-        timeSlots.push({
-          id: slotIdCounter.toString(), // Use a sequential ID that matches the database
-          day,
-          hour,
-          minute,
-          price,
-          status,
-          startTime,
-          endTime,
-          reservationExpiry: null
+  // Effect to update the time slots with status from the database when data is loaded
+  useEffect(() => {
+    if (dbTimeSlots && Array.isArray(dbTimeSlots)) {
+      console.log("Database time slots loaded:", dbTimeSlots.length);
+      
+      // Now we'll update our UI slots with the status from the database
+      const dbStatusMap = new Map();
+      
+      // Create a map of database time slot statuses by ID for quick lookup
+      dbTimeSlots.forEach((dbSlot: SchemaTimeSlot) => {
+        dbStatusMap.set(dbSlot.id, {
+          status: dbSlot.status,
+          reservationExpiry: dbSlot.reservationExpiry
         });
-        
-        slotIdCounter++;
-      }
+      });
+      
+      // Now generate our grid as before
+      timeSlots.length = 0; // Clear the array
+      
+      daysOfWeek.forEach(day => {
+        // From 8:00 to 22:00
+        for (let hour = 8; hour < 22; hour++) {
+          for (let minute of [0, 30]) {
+            // Base price: 15€ for mornings, 18€ for afternoons, 20€ for evenings
+            let price = 15;
+            if (hour >= 12 && hour < 17) price = 18;
+            if (hour >= 17) price = 20;
+            
+            // Weekend price increase
+            if (day >= 5) price += 5;
+            
+            // Create slot date and times
+            const slotDate = addDays(currentDate, day);
+            const startTime = new Date(slotDate);
+            startTime.setHours(hour, minute, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + 30);
+            
+            // Default to available, then check database status
+            let status: TimeSlotStatus = "available";
+            let reservationExpiry: Date | null = null;
+            
+            // Look up the status from the database
+            const dbStatus = dbStatusMap.get(slotIdCounter);
+            if (dbStatus) {
+              status = dbStatus.status as TimeSlotStatus;
+              reservationExpiry = dbStatus.reservationExpiry ? new Date(dbStatus.reservationExpiry) : null;
+            }
+            
+            timeSlots.push({
+              id: slotIdCounter.toString(), // Use a sequential ID that matches the database
+              day,
+              hour,
+              minute,
+              price,
+              status,
+              startTime,
+              endTime,
+              reservationExpiry
+            });
+            
+            slotIdCounter++;
+          }
+        }
+      });
+    } else {
+      // If no database data, generate default slots
+      daysOfWeek.forEach(day => {
+        // From 8:00 to 22:00
+        for (let hour = 8; hour < 22; hour++) {
+          for (let minute of [0, 30]) {
+            // Base price: 15€ for mornings, 18€ for afternoons, 20€ for evenings
+            let price = 15;
+            if (hour >= 12 && hour < 17) price = 18;
+            if (hour >= 17) price = 20;
+            
+            // Weekend price increase
+            if (day >= 5) price += 5;
+            
+            // Always available for now (we'll implement real status later)
+            let status: TimeSlotStatus = "available";
+            
+            // Create slot date and times
+            const slotDate = addDays(currentDate, day);
+            const startTime = new Date(slotDate);
+            startTime.setHours(hour, minute, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + 30);
+            
+            timeSlots.push({
+              id: slotIdCounter.toString(), // Use a sequential ID that matches the database
+              day,
+              hour,
+              minute,
+              price,
+              status,
+              startTime,
+              endTime,
+              reservationExpiry: null
+            });
+            
+            slotIdCounter++;
+          }
+        }
+      });
     }
-  });
+  }, [dbTimeSlots]);
   
   // Get time slots for a specific time (e.g. "8:00")
   const getTimeSlotsForTime = (hour: number, minute: number) => {
@@ -174,6 +265,22 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         return;
       }
       
+      // Make API call to reserve the selected time slots
+      const response = await fetch('/api/timeslots/reserve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          timeSlotIds: selectedTimeSlots.map(slot => slot.id),
+          expiryMinutes: 15
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reserve time slots');
+      }
+      
       // Set a temporary 15-minute reservation expiry
       const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
       setReservationExpiry(expiryTime);
@@ -183,6 +290,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         description: "Your selected time slots have been reserved for 15 minutes.",
         variant: "default"
       });
+      
     } catch (error) {
       toast({
         title: "Reservation Failed",
@@ -240,6 +348,22 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
     return `${startTimeStr} - ${endTimeStr}`;
   };
 
+  // Show loading state while time slots are being fetched
+  if (timeSlotsLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2 pt-4">
+          <div className="flex justify-center items-center py-12">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+              <p className="text-sm text-muted-foreground">Loading calendar...</p>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+    );
+  }
+  
   return (
     <Card className="w-full">
       <CardHeader className="pb-2 pt-4">
