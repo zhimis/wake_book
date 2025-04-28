@@ -507,6 +507,7 @@ const AdminCalendarView = () => {
               onDateRangeChange={handleDateRangeChange}
               isAdmin={true}
               onAdminSlotSelect={handleTimeSlotSelect}
+              adminSelectedSlots={selectedTimeSlots}
             />
           ) : (
             <Card>

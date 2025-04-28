@@ -44,6 +44,7 @@ interface BookingCalendarProps {
   onDateRangeChange?: (startDate: Date, endDate: Date) => void;
   isAdmin?: boolean;
   onAdminSlotSelect?: (timeSlot: SchemaTimeSlot) => void;
+  adminSelectedSlots?: SchemaTimeSlot[]; // Allow admin component to pass selected slots
 }
 
 // Converter function to match our calendar UI slots with the DB schema
@@ -62,7 +63,7 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
 }
 
 // Simplified booking calendar with mock data
-const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendarProps) => {
+const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlots = [] }: BookingCalendarProps) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   
   // Use the booking context
@@ -114,10 +115,18 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
     // Parse the string ID to a number and compare directly
     const id = parseInt(uiSlotId);
     
-    // Check if any selected slots match this ID
+    // For admin mode, use adminSelectedSlots instead of the booking context
+    if (isAdmin) {
+      const isAdminSelected = adminSelectedSlots.some(slot => slot.id === id);
+      console.log(`Admin isSlotSelected checking id: ${id}, found in selected: ${isAdminSelected}, admin selected slots: `, 
+                adminSelectedSlots.map(s => s.id));
+      return isAdminSelected;
+    }
+    
+    // For regular mode, use the booking context
     const isSelected = selectedTimeSlots.some(slot => slot.id === id);
     
-    console.log(`isSlotSelected checking id: ${id}, found in selected: ${isSelected}, selected slots: `, 
+    console.log(`Regular isSlotSelected checking id: ${id}, found in selected: ${isSelected}, selected slots: `, 
                 selectedTimeSlots.map(s => s.id));
     
     return isSelected;
