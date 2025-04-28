@@ -134,50 +134,73 @@ const AdminSystemConfig = () => {
     );
   };
   
-  const saveOperatingHours = (id: number) => {
-    const hourToUpdate = operatingHoursState.find(hour => hour.id === id);
-    if (hourToUpdate) {
-      updateOperatingHoursMutation.mutate({ 
-        id, 
-        data: {
-          openTime: hourToUpdate.openTime,
-          closeTime: hourToUpdate.closeTime,
-          isClosed: !hourToUpdate.isOpen // Convert isOpen to isClosed (inverse)
-        } 
+  const saveOperatingHours = async (id: number) => {
+    try {
+      const hourToUpdate = operatingHoursState.find(hour => hour.id === id);
+      if (hourToUpdate) {
+        // First update the operating hour
+        await updateOperatingHoursMutation.mutateAsync({ 
+          id, 
+          data: {
+            openTime: hourToUpdate.openTime,
+            closeTime: hourToUpdate.closeTime,
+            isClosed: !hourToUpdate.isOpen // Convert isOpen to isClosed (inverse)
+          } 
+        });
+        
+        // Then regenerate time slots with a separate call
+        await apiRequest("POST", `/api/timeslots/regenerate`, {});
+        
+        // Refresh the data
+        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+      }
+    } catch (error) {
+      console.error("Error updating operating hour:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update operating hour. Please try again.",
+        variant: "destructive",
       });
     }
   };
   
-  const saveAllOperatingHours = () => {
-    // Save each operating hour separately but in sequence
-    let promises = [];
-    
-    for (const hour of operatingHoursState) {
-      const promise = apiRequest("PUT", `/api/config/operating-hours/${hour.id}`, {
-        openTime: hour.openTime,
-        closeTime: hour.closeTime,
-        isClosed: !hour.isOpen
+  const saveAllOperatingHours = async () => {
+    try {
+      // First update all operating hours without regenerating time slots
+      const promises = [];
+      
+      for (const hour of operatingHoursState) {
+        const promise = apiRequest("PUT", `/api/config/operating-hours/${hour.id}`, {
+          openTime: hour.openTime,
+          closeTime: hour.closeTime,
+          isClosed: !hour.isOpen
+        });
+        promises.push(promise);
+      }
+      
+      // Wait for all operating hours to be updated
+      await Promise.all(promises);
+      
+      // Then trigger a single regeneration of time slots
+      await apiRequest("POST", `/api/timeslots/regenerate`, {});
+      
+      // Refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/config'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+      
+      toast({
+        title: "Operating Hours Updated",
+        description: "All operating hours have been updated successfully.",
+        variant: "success", 
       });
-      promises.push(promise);
+    } catch (error) {
+      console.error("Error updating operating hours:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update operating hours. Please try again.",
+        variant: "destructive",
+      });
     }
-    
-    // Show the toast and invalidate the query only once all hours are saved
-    Promise.all(promises)
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ['/api/config'] });
-        toast({
-          title: "Operating Hours Updated",
-          description: "All operating hours have been updated successfully.",
-          variant: "success", 
-        });
-      })
-      .catch(error => {
-        toast({
-          title: "Update Failed",
-          description: "Failed to update operating hours. Please try again.",
-          variant: "destructive",
-        });
-      });
   };
   
   const savePricing = (id: number) => {
