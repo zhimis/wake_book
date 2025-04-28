@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { format, addDays } from "date-fns";
+import { format, addDays, subDays, isToday } from "date-fns";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,16 +59,35 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
 
 // Simplified booking calendar with mock data
 const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
-  const [currentDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   
   // Use the booking context
-  const { selectedTimeSlots, toggleTimeSlot, setReservationExpiry } = useBooking();
+  const { selectedTimeSlots, toggleTimeSlot, setReservationExpiry, clearSelectedTimeSlots } = useBooking();
   const { forecast: weatherForecast, isLoading: weatherLoading } = useWeather();
   const { toast } = useToast();
   
   // Date range for the current week view
   const startDate = currentDate;
   const endDate = addDays(currentDate, 6);
+  
+  // Navigation functions
+  const goToPreviousWeek = () => {
+    // Clear selections when changing weeks
+    clearSelectedTimeSlots();
+    setCurrentDate(subDays(currentDate, 7));
+  };
+  
+  const goToNextWeek = () => {
+    // Clear selections when changing weeks
+    clearSelectedTimeSlots();
+    setCurrentDate(addDays(currentDate, 7));
+  };
+  
+  const goToToday = () => {
+    // Clear selections when changing weeks
+    clearSelectedTimeSlots();
+    setCurrentDate(new Date());
+  };
   
   // Fetch time slots from the server with their actual statuses
   const { data: dbTimeSlots, isLoading: timeSlotsLoading } = useQuery({
@@ -140,9 +159,26 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
       
       // Determine day of week relative to current date
       const slotDate = new Date(startTime);
-      const daysDiff = Math.floor((slotDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Only show slots that are within the current week view
+      // Calculate days difference correctly - we need to compare the date part only
+      const slotYear = slotDate.getFullYear();
+      const slotMonth = slotDate.getMonth();
+      const slotDay = slotDate.getDate();
+      
+      const curYear = currentDate.getFullYear();
+      const curMonth = currentDate.getMonth();
+      const curDay = currentDate.getDate();
+      
+      // Create date objects with time set to midnight for accurate day comparison
+      const slotDateMidnight = new Date(slotYear, slotMonth, slotDay);
+      const curDateMidnight = new Date(curYear, curMonth, curDay);
+      
+      // Calculate difference in days
+      const daysDiff = Math.floor((slotDateMidnight.getTime() - curDateMidnight.getTime()) / (1000 * 60 * 60 * 24));
+      
+      console.log(`Slot at ${startTime.toLocaleString()}, day diff: ${daysDiff}`);
+      
+      // Only show slots that are within the current week view (0-6 days from current date)
       if (daysDiff >= 0 && daysDiff < 7) {
         const day = daysDiff;
         const hour = startTime.getHours();
@@ -321,10 +357,30 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
             {format(currentDate, "MMMM d")} - {format(addDays(currentDate, 6), "MMMM d, yyyy")}
           </p>
           <div className="flex space-x-2">
-            <Button variant="outline" size="icon" className="h-8 w-8">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={goToPreviousWeek}
+              title="Previous week"
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8">
+            <Button 
+              variant="outline" 
+              onClick={goToToday}
+              className="h-8 px-2 text-xs"
+              title="Go to today"
+            >
+              Today
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={goToNextWeek}
+              title="Next week"
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

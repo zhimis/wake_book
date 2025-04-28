@@ -11,6 +11,12 @@ import createMemoryStore from "memorystore";
 import { eq, and, gte, lte } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
+// Helper function to get weekday name
+function getWeekdayName(dayOfWeek: number): string {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[dayOfWeek];
+}
+
 const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
@@ -167,15 +173,25 @@ export class DatabaseStorage implements IStorage {
       const BATCH_SIZE = 100;
       
       while (currentDate < endDate) {
-        const dayOfWeek = currentDate.getDay();
+        const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        console.log(`Generating slots for date ${currentDate.toISOString()}, day of week: ${dayOfWeek}`);
+        
+        // Find operating hours for this day
         const operatingHour = allOperatingHours.find(oh => oh.dayOfWeek === dayOfWeek);
         
-        // Skip if no operating hours defined for this day or if the day is closed
-        if (!operatingHour || operatingHour.isClosed) {
-          // Continue to next day
+        if (!operatingHour) {
+          console.log(`No operating hours defined for day ${dayOfWeek}`);
           currentDate.setDate(currentDate.getDate() + 1);
           continue;
         }
+        
+        if (operatingHour.isClosed) {
+          console.log(`Day ${dayOfWeek} (${getWeekdayName(dayOfWeek)}) is marked as closed`);
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
+        
+        console.log(`Day ${dayOfWeek} (${getWeekdayName(dayOfWeek)}) is open: ${operatingHour.openTime} - ${operatingHour.closeTime}`);
         
         // Parse opening and closing hours
         const [openHour, openMinute] = operatingHour.openTime.split(':').map(Number);
