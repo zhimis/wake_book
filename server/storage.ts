@@ -74,19 +74,7 @@ export class DatabaseStorage implements IStorage {
 
   private async initializeDefaults() {
     try {
-      // Create admin user if not exists
-      const adminExists = await this.getUserByUsername("admin");
-      if (!adminExists) {
-        await this.createUser({
-          username: "admin",
-          password: "$2b$10$dQzBpumlXf5yUhBI4HBKvuPVL3Mh2xF6Y/tQZB/FVJsfhL9LJpB9m", // "admin123"
-          email: "admin@example.com",
-          fullName: "Admin User",
-          role: "admin",
-          phone: "+1234567890"
-        });
-        console.log("Default admin user created");
-      }
+      // Admin user will be created from auth.ts to ensure proper password hashing
       
       // Create default operating hours (8:00 - 22:00)
       const existingOperatingHours = await db.select().from(operatingHours);

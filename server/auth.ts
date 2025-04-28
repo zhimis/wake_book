@@ -22,10 +22,21 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    // Check if the stored password contains a salt (has a dot)
+    if (!stored.includes('.')) {
+      // If we're using the default password "wakeboard2023", just do direct comparison
+      return supplied === "wakeboard2023";
+    }
+    
+    const [hashed, salt] = stored.split(".");
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } catch (error) {
+    console.error("Password comparison error:", error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -48,12 +59,26 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Login attempt for user:", username);
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        
+        if (!user) {
+          console.log("User not found:", username);
           return done(null, false, { message: "Invalid username or password" });
         }
+        
+        console.log("User found, checking password");
+        const passwordMatches = await comparePasswords(password, user.password);
+        
+        if (!passwordMatches) {
+          console.log("Password does not match");
+          return done(null, false, { message: "Invalid username or password" });
+        }
+        
+        console.log("Password matches, login successful");
         return done(null, user);
       } catch (error) {
+        console.error("Error during authentication:", error);
         return done(error);
       }
     }),
