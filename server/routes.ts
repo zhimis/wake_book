@@ -3,10 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { bookingFormSchema, timeSlots } from "@shared/schema";
+import { bookingFormSchema, timeSlots, operatingHours } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
 import { db } from "./db";
-import { gte } from "drizzle-orm";
+import { gte, eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -149,6 +149,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error blocking time slots:", error);
       res.status(500).json({ error: "Failed to block time slots" });
+    }
+  });
+  
+  // Regenerate all time slots - requires authentication
+  app.post("/api/timeslots/regenerate", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Delete all future time slots
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      await db.delete(timeSlots)
+        .where(gte(timeSlots.startTime, today));
+      
+      // Then regenerate time slots
+      await storage.regenerateTimeSlots();
+      
+      console.log("Time slots regenerated successfully after admin request");
+      
+      res.json({ success: true, message: "Time slots regenerated successfully" });
+    } catch (error) {
+      console.error("Error regenerating time slots:", error);
+      res.status(500).json({ error: "Failed to regenerate time slots" });
     }
   });
 
@@ -433,15 +459,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.closeTime = `${data.closeTime}:00`;
       }
       
-      const updatedHours = await storage.updateOperatingHours(id, data);
+      // Update operating hours but don't regenerate time slots yet
+      // Remove regeneration call from storage.updateOperatingHours
+      const [updatedHours] = await db.update(operatingHours)
+        .set(data)
+        .where(eq(operatingHours.id, id))
+        .returning();
       
       if (!updatedHours) {
         return res.status(404).json({ error: "Operating hours not found" });
       }
       
-      // We are not regenerating time slots here anymore because that's now
-      // handled directly in the storage.updateOperatingHours method to avoid
-      // multiple regenerations when batch updating operating hours
+      // We'll regenerate time slots only when specifically requested
+      // to avoid multiple regenerations when updating multiple days
       
       res.json(updatedHours);
     } catch (error) {
