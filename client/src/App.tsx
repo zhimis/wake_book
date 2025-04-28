@@ -8,6 +8,7 @@ import AdminPage from "@/pages/admin-page";
 import Header from "./components/header";
 import Footer from "./components/footer";
 import { BookingProvider } from "./context/booking-context";
+import { ProtectedRoute } from "./lib/protected-route";
 
 function App() {
   return (
@@ -20,7 +21,7 @@ function App() {
             <Route path="/booking" component={BookingPage} />
             <Route path="/confirmation/:reference" component={ConfirmationPage} />
             <Route path="/admin/login" component={AdminLoginPage} />
-            <Route path="/admin" component={AdminPage} />
+            <ProtectedRoute path="/admin" component={AdminPage} />
             <Route component={NotFound} />
           </Switch>
         </div>
