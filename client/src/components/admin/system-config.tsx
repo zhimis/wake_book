@@ -184,8 +184,11 @@ const AdminSystemConfig = () => {
   }
   
   const getDayName = (dayOfWeek: number): string => {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[dayOfWeek];
+    // Adjust according to Latvia's convention where Monday is the first day (1)
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    // DB uses 0-6 format where 0 is Sunday, so we convert it to Monday-first format
+    const adjustedIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    return days[adjustedIndex];
   };
   
   return (
@@ -215,7 +218,7 @@ const AdminSystemConfig = () => {
                   <SelectContent>
                     {Array.from({ length: 13 }, (_, i) => i + 6).map(h => (
                       <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
-                        {h % 12 === 0 ? '12' : h % 12}:00 {h < 12 ? 'AM' : 'PM'}
+                        {h.toString().padStart(2, '0')}:00
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -238,7 +241,7 @@ const AdminSystemConfig = () => {
                   <SelectContent>
                     {Array.from({ length: 13 }, (_, i) => i + 12).map(h => (
                       <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
-                        {h % 12 === 0 ? '12' : h % 12}:00 {h < 12 ? 'AM' : 'PM'}
+                        {h.toString().padStart(2, '0')}:00
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -287,7 +290,7 @@ const AdminSystemConfig = () => {
                 <div className="flex items-center">
                   <span className="mr-2">Price per 30 minutes:</span>
                   <div className="flex items-center">
-                    <span className="text-gray-500 mr-1">$</span>
+                    <span className="text-gray-500 mr-1">€</span>
                     <Input
                       type="number"
                       value={price.price}

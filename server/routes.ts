@@ -540,10 +540,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endDate.setHours(23, 59, 59, 999);
           break;
         case 'week':
-          // Start from beginning of current week (Sunday)
-          startDate.setDate(startDate.getDate() - startDate.getDay());
-          // End at end of week (Saturday)
-          endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
+          // Start from beginning of current week (Monday)
+          // If today is Sunday (0), go back 6 days to previous Monday
+          // Otherwise, go back to Monday (day 1)
+          const dayOfWeek = startDate.getDay();
+          const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+          startDate.setDate(startDate.getDate() - daysToSubtract);
+          
+          // End at end of week (Sunday)
+          // Add 6 days to go from Monday to Sunday
+          endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + 6);
           endDate.setHours(23, 59, 59, 999);
           break;
         case 'month':
