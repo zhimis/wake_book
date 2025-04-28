@@ -228,11 +228,11 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
     
     // Place slots in the correct day position based on latvianDayIndex (0-6, Monday to Sunday)
     matchingSlots.forEach(slot => {
-      const dayIndex = slot.latvianDayIndex;
-      if (dayIndex >= 0 && dayIndex < 7) {
-        slotsForWeek[dayIndex] = slot;
+      // Make sure latvianDayIndex is a valid number
+      if (typeof slot.latvianDayIndex === 'number' && slot.latvianDayIndex >= 0 && slot.latvianDayIndex < 7) {
+        slotsForWeek[slot.latvianDayIndex] = slot;
       } else {
-        console.error(`Invalid latvianDayIndex: ${dayIndex} for slot:`, slot);
+        console.error(`Invalid latvianDayIndex: ${slot.latvianDayIndex} for slot:`, slot);
       }
     });
     
@@ -478,7 +478,9 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                     
                     {/* Slots for this time */}
                     <div className="flex-1 grid grid-cols-7 gap-1">
-                      {slots.map((slot, idx) => {
+                      {Array.from({ length: 7 }).map((_, idx) => {
+                        const slot = slots[idx];
+                        
                         // If slot is undefined, render an empty placeholder
                         if (!slot) {
                           return (
@@ -524,7 +526,9 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                   
                   {/* Slots for this time */}
                   <div className="flex-1 grid grid-cols-7 gap-1">
-                    {slots.map((slot, idx) => {
+                    {Array.from({ length: 7 }).map((_, idx) => {
+                      const slot = slots[idx];
+                      
                       // If slot is undefined, render an empty placeholder
                       if (!slot) {
                         return (
