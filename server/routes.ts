@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { bookingFormSchema, timeSlots, operatingHours } from "@shared/schema";
+import { bookingFormSchema, manualBookingSchema, blockTimeSlotSchema, timeSlots, operatingHours } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
 import { db } from "./db";
 import { gte, eq, sql } from "drizzle-orm";

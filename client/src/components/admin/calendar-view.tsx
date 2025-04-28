@@ -297,7 +297,52 @@ const AdminCalendarView = () => {
   };
   
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
-    // Check if the slot is already selected
+    // When a booked time slot is clicked, show booking details
+    if (timeSlot.status === 'booked') {
+      // Find the booking associated with this time slot
+      if (bookingsData) {
+        // We need to fetch the booking details for this time slot
+        const getBookingDetailsForSlot = async () => {
+          try {
+            // First get all bookings with their time slots
+            const bookingsWithSlots = await Promise.all(
+              bookingsData.map(async (booking: Booking) => {
+                const res = await fetch(`/api/bookings/${booking.reference}`);
+                if (!res.ok) throw new Error('Failed to fetch booking details');
+                return await res.json();
+              })
+            );
+            
+            // Find the booking that contains this time slot
+            const matchingBooking = bookingsWithSlots.find(bookingData => {
+              return bookingData.timeSlots.some((slot: TimeSlot) => slot.id === timeSlot.id);
+            });
+            
+            if (matchingBooking) {
+              setSelectedBooking(matchingBooking.booking);
+              setIsBookingDetailsDialogOpen(true);
+            } else {
+              toast({
+                title: "Booking Not Found",
+                description: "Could not find booking details for this time slot.",
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            toast({
+              title: "Error",
+              description: "Failed to fetch booking details.",
+              variant: "destructive",
+            });
+          }
+        };
+        
+        getBookingDetailsForSlot();
+      }
+      return;
+    }
+    
+    // For non-booked slots, handle selection
     const isSelected = selectedTimeSlots.some(slot => slot.id === timeSlot.id);
     
     if (isSelected) {
@@ -307,6 +352,15 @@ const AdminCalendarView = () => {
       // Add to selection if available
       if (timeSlot.status === 'available') {
         setSelectedTimeSlots([...selectedTimeSlots, timeSlot]);
+        
+        // If this is the first slot selected, show the action buttons
+        if (selectedTimeSlots.length === 0) {
+          toast({
+            title: "Time Slot Selected",
+            description: "You can now create a booking or block this time slot.",
+            variant: "default",
+          });
+        }
       }
     }
   };
@@ -685,10 +739,48 @@ const AdminCalendarView = () => {
               <div className="pt-4 border-t">
                 <h4 className="font-medium mb-2">Booked Time Slots</h4>
                 <div className="space-y-2">
-                  {/* Time slots would be fetched and displayed here */}
-                  <p className="text-sm text-muted-foreground">
-                    Loading time slots...
-                  </p>
+                  {bookingsData ? (
+                    <div className="rounded-md bg-muted p-3">
+                      {/* Use query to get booking time slots */}
+                      {(() => {
+                        // Find the booking details with time slots
+                        const booking = bookingsData.find(b => b.id === selectedBooking.id);
+                        if (!booking) {
+                          return (
+                            <p className="text-sm text-muted-foreground">
+                              No time slots found for this booking.
+                            </p>
+                          );
+                        }
+                        
+                        // Calculate total price
+                        const totalPrice = booking.totalPrice || 0;
+                        
+                        return (
+                          <>
+                            <div className="space-y-2">
+                              {booking.slotCount > 0 ? (
+                                <div className="text-sm">
+                                  <p><strong>{booking.slotCount}</strong> time slots booked, starting at{" "}
+                                  <strong>{format(new Date(booking.firstSlotTime), "EEEE, MMMM d, h:mm a")}</strong></p>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No time slots found for this booking.</p>
+                              )}
+                            </div>
+                            <div className="pt-2 mt-2 border-t text-sm font-semibold flex justify-between">
+                              <span>Total:</span>
+                              <span>{formatPrice(totalPrice)}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Loading time slots...
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
