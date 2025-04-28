@@ -274,6 +274,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all bookings (admin only)
+  app.get("/api/bookings", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const bookings = await storage.getBookings();
+      
+      // For each booking, get the time slots and calculate total price
+      const bookingsWithDetails = await Promise.all(
+        bookings.map(async (booking) => {
+          const timeSlots = await storage.getBookingTimeSlots(booking.id);
+          const totalPrice = timeSlots.reduce((sum, slot) => sum + slot.price, 0);
+          
+          return {
+            ...booking,
+            totalPrice,
+            slotCount: timeSlots.length,
+            firstSlotTime: timeSlots.length > 0 ? 
+              new Date(Math.min(...timeSlots.map(slot => new Date(slot.startTime).getTime()))) : 
+              null
+          };
+        })
+      );
+      
+      res.json(bookingsWithDetails);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      res.status(500).json({ error: "Failed to fetch bookings" });
+    }
+  });
+
   // Get a booking by reference
   app.get("/api/bookings/:reference", async (req: Request, res: Response) => {
     try {
