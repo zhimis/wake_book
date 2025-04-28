@@ -564,8 +564,8 @@ const AdminCalendarView = () => {
                 {selectedTimeSlots.map((slot) => (
                   <div key={slot.id} className="text-sm flex justify-between items-center">
                     <span>
-                      {format(new Date(slot.startTime), "EEE, MMM d")} • {format(new Date(slot.startTime), "h:mm a")}-
-                      {format(new Date(slot.endTime), "h:mm a")}
+                      {format(new Date(slot.startTime), "EEE, MMM d")} • {format(new Date(slot.startTime), "HH:mm")}-
+                      {format(new Date(slot.endTime), "HH:mm")}
                     </span>
                     <span>{formatPrice(slot.price)}</span>
                   </div>
@@ -666,8 +666,8 @@ const AdminCalendarView = () => {
               <div className="space-y-2">
                 {selectedTimeSlots.map((slot) => (
                   <div key={slot.id} className="text-sm">
-                    {format(new Date(slot.startTime), "EEEE, MMM d")} • {format(new Date(slot.startTime), "h:mm a")}-
-                    {format(new Date(slot.endTime), "h:mm a")}
+                    {format(new Date(slot.startTime), "EEEE, MMM d")} • {format(new Date(slot.startTime), "HH:mm")}-
+                    {format(new Date(slot.endTime), "HH:mm")}
                   </div>
                 ))}
               </div>
@@ -757,7 +757,7 @@ const AdminCalendarView = () => {
                       {/* Use query to get booking time slots */}
                       {(() => {
                         // Find the booking details with time slots
-                        const booking = bookingsData.find(b => b.id === selectedBooking.id);
+                        const booking = bookingsData.find((b: Booking) => b.id === selectedBooking.id);
                         if (!booking) {
                           return (
                             <p className="text-sm text-muted-foreground">

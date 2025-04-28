@@ -351,8 +351,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
     
     // Admin view styling
     if (isSelected) {
-      // Admin selected slots styling - VERY prominent
-      return "bg-red-50 text-red-800 border-4 border-red-500 ring-4 ring-red-500 ring-opacity-50 shadow-lg scale-105 z-10";
+      // Admin selected slots styling - VERY prominent with !important to override button styling
+      return "!bg-red-100 !text-red-800 !border-4 !border-red-500 !ring-4 !ring-red-500 !ring-opacity-50 !shadow-lg !z-10 !scale-105";
     }
     
     // Admin slot status styling
