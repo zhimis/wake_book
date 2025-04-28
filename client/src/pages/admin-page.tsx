@@ -7,6 +7,16 @@ import AdminStatistics from "@/components/admin/statistics";
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState("bookings");
   
+  // Check localStorage for any tab selection from header menu
+  useEffect(() => {
+    const storedTab = localStorage.getItem("adminActiveTab");
+    if (storedTab) {
+      setActiveTab(storedTab);
+      // Clear it once used
+      localStorage.removeItem("adminActiveTab");
+    }
+  }, []);
+  
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
@@ -18,26 +28,7 @@ const AdminPage = () => {
       </div>
       
       <Tabs defaultValue="bookings" value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="border-b border-gray-200 w-full justify-start rounded-none bg-transparent">
-          <TabsTrigger 
-            value="bookings"
-            className="data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none border-b-2 border-transparent"
-          >
-            Bookings
-          </TabsTrigger>
-          <TabsTrigger 
-            value="configuration"
-            className="data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none border-b-2 border-transparent"
-          >
-            System Configuration
-          </TabsTrigger>
-          <TabsTrigger 
-            value="statistics"
-            className="data-[state=active]:text-primary data-[state=active]:border-primary data-[state=active]:border-b-2 rounded-none border-b-2 border-transparent"
-          >
-            Statistics
-          </TabsTrigger>
-        </TabsList>
+        {/* Remove the tab navigation UI as requested */}
         
         <div className="mt-4">
           <TabsContent value="bookings">

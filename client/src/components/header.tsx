@@ -22,11 +22,8 @@ const Header = () => {
   
   const handleLogout = () => {
     setMobileMenuOpen(false); // Close mobile menu
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        navigate("/");
-      }
-    });
+    logoutMutation.mutate();
+    // No need to handle redirect, auth hook will do that 
   };
   
   // Helper function to handle navigation with mobile menu closing

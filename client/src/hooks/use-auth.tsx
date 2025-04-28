@@ -66,10 +66,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear user data
       queryClient.setQueryData(["/api/user"], null);
+      
+      // Clear any admin state
+      localStorage.removeItem("adminActiveTab");
+      
+      // Force navigation to home page by reloading the page
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       console.error("Logout failed:", error.message);
+      
+      // Even on error, try to clear user data
+      queryClient.setQueryData(["/api/user"], null);
+      
+      // Force navigation to home page 
+      window.location.href = "/";
     },
   });
 

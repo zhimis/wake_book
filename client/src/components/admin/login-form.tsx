@@ -55,11 +55,14 @@ const LoginForm = () => {
             // Force a cache invalidation to ensure we have the latest user data
             queryClient.invalidateQueries({ queryKey: ["/api/user"] });
             
+            // Set the default tab
+            localStorage.setItem("adminActiveTab", "bookings");
+            
             // Add a slightly longer delay before navigation to ensure data is fully updated
             setTimeout(() => {
               console.log("Navigating to admin page");
               navigate("/admin");
-            }, 500);
+            }, 300);
           },
           onError: (err) => {
             console.error("Login mutation error:", err);
