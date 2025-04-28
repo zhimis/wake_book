@@ -37,11 +37,12 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     if (isSelected) {
       return {
         position: 'relative' as const,
-        background: '#ffcccc',
-        boxShadow: '0 0 8px #ff0000',
+        background: '#fee2e2', // lighter red background
+        boxShadow: '0 0 5px rgba(248, 113, 113, 0.5)', // more subtle shadow
         zIndex: 10,
-        borderColor: '#ff0000',
-        borderWidth: '3px'
+        borderColor: '#f87171', // lighter red border
+        borderWidth: '2px',
+        fontWeight: 600
       };
     }
     return {};
@@ -71,13 +72,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
       style={combinedStyle}
       onClick={() => onClick(slot)}
     >
-      {/* Visual indicator for selected state */}
-      {isSelected && (
-        <div 
-          className="absolute inset-0 border-4 border-red-500 rounded-md"
-          style={{ pointerEvents: 'none' }}
-        ></div>
-      )}
+      {/* Visual indicator for selected state - removed since we handle it with the style above */}
       
       <div className="text-center w-full">
         <Badge variant="outline" className="px-1 h-4 text-[10px]">

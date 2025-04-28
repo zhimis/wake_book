@@ -346,8 +346,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   const getSlotClass = (status: TimeSlotStatus, isSelected: boolean) => {
     // If admin mode and selected, force use of our special CSS class
     if (isAdmin && isSelected) {
-      // Return the global admin-selected-slot class to override everything else
-      return "admin-selected-slot border-4 border-red-500 outline-2 outline-red-500 bg-red-100 text-red-900 font-bold transform scale-110 z-50 shadow-lg";
+      // Return the global admin-selected-slot class to override everything else with more subtle styling
+      return "admin-selected-slot border-2 border-red-400 bg-red-100 text-red-900 font-semibold transform scale-105 z-50 shadow-md";
     }
     
     // For regular user view
