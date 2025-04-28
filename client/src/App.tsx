@@ -9,24 +9,27 @@ import Header from "./components/header";
 import Footer from "./components/footer";
 import { BookingProvider } from "./context/booking-context";
 import { ProtectedRoute } from "./lib/protected-route";
+import { AuthProvider } from "./hooks/use-auth";
 
 function App() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <BookingProvider>
-        <Header />
-        <div className="flex-grow">
-          <Switch>
-            <Route path="/" component={HomePage} />
-            <Route path="/booking" component={BookingPage} />
-            <Route path="/confirmation/:reference" component={ConfirmationPage} />
-            <Route path="/admin/login" component={AdminLoginPage} />
-            <ProtectedRoute path="/admin" component={AdminPage} />
-            <Route component={NotFound} />
-          </Switch>
-        </div>
-        <Footer />
-      </BookingProvider>
+      <AuthProvider>
+        <BookingProvider>
+          <Header />
+          <div className="flex-grow">
+            <Switch>
+              <Route path="/" component={HomePage} />
+              <Route path="/booking" component={BookingPage} />
+              <Route path="/confirmation/:reference" component={ConfirmationPage} />
+              <Route path="/admin/login" component={AdminLoginPage} />
+              <ProtectedRoute path="/admin" component={AdminPage} />
+              <Route component={NotFound} />
+            </Switch>
+          </div>
+          <Footer />
+        </BookingProvider>
+      </AuthProvider>
     </div>
   );
 }

@@ -44,14 +44,17 @@ const LoginForm = () => {
     setError(null);
     
     try {
-      loginMutation.mutate(data, {
-        onSuccess: () => {
-          navigate("/admin");
-        },
-        onError: (err) => {
-          setError("Login failed. Please check your credentials and try again.");
+      loginMutation.mutate(
+        { username: data.username, password: data.password },
+        {
+          onSuccess: () => {
+            navigate("/admin");
+          },
+          onError: (err) => {
+            setError("Login failed. Please check your credentials and try again.");
+          }
         }
-      });
+      );
     } catch (err) {
       setError("Login failed. Please check your credentials and try again.");
     }
