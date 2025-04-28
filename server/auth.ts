@@ -95,19 +95,23 @@ export function setupAuth(app: Express) {
   });
 
   // Create a default admin user if none exists
+  console.log("Checking for admin user...");
   (async () => {
-    const adminUser = await storage.getUserByUsername("admin");
-    if (!adminUser) {
-      try {
-        const hashedPassword = await hashPassword("wakeboard2023");
+    try {
+      const adminUser = await storage.getUserByUsername("admin");
+      if (!adminUser) {
+        console.log("No admin user found, creating one...");
+        // Create a plain text password - we'll handle the comparison separately
         await storage.createUser({ 
           username: "admin", 
-          password: hashedPassword 
+          password: "wakeboard2023"
         });
-        console.log("Default admin user created");
-      } catch (error) {
-        console.error("Error creating default admin user:", error);
+        console.log("Default admin user created successfully");
+      } else {
+        console.log("Admin user already exists");
       }
+    } catch (error) {
+      console.error("Error checking/creating admin user:", error);
     }
   })();
 
