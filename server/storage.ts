@@ -439,6 +439,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(operatingHours.id, id))
       .returning();
     
+    // Regenerate time slots after operating hours change
+    try {
+      await this.regenerateTimeSlots();
+      console.log(`Regenerated time slots after operating hours update for day ${updatedHours.dayOfWeek}`);
+    } catch (error) {
+      console.error("Error regenerating time slots in DatabaseStorage:", error);
+    }
+    
     return updatedHours;
   }
   
@@ -907,10 +915,8 @@ export class MemStorage implements IStorage {
             
             // Check if it's peak hours
             if (peakPricing && peakPricing.startTime && peakPricing.endTime) {
-              const peakStartHour = new Date(peakPricing.startTime).getHours();
-              const peakStartMinute = new Date(peakPricing.startTime).getMinutes();
-              const peakEndHour = new Date(peakPricing.endTime).getHours();
-              const peakEndMinute = new Date(peakPricing.endTime).getMinutes();
+              const [peakStartHour, peakStartMinute] = peakPricing.startTime.split(':').map(Number);
+              const [peakEndHour, peakEndMinute] = peakPricing.endTime.split(':').map(Number);
               
               const isPeakHour = 
                 (hour > peakStartHour || (hour === peakStartHour && minute >= peakStartMinute)) && 
@@ -1040,6 +1046,14 @@ export class MemStorage implements IStorage {
     
     const updatedHours = { ...existingHours, ...hours };
     this.operatingHoursMap.set(id, updatedHours);
+    
+    // Regenerate time slots after operating hours change
+    try {
+      await this.regenerateTimeSlots();
+      console.log(`Regenerated time slots after operating hours update for day ${updatedHours.dayOfWeek}`);
+    } catch (error) {
+      console.error("Error regenerating time slots in MemStorage:", error);
+    }
     
     return updatedHours;
   }
