@@ -33,9 +33,10 @@ const TimeSlotComponent = ({
     return (
       <div 
         className={cn(
-          "h-16 m-0.5 rounded-md flex flex-col items-start justify-center text-sm border-t border-gray-200 p-2",
+          "h-16 m-0.5 rounded-md flex flex-col items-start justify-center text-sm p-2",
           getTimeSlotClass(timeSlot.status, isSelected),
-          isInteractive ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+          // Admin can select any slot
+          "cursor-pointer"
         )}
         onClick={handleClick}
       >

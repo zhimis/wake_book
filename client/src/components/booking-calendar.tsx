@@ -329,26 +329,42 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
   
   // Get CSS class for time slot based on status
   const getSlotClass = (status: TimeSlotStatus, isSelected: boolean) => {
-    // Special styling for admin-selected slots
-    if (isSelected && isAdmin) {
-      return "bg-red-50 text-red-800 border-2 border-red-500 ring-2 ring-red-500 ring-offset-0 shadow-md";
-    } else if (isSelected) {
-      return "bg-primary text-primary-foreground hover:bg-primary/90";
+    // For regular user view
+    if (!isAdmin) {
+      // Regular user selected slots styling
+      if (isSelected) {
+        return "bg-primary text-primary-foreground hover:bg-primary/90";
+      }
+      
+      // Regular user slot status styling
+      switch (status) {
+        case "available":
+          return "bg-green-100 text-green-800 hover:bg-green-200";
+        case "booked":
+          return "bg-red-100 text-red-800 cursor-not-allowed opacity-70";
+        case "reserved":
+          return "bg-yellow-100 text-yellow-800 cursor-not-allowed opacity-70";
+        default:
+          return "bg-gray-100 text-gray-800";
+      }
     }
     
+    // Admin view styling
+    if (isSelected) {
+      // Admin selected slots styling - VERY prominent
+      return "bg-red-50 text-red-800 border-4 border-red-500 ring-4 ring-red-500 ring-opacity-50 shadow-lg scale-105 z-10";
+    }
+    
+    // Admin slot status styling
     switch (status) {
       case "available":
-        return "bg-green-100 text-green-800 hover:bg-green-200";
+        return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
       case "booked":
-        return isAdmin 
-          ? "bg-red-100 text-red-800 hover:bg-red-200" 
-          : "bg-red-100 text-red-800 cursor-not-allowed opacity-70";
+        return "bg-red-100 text-red-800 hover:bg-red-200 hover:scale-105 transition-transform";
       case "reserved":
-        return isAdmin 
-          ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200" 
-          : "bg-yellow-100 text-yellow-800 cursor-not-allowed opacity-70";
+        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 hover:scale-105 transition-transform";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 hover:scale-105 transition-transform";
     }
   };
   

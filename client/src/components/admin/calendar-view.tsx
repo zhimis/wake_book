@@ -349,18 +349,16 @@ const AdminCalendarView = () => {
       // Remove from selection
       setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
     } else {
-      // Add to selection if available
-      if (timeSlot.status === 'available') {
-        setSelectedTimeSlots([...selectedTimeSlots, timeSlot]);
-        
-        // If this is the first slot selected, show the action buttons
-        if (selectedTimeSlots.length === 0) {
-          toast({
-            title: "Time Slot Selected",
-            description: "You can now create a booking or block this time slot.",
-            variant: "default",
-          });
-        }
+      // In admin mode, allow selecting any slot status
+      setSelectedTimeSlots([...selectedTimeSlots, timeSlot]);
+      
+      // If this is the first slot selected, show the action buttons
+      if (selectedTimeSlots.length === 0) {
+        toast({
+          title: "Time Slot Selected",
+          description: "You can now create a booking or block this time slot.",
+          variant: "default",
+        });
       }
     }
   };
