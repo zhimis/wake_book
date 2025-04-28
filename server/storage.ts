@@ -234,28 +234,22 @@ export class DatabaseStorage implements IStorage {
             // Determine price based on time and day
             const standardPricing = allPricing.find(p => p.name === 'standard');
             const peakPricing = allPricing.find(p => p.name === 'peak');
-            const weekendPricing = allPricing.find(p => p.name === 'weekend');
             
-            let price = standardPricing ? standardPricing.price : 50; // Default
+            // Default to standard price
+            let price = standardPricing ? standardPricing.price : 20; 
             
-            // Check if it's peak hours
-            if (peakPricing && peakPricing.startTime && peakPricing.endTime) {
-              const [peakStartHour, peakStartMinute] = peakPricing.startTime.split(':').map(Number);
-              const [peakEndHour, peakEndMinute] = peakPricing.endTime.split(':').map(Number);
-              
-              const isPeakHour = 
-                (hour > peakStartHour || (hour === peakStartHour && minute >= peakStartMinute)) && 
-                (hour < peakEndHour || (hour === peakEndHour && minute < peakEndMinute));
-              
-              if (isPeakHour) {
-                price = peakPricing.price;
-              }
-            }
+            // Apply peak pricing based on new rules:
+            // 1. Monday to Friday (1-5): 17:00-22:00
+            // 2. Saturday and Sunday (0,6): All day
+            const isPeakTime = (
+              // Weekend (all day)
+              (dayOfWeek === 0 || dayOfWeek === 6) ||
+              // Weekday peak hours (17:00-22:00)
+              (dayOfWeek >= 1 && dayOfWeek <= 5 && hour >= 17 && hour < 22)
+            );
             
-            // Apply weekend multiplier if applicable
-            if (weekendPricing && weekendPricing.applyToWeekends && 
-                (dayOfWeek === 0 || dayOfWeek === 6)) { // Saturday or Sunday
-              price = price * (weekendPricing.weekendMultiplier || 1.2);
+            if (isPeakTime && peakPricing) {
+              price = peakPricing.price;
             }
             
             // Add to batch

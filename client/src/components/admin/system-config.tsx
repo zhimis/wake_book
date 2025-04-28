@@ -220,7 +220,9 @@ const AdminSystemConfig = () => {
         id, 
         data: {
           price: parseFloat(priceToUpdate.price),
-          weekendMultiplier: priceToUpdate.weekendMultiplier ? parseFloat(priceToUpdate.weekendMultiplier) : null
+          // We no longer need weekend multiplier - simplify the pricing structure
+          weekendMultiplier: null,
+          applyToWeekends: false
         } 
       });
     }
@@ -231,9 +233,14 @@ const AdminSystemConfig = () => {
     let promises = [];
     
     for (const price of pricingState) {
+      // We now only need the price field - the system will apply peak pricing
+      // based on hard-coded time rules (Mon-Fri 17-22, Sat-Sun all day)
       const promise = apiRequest("PUT", `/api/config/pricing/${price.id}`, {
         price: parseFloat(price.price),
-        weekendMultiplier: price.weekendMultiplier ? parseFloat(price.weekendMultiplier) : null
+        weekendMultiplier: null,
+        applyToWeekends: false,
+        startTime: null,
+        endTime: null
       });
       promises.push(promise);
     }
@@ -255,6 +262,29 @@ const AdminSystemConfig = () => {
           variant: "destructive",
         });
       });
+  };
+  
+  // Add a dedicated function to regenerate time slots
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  
+  const regenerateTimeSlots = async () => {
+    try {
+      setIsRegenerating(true);
+      await apiRequest("POST", "/api/timeslots/regenerate");
+      toast({
+        title: "Time Slots Regenerated",
+        description: "All future time slots have been regenerated with the updated pricing and rules.",
+        variant: "success",
+      });
+    } catch (error) {
+      toast({
+        title: "Regeneration Failed",
+        description: "Failed to regenerate time slots. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
   };
   
   const saveVisibility = () => {
@@ -382,6 +412,9 @@ const AdminSystemConfig = () => {
       <Card>
         <CardHeader>
           <CardTitle>Pricing Configuration</CardTitle>
+          <CardDescription>
+            Set standard and peak prices for wakeboarding sessions. Peak hours are fixed to weekday evenings and weekends.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {pricingState.map((price) => (
@@ -389,38 +422,42 @@ const AdminSystemConfig = () => {
               <h4 className="font-heading font-medium text-gray-700">
                 {price.name === 'standard' ? 'Standard Pricing' : 
                  price.name === 'peak' ? 'Peak Hours Pricing' : 
-                 'Weekend Pricing'}
+                 'Weekend Pricing (Disabled)'}
               </h4>
               
               {price.name === 'standard' || price.name === 'peak' ? (
-                <div className="flex items-center">
-                  <span className="mr-2">Price per 30 minutes:</span>
+                <>
                   <div className="flex items-center">
-                    <span className="text-gray-500 mr-1">€</span>
-                    <Input
-                      type="number"
-                      value={price.price}
-                      min="0"
-                      step="5"
-                      className="w-24"
-                      onChange={(e) => handlePricingUpdate(price.id, 'price', e.target.value)}
-                    />
+                    <span className="mr-2">Price per 30 minutes:</span>
+                    <div className="flex items-center">
+                      <span className="text-gray-500 mr-1">€</span>
+                      <Input
+                        type="number"
+                        value={price.price}
+                        min="0"
+                        step="5"
+                        className="w-24"
+                        onChange={(e) => handlePricingUpdate(price.id, 'price', e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
+                  
+                  {price.name === 'peak' && (
+                    <div className="mt-2 text-sm text-gray-500">
+                      <p>Peak hours pricing applies during:</p>
+                      <ul className="list-disc pl-5 mt-1">
+                        <li>Monday to Friday: 17:00-22:00</li>
+                        <li>Saturday and Sunday: All day</li>
+                      </ul>
+                    </div>
+                  )}
+                </>
               ) : price.name === 'weekend' ? (
-                <div className="flex items-center">
-                  <span className="mr-2">Weekend multiplier:</span>
-                  <div className="flex items-center">
-                    <Input
-                      type="number"
-                      value={price.weekendMultiplier}
-                      min="1"
-                      step="0.1"
-                      className="w-24"
-                      onChange={(e) => handlePricingUpdate(price.id, 'weekendMultiplier', e.target.value)}
-                    />
-                    <span className="text-gray-500 ml-1">x</span>
-                  </div>
+                <div className="p-3 border rounded border-gray-200 bg-gray-50">
+                  <p className="text-gray-500 text-sm italic">
+                    Weekend pricing has been replaced with the new simplified pricing model.
+                    Weekend days are now automatically treated as peak hours.
+                  </p>
                 </div>
               ) : null}
             </div>
@@ -442,39 +479,77 @@ const AdminSystemConfig = () => {
         </CardContent>
       </Card>
       
-      {/* Visibility Settings */}
+      {/* Time Slot Management */}
       <Card>
         <CardHeader>
-          <CardTitle>Calendar Visibility</CardTitle>
+          <CardTitle>Time Slot Management</CardTitle>
+          <CardDescription>
+            Regenerate time slots to apply updated pricing rules and operating hours.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center">
-            <span className="mr-2">Show bookings up to:</span>
-            <Select 
-              value={visibilityWeeks.toString()} 
-              onValueChange={(value) => setVisibilityWeeks(parseInt(value))}
-            >
-              <SelectTrigger className="w-36">
-                <SelectValue placeholder="Select weeks" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 week ahead</SelectItem>
-                <SelectItem value="2">2 weeks ahead</SelectItem>
-                <SelectItem value="3">3 weeks ahead</SelectItem>
-                <SelectItem value="4">4 weeks ahead</SelectItem>
-                <SelectItem value="6">6 weeks ahead</SelectItem>
-                <SelectItem value="8">8 weeks ahead</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-6">
+            <div className="flex flex-col space-y-2">
+              <p className="text-sm text-gray-700">
+                After making changes to operating hours or pricing, you can regenerate time slots to apply the new settings
+                to all future time slots. This will delete all existing time slots and create new ones.
+              </p>
+              
+              <div className="p-3 border border-yellow-200 bg-yellow-50 rounded text-sm mb-4">
+                <p className="font-medium text-amber-800">Peak hours are now applied based on the following fixed rules:</p>
+                <ul className="list-disc pl-5 mt-1 text-amber-700">
+                  <li>Monday to Friday: 17:00-22:00</li>
+                  <li>Saturday and Sunday: All day</li>
+                </ul>
+              </div>
+              
+              <div className="flex justify-end mt-2">
+                <Button 
+                  variant="default"
+                  onClick={regenerateTimeSlots}
+                  disabled={isRegenerating}
+                  className="w-full sm:w-auto"
+                >
+                  {isRegenerating ? 
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Regenerating...</> : 
+                    "Regenerate All Time Slots"}
+                </Button>
+              </div>
+            </div>
             
-            <Button 
-              variant="outline"
-              className="ml-4"
-              onClick={saveVisibility}
-              disabled={updateVisibilityMutation.isPending}
-            >
-              {updateVisibilityMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Visibility"}
-            </Button>
+            <div className="h-px bg-gray-200 my-4"></div>
+            
+            <div className="flex flex-col space-y-2">
+              <h3 className="text-sm font-medium">Calendar Visibility</h3>
+              <div className="flex items-center mt-2">
+                <span className="mr-2">Show bookings up to:</span>
+                <Select 
+                  value={visibilityWeeks.toString()} 
+                  onValueChange={(value) => setVisibilityWeeks(parseInt(value))}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Select weeks" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 week ahead</SelectItem>
+                    <SelectItem value="2">2 weeks ahead</SelectItem>
+                    <SelectItem value="3">3 weeks ahead</SelectItem>
+                    <SelectItem value="4">4 weeks ahead</SelectItem>
+                    <SelectItem value="6">6 weeks ahead</SelectItem>
+                    <SelectItem value="8">8 weeks ahead</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button 
+                  variant="outline"
+                  className="ml-4"
+                  onClick={saveVisibility}
+                  disabled={updateVisibilityMutation.isPending}
+                >
+                  {updateVisibilityMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Visibility"}
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
