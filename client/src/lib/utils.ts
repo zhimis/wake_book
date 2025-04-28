@@ -56,7 +56,7 @@ export function formatTimeSlot(startTime: Date | string, endTime: Date | string)
 
 export function getTimeSlotClass(status: string, isSelected: boolean = false): string {
   if (isSelected) {
-    return "slot-selected bg-primary-light bg-opacity-20 border-2 border-red-500 ring-2 ring-red-500";
+    return "slot-selected bg-red-50 text-red-800 border-2 border-red-500 ring-2 ring-red-500 ring-offset-0 shadow-md";
   }
   
   switch (status) {
