@@ -12,9 +12,9 @@ const AdminPage = () => {
   };
   
   return (
-    <main className="container mx-auto px-0.5 py-2">
-      <div className="mb-6">
-        <h2 className="text-2xl font-heading font-bold text-gray-800">Admin Dashboard</h2>
+    <main className="container mx-auto px-0.5 py-1">
+      <div className="mb-2">
+        <h2 className="text-lg font-heading font-medium text-gray-800">Admin Dashboard</h2>
       </div>
       
       <Tabs defaultValue="bookings" value={activeTab} onValueChange={handleTabChange}>

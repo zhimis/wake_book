@@ -13,8 +13,6 @@ const Footer = () => {
           </div>
           <div className="flex flex-col md:flex-row items-center md:space-x-8">
             <button className="text-gray-600 hover:text-primary mb-2 md:mb-0">Contact Us</button>
-            <button className="text-gray-600 hover:text-primary mb-2 md:mb-0">FAQ</button>
-            <button className="text-gray-600 hover:text-primary">Terms & Conditions</button>
           </div>
         </div>
         <div className="mt-6 text-center text-gray-500 text-sm">

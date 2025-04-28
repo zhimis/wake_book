@@ -132,7 +132,8 @@ const AdminCalendarView = () => {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[]>([]);
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  // Always use calendar view as requested (removing list view)
+  const viewMode = 'calendar';
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isEditBookingDialogOpen, setIsEditBookingDialogOpen] = useState(false);
   const [isBookingDetailsDialogOpen, setIsBookingDetailsDialogOpen] = useState(false);
@@ -404,16 +405,7 @@ const AdminCalendarView = () => {
   return (
     <div id="bookingsTab" className="admin-tab-content p-0.5">
       <div className="flex flex-col space-y-1 mb-1">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center space-x-2">
-            <Tabs defaultValue="calendar" value={viewMode} onValueChange={(v) => setViewMode(v as 'calendar' | 'list')}>
-              <TabsList>
-                <TabsTrigger value="calendar">Calendar</TabsTrigger>
-                <TabsTrigger value="list">List</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </div>
+        {/* Calendar/List view tabs removed as requested */}
         
         <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
           <Button 
