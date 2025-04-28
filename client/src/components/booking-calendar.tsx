@@ -192,8 +192,9 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
       
       // Only show slots that are within the current week view (0-6 days from current date)
       if (daysDiff >= 0 && daysDiff < 7) {
-        // Use the local time representation directly from the date object
-        const hour = startTime.getHours();
+        // Get time components - adjust for the 3-hour timezone difference
+        // This ensures the UI displays the correct local time
+        const hour = startTime.getHours() - 3; // Adjust for 3-hour offset
         const minute = startTime.getMinutes();
         
         // Use database price if available
@@ -224,7 +225,10 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   // Get time slots for a specific time (e.g. "8:00")
   const getTimeSlotsForTime = (hour: number, minute: number) => {
     // Get all slots matching this time
-    const matchingSlots = timeSlots.filter(slot => slot.hour === hour && slot.minute === minute);
+    // Adjust the hour to account for timezone difference (convert to local time for display)
+    const matchingSlots = timeSlots.filter(slot => 
+      // Check if the hour and minute match after timezone adjustment
+      slot.hour === hour && slot.minute === minute);
     
     // Create an array of 7 slots (one for each day) - all initially undefined
     const slotsForWeek = Array(7).fill(undefined);
