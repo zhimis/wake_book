@@ -58,11 +58,8 @@ const LoginForm = () => {
             // Set the default tab
             localStorage.setItem("adminActiveTab", "bookings");
             
-            // Add a slightly longer delay before navigation to ensure data is fully updated
-            setTimeout(() => {
-              console.log("Navigating to admin page");
-              navigate("/admin");
-            }, 300);
+            // Use direct window location change for more reliable navigation
+            window.location.href = "/admin";
           },
           onError: (err) => {
             console.error("Login mutation error:", err);

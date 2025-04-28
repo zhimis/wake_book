@@ -133,21 +133,28 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     return isSelected;
   };
   
-  // Create 7 day week starting today (Latvia format with Monday as first day)
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const date = addDays(currentDate, i);
-    // Get the Latvia day index where 0 = Monday
-    const latvianDayIndex = getLatvianDayIndexFromDate(date);
-    return {
-      date,
-      name: format(date, "EEE"),
-      day: format(date, "d"),
-      latvianDayIndex // Include Latvia day index for proper sorting
-    };
-  }).sort((a, b) => {
-    // Sort by Latvian day index (Monday first)
-    return a.latvianDayIndex - b.latvianDayIndex;
-  });
+  // Create a Latvian week (Monday-Sunday) from current date
+  const days = useMemo(() => {
+    // Get the Latvian day index for the current date (0=Monday, 1=Tuesday, etc)
+    const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
+    
+    // Calculate the date for Monday (start of Latvian week)
+    // If today is Monday (index 0), then monday is today
+    // If today is Tuesday (index 1), then monday is yesterday, etc.
+    const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
+    
+    // Now create an array of 7 days starting from Monday
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(mondayDate, i);
+      // Latvian day index is simply i (0=Monday, 1=Tuesday, etc)
+      return {
+        date,
+        name: format(date, "EEE"),
+        day: format(date, "d"),
+        latvianDayIndex: i
+      };
+    });
+  }, [currentDate]);
   
   // Build status map from database time slots
   const dbStatusMap = useMemo(() => {
@@ -435,7 +442,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       <CardHeader className="pb-1 pt-2 px-2">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            {format(currentDate, "MMMM d")} - {format(addDays(currentDate, 6), "MMMM d, yyyy")}
+            {format(days[0].date, "MMMM d")} - {format(days[6].date, "MMMM d, yyyy")}
           </p>
           <div className="flex space-x-2">
             <Button 
