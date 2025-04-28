@@ -178,8 +178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.regenerateTimeSlots();
       
       // Verify the time slots were generated properly
-      const timeSlotCount = await db.select({ count: sql`count(*)` }).from(timeSlots);
-      console.log("Time slots after regeneration:", timeSlotCount[0].count);
+      const allTimeSlots = await db.select().from(timeSlots);
+      const timeSlotCount = allTimeSlots.length;
+      console.log("Time slots after regeneration:", timeSlotCount);
       
       console.log("Time slots regenerated successfully after admin request");
       

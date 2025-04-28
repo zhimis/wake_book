@@ -44,7 +44,16 @@ const AdminSystemConfig = () => {
         ...hour,
         isOpen: !hour.isClosed
       }));
-      setOperatingHoursState(transformedHours);
+      
+      // Sort days to follow Monday-first order (1, 2, 3, 4, 5, 6, 0)
+      const sortedHours = [...transformedHours].sort((a, b) => {
+        // Convert 0 (Sunday) to 7 for sorting purposes
+        const aDayNum = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
+        const bDayNum = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
+        return aDayNum - bDayNum;
+      });
+      
+      setOperatingHoursState(sortedHours);
       setPricingState(data.pricing || []);
       setVisibilityWeeks(data.visibilityWeeks || 4);
     }
