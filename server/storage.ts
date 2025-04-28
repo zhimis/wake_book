@@ -27,6 +27,7 @@ export interface IStorage {
   reserveTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined>;
   releaseReservation(id: number): Promise<TimeSlot | undefined>;
   blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined>;
+  regenerateTimeSlots(): Promise<void>;
   
   // Booking methods
   getBooking(id: number): Promise<Booking | undefined>;
@@ -341,6 +342,11 @@ export class DatabaseStorage implements IStorage {
       });
       
     return updatedTimeSlot;
+  }
+  
+  // Public method to regenerate time slots
+  async regenerateTimeSlots(): Promise<void> {
+    await this.generateTimeSlots();
   }
   
   async getBookings(): Promise<Booking[]> {
