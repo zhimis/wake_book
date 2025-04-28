@@ -45,10 +45,12 @@ const AdminSystemConfig = () => {
         isOpen: !hour.isClosed
       }));
       
-      // Keep days in their normal order (0-6, Sunday-Saturday)
-      // This matches how they're stored in the database
+      // Sort days to follow Monday-first order (1, 2, 3, 4, 5, 6, 0)
       const sortedHours = [...transformedHours].sort((a, b) => {
-        return a.dayOfWeek - b.dayOfWeek;
+        // Convert 0 (Sunday) to 7 for sorting purposes
+        const aDayNum = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
+        const bDayNum = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
+        return aDayNum - bDayNum;
       });
       
       setOperatingHoursState(sortedHours);
@@ -278,7 +280,8 @@ const AdminSystemConfig = () => {
   }
   
   const getDayName = (dayOfWeek: number): string => {
-    // Correct mapping from dayOfWeek (0=Sunday, 1=Monday) to day names
+    // Display days with Monday-first format (assuming DB is 0=Sunday, 1=Monday)
+    // We need to convert this to display with dayOfWeek where Monday is visually first  
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[dayOfWeek];
   };
