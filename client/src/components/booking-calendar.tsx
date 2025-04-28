@@ -379,8 +379,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
   if (timeSlotsLoading) {
     return (
       <Card className="w-full">
-        <CardHeader className="pb-2 pt-4">
-          <div className="flex justify-center items-center py-12">
+        <CardHeader className="pb-1 pt-2 px-2">
+          <div className="flex justify-center items-center py-8">
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
               <p className="text-sm text-muted-foreground">Loading calendar...</p>
@@ -393,7 +393,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
   
   return (
     <Card className="w-full">
-      <CardHeader className="pb-2 pt-4">
+      <CardHeader className="pb-1 pt-2 px-2">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
             {format(currentDate, "MMMM d")} - {format(addDays(currentDate, 6), "MMMM d, yyyy")}
@@ -598,7 +598,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
         
         {/* Selection summary */}
         {selectedTimeSlots.length > 0 && (
-          <div className="mt-4 pt-4 border-t px-4 pb-4">
+          <div className="mt-2 pt-2 border-t px-2 pb-2">
             <div className="flex justify-between items-center">
               <div>
                 <h4 className="font-medium text-sm">Selected Slots: {selectedTimeSlots.length}</h4>

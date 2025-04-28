@@ -323,7 +323,7 @@ const AdminSystemConfig = () => {
   };
   
   return (
-    <div id="configurationTab" className="admin-tab-content p-4 space-y-6">
+    <div id="configurationTab" className="admin-tab-content p-1 space-y-2">
       {/* Standard Operating Hours */}
       <Card>
         <CardHeader>
