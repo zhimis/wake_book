@@ -124,62 +124,53 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
     return map;
   }, [dbTimeSlots]);
   
-  // Generate time slots grid with database statuses applied
+  // Generate time slots grid using ONLY slots from the database
   const timeSlots = useMemo(() => {
     const slots: CalendarTimeSlot[] = [];
     
-    // Use a counter to match database IDs
-    let counter = 1;
-    
-    for (let day = 0; day < 7; day++) {
-      for (let hour = 8; hour < 22; hour++) {
-        for (let minute of [0, 30]) {
-          // Base price: 15€ for mornings, 18€ for afternoons, 20€ for evenings
-          let price = 15;
-          if (hour >= 12 && hour < 17) price = 18;
-          if (hour >= 17) price = 20;
-          
-          // Weekend price increase
-          if (day >= 5) price += 5;
-          
-          // Create slot date and times
-          const slotDate = addDays(currentDate, day);
-          const startTime = new Date(slotDate);
-          startTime.setHours(hour, minute, 0, 0);
-          
-          const endTime = new Date(startTime);
-          endTime.setMinutes(endTime.getMinutes() + 30);
-          
-          // Default to available, then check database status
-          let status: TimeSlotStatus = "available";
-          let reservationExpiry: Date | null = null;
-          
-          // Look up the status from the database
-          const dbStatus = dbStatusMap.get(counter);
-          if (dbStatus) {
-            status = dbStatus.status as TimeSlotStatus;
-            reservationExpiry = dbStatus.reservationExpiry ? new Date(dbStatus.reservationExpiry) : null;
-          }
-          
-          slots.push({
-            id: counter.toString(),
-            day,
-            hour,
-            minute,
-            price,
-            status,
-            startTime,
-            endTime,
-            reservationExpiry
-          });
-          
-          counter++;
-        }
-      }
+    // Only proceed if we have database time slots
+    if (!dbTimeSlots || !dbTimeSlots.timeSlots || !Array.isArray(dbTimeSlots.timeSlots)) {
+      return slots;
     }
+
+    // Create calendar time slots ONLY from database time slots
+    dbTimeSlots.timeSlots.forEach((dbSlot: SchemaTimeSlot) => {
+      const startTime = new Date(dbSlot.startTime);
+      const endTime = new Date(dbSlot.endTime);
+      
+      // Determine day of week relative to current date
+      const slotDate = new Date(startTime);
+      const daysDiff = Math.floor((slotDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Only show slots that are within the current week view
+      if (daysDiff >= 0 && daysDiff < 7) {
+        const day = daysDiff;
+        const hour = startTime.getHours();
+        const minute = startTime.getMinutes();
+        
+        // Use database price if available
+        const price = dbSlot.price || 15;
+        
+        // Use database status
+        const status = dbSlot.status as TimeSlotStatus;
+        const reservationExpiry = dbSlot.reservationExpiry ? new Date(dbSlot.reservationExpiry) : null;
+        
+        slots.push({
+          id: dbSlot.id.toString(),
+          day,
+          hour,
+          minute,
+          price,
+          status,
+          startTime,
+          endTime,
+          reservationExpiry
+        });
+      }
+    });
     
     return slots;
-  }, [currentDate, dbStatusMap]);
+  }, [currentDate, dbTimeSlots]);
   
   // Get time slots for a specific time (e.g. "8:00")
   const getTimeSlotsForTime = (hour: number, minute: number) => {

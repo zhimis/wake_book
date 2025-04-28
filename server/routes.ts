@@ -6,7 +6,7 @@ import { z } from "zod";
 import { bookingFormSchema, timeSlots, operatingHours } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
 import { db } from "./db";
-import { gte, eq } from "drizzle-orm";
+import { gte, eq, sql } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
