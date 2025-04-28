@@ -96,9 +96,10 @@ export class DatabaseStorage implements IStorage {
             dayOfWeek,
             openTime: "08:00",
             closeTime: "22:00",
-            isClosed: false
+            isClosed: dayOfWeek === 1 // Mondays closed by default
           });
         }
+        console.log("Default operating hours created");
       }
       
       // Create default pricing options
@@ -130,6 +131,7 @@ export class DatabaseStorage implements IStorage {
             weekendMultiplier: 1.2
           }
         ]);
+        console.log("Default pricing options created");
       }
       
       // Create default configuration
@@ -141,9 +143,120 @@ export class DatabaseStorage implements IStorage {
             value: '4'
           }
         ]);
+        console.log("Default configuration created");
+      }
+
+      // Initialize time slots if none exist
+      const existingTimeSlots = await db.select().from(timeSlots);
+      if (existingTimeSlots.length === 0) {
+        console.log("Generating time slots for the next 4 weeks...");
+        await this.generateTimeSlots();
       }
     } catch (error) {
       console.error("Error initializing default data:", error);
+    }
+  }
+  
+  // Helper method to generate time slots for the next few weeks
+  private async generateTimeSlots() {
+    try {
+      // Get all operating hours and pricing rules
+      const allOperatingHours = await db.select().from(operatingHours);
+      const allPricing = await db.select().from(pricing);
+      
+      // Generate time slots for the next 4 weeks
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(today);
+      endDate.setDate(endDate.getDate() + 28); // 4 weeks
+      
+      let currentDate = new Date(today);
+      let batchInserts = [];
+      const BATCH_SIZE = 100;
+      
+      while (currentDate < endDate) {
+        const dayOfWeek = currentDate.getDay();
+        const operatingHour = allOperatingHours.find(oh => oh.dayOfWeek === dayOfWeek);
+        
+        // Skip if the day is closed
+        if (operatingHour && !operatingHour.isClosed) {
+          // Parse opening and closing hours
+          const [openHour, openMinute] = operatingHour.openTime.split(':').map(Number);
+          const [closeHour, closeMinute] = operatingHour.closeTime.split(':').map(Number);
+          
+          // Create time slots in 30-minute increments
+          for (let hour = openHour; hour < closeHour; hour++) {
+            for (let minute of [0, 30]) {
+              // Skip if we're at opening time but have non-zero minutes
+              if (hour === openHour && minute < openMinute) continue;
+              
+              // Skip if we're at closing time
+              if (hour === closeHour - 1 && minute >= closeMinute) continue;
+              
+              const startTime = new Date(currentDate);
+              startTime.setHours(hour, minute, 0, 0);
+              
+              const endTime = new Date(startTime);
+              endTime.setMinutes(endTime.getMinutes() + 30);
+              
+              // Determine price based on time and day
+              const standardPricing = allPricing.find(p => p.name === 'standard');
+              const peakPricing = allPricing.find(p => p.name === 'peak');
+              const weekendPricing = allPricing.find(p => p.name === 'weekend');
+              
+              let price = standardPricing ? standardPricing.price : 50; // Default
+              
+              // Check if it's peak hours
+              if (peakPricing && peakPricing.startTime && peakPricing.endTime) {
+                const [peakStartHour, peakStartMinute] = peakPricing.startTime.split(':').map(Number);
+                const [peakEndHour, peakEndMinute] = peakPricing.endTime.split(':').map(Number);
+                
+                const isPeakHour = 
+                  (hour > peakStartHour || (hour === peakStartHour && minute >= peakStartMinute)) && 
+                  (hour < peakEndHour || (hour === peakEndHour && minute < peakEndMinute));
+                
+                if (isPeakHour) {
+                  price = peakPricing.price;
+                }
+              }
+              
+              // Apply weekend multiplier if applicable
+              if (weekendPricing && weekendPricing.applyToWeekends && 
+                  (dayOfWeek === 0 || dayOfWeek === 6)) { // Saturday or Sunday
+                price = price * (weekendPricing.weekendMultiplier || 1.2);
+              }
+              
+              // Add to batch
+              batchInserts.push({
+                startTime: startTime,
+                endTime: endTime,
+                price: Math.round(price), // Round to nearest whole number
+                status: 'available',
+                reservationExpiry: null
+              });
+              
+              // Insert in batches to avoid memory issues
+              if (batchInserts.length >= BATCH_SIZE) {
+                await db.insert(timeSlots).values(batchInserts);
+                batchInserts = [];
+              }
+            }
+          }
+        }
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // Insert any remaining time slots
+      if (batchInserts.length > 0) {
+        await db.insert(timeSlots).values(batchInserts);
+      }
+      
+      console.log("Time slots generated successfully.");
+    } catch (error) {
+      console.error("Error generating time slots:", error);
     }
   }
 

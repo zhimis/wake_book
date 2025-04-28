@@ -259,8 +259,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       
       const schema = z.object({
-        openTime: z.date().optional(),
-        closeTime: z.date().optional(),
+        openTime: z.string().optional(),
+        closeTime: z.string().optional(),
         isClosed: z.boolean().optional()
       });
       
@@ -295,8 +295,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const schema = z.object({
         price: z.number().optional(),
-        startTime: z.date().optional().nullable(),
-        endTime: z.date().optional().nullable(),
+        startTime: z.string().optional().nullable(),
+        endTime: z.string().optional().nullable(),
         applyToWeekends: z.boolean().optional(),
         weekendMultiplier: z.number().optional().nullable()
       });
