@@ -20,7 +20,7 @@ const Header = () => {
         
         <div className="flex items-center space-x-4">
           <Link href="/admin/login">
-            <span className="hidden md:block text-primary font-semibold cursor-pointer">Admin Login</span>
+            <span className="hidden md:block text-primary font-semibold cursor-pointer">Admin</span>
           </Link>
           
           <button 
@@ -44,7 +44,7 @@ const Header = () => {
             <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Home</span>
           </Link>
           <Link href="/admin/login">
-            <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Admin Login</span>
+            <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Admin</span>
           </Link>
         </nav>
       </div>
