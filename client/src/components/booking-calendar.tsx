@@ -68,7 +68,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   
   // Use the booking context
   const { selectedTimeSlots, toggleTimeSlot, setReservationExpiry, clearSelectedTimeSlots } = useBooking();
-  const { forecast: weatherForecast, isLoading: weatherLoading } = useWeather();
+  // Only fetch weather data if not in admin view
+  const { forecast: weatherForecast, isLoading: weatherLoading } = !isAdmin ? useWeather() : { forecast: null, isLoading: false };
   const { toast } = useToast();
   
   // Date range for the current week view
@@ -475,12 +476,15 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           {/* Day columns headers */}
           <div className="flex-1 grid grid-cols-7 gap-1">
             {days.map((day, index) => {
-              // Find weather for this day if available
+              // Find weather for this day if available (only for non-admin view)
               const dayStr = format(day.date, "yyyy-MM-dd");
-              const dayWeather = weatherForecast?.find((w: any) => w.date === dayStr);
+              const dayWeather = !isAdmin ? weatherForecast?.find((w: any) => w.date === dayStr) : null;
               
-              // Determine weather icon
+              // Determine weather icon (only for non-admin view)
               const getWeatherIcon = () => {
+                // Don't show weather icons in admin mode
+                if (isAdmin) return null;
+                
                 if (!dayWeather) return <Cloud className="h-5 w-5 text-gray-400" />;
                 const condition = dayWeather.condition.toLowerCase();
                 
@@ -500,9 +504,13 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                 <div key={index} className={`text-center py-2 ${isCurrentDay ? 'bg-blue-50 rounded-md' : ''}`}>
                   <div className={`font-medium text-sm ${isCurrentDay ? 'text-blue-700' : ''}`}>{day.name}</div>
                   <div className={`text-xs ${isCurrentDay ? 'text-blue-600' : 'text-muted-foreground'}`}>{day.day}</div>
-                  <div className="mt-1">{getWeatherIcon()}</div>
-                  {dayWeather && (
-                    <div className={`text-xs font-medium mt-1 ${isCurrentDay ? 'text-blue-600' : ''}`}>{dayWeather.temperature}°C</div>
+                  {!isAdmin && (
+                    <>
+                      <div className="mt-1">{getWeatherIcon()}</div>
+                      {dayWeather && (
+                        <div className={`text-xs font-medium mt-1 ${isCurrentDay ? 'text-blue-600' : ''}`}>{dayWeather.temperature}°C</div>
+                      )}
+                    </>
                   )}
                 </div>
               );
