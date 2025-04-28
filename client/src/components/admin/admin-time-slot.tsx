@@ -16,6 +16,8 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   isSelected, 
   onClick 
 }) => {
+  console.log(`AdminTimeSlot rendering with id: ${slot.id}, selected: ${isSelected}, status: ${slot.status}`);
+  
   // Get CSS class for time slot based on status
   const getSlotClass = (status: string) => {
     switch (status) {

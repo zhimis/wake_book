@@ -115,7 +115,12 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
     const id = parseInt(uiSlotId);
     
     // Check if any selected slots match this ID
-    return selectedTimeSlots.some(slot => slot.id === id);
+    const isSelected = selectedTimeSlots.some(slot => slot.id === id);
+    
+    console.log(`isSlotSelected checking id: ${id}, found in selected: ${isSelected}, selected slots: `, 
+                selectedTimeSlots.map(s => s.id));
+    
+    return isSelected;
   };
   
   // Create 7 day week starting today (Latvia format with Monday as first day)
