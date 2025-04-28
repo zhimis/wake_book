@@ -404,30 +404,7 @@ const AdminCalendarView = () => {
   
   return (
     <div id="bookingsTab" className="admin-tab-content p-0.5">
-      <div className="flex flex-col space-y-1 mb-1">
-        {/* Calendar/List view tabs removed as requested */}
-        
-        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
-          <Button 
-            className="bg-primary hover:bg-primary/90"
-            onClick={handleCreateBooking}
-            disabled={selectedTimeSlots.length === 0}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Create Booking
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-            onClick={handleBlockTimeSlots}
-            disabled={selectedTimeSlots.length === 0}
-          >
-            <AlertTriangle className="h-4 w-4 mr-1" />
-            Block Time Slots
-          </Button>
-        </div>
-      </div>
+      {/* Top controls removed, buttons moved below the calendar view */}
       
       {hasError ? (
         <Alert variant="destructive">
@@ -483,12 +460,36 @@ const AdminCalendarView = () => {
           )}
           
           {viewMode === 'calendar' ? (
-            <BookingCalendar 
-              onDateRangeChange={handleDateRangeChange}
-              isAdmin={true}
-              onAdminSlotSelect={handleTimeSlotSelect}
-              adminSelectedSlots={selectedTimeSlots}
-            />
+            <>
+              <BookingCalendar 
+                onDateRangeChange={handleDateRangeChange}
+                isAdmin={true}
+                onAdminSlotSelect={handleTimeSlotSelect}
+                adminSelectedSlots={selectedTimeSlots}
+              />
+              
+              {/* Action buttons moved below calendar view */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mt-4">
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleCreateBooking}
+                  disabled={selectedTimeSlots.length === 0}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create Booking
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                  onClick={handleBlockTimeSlots}
+                  disabled={selectedTimeSlots.length === 0}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  Block Time Slots
+                </Button>
+              </div>
+            </>
           ) : (
             <Card>
               <CardHeader>
