@@ -18,8 +18,8 @@ const HomePage = () => {
             
             <div className="mt-4">
               <Card>
-                <CardContent className="pt-4 px-3">
-                  <h3 className="text-lg font-semibold mb-3">Facility Information</h3>
+                <CardContent className="pt-2 px-2">
+                  <h3 className="text-lg font-semibold mb-2">Facility Information</h3>
                   <div className="space-y-3">
                     <div>
                       <h4 className="font-medium text-sm">Opening Hours</h4>
@@ -36,8 +36,8 @@ const HomePage = () => {
               </Card>
             </div>
             
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <h4 className="text-blue-800 font-medium text-sm mb-2">Booking Instructions</h4>
+            <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+              <h4 className="text-blue-800 font-medium text-sm mb-1">Booking Instructions</h4>
               <ul className="text-blue-700 text-xs space-y-1">
                 <li>• Select consecutive time slots</li>
                 <li>• Prices vary by time and weekends</li>

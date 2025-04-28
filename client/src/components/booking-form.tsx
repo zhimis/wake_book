@@ -117,11 +117,11 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
         </Button>
       </div>
       
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-heading font-bold text-gray-800 mb-6">Complete Your Booking</h2>
+      <div className="bg-white rounded-lg shadow-md p-2">
+        <h2 className="text-2xl font-heading font-bold text-gray-800 mb-2">Complete Your Booking</h2>
         
         {/* Reserved Slots Summary */}
-        <div className="mb-6 bg-primary-light bg-opacity-20 rounded-lg p-4">
+        <div className="mb-2 bg-primary-light bg-opacity-20 rounded-lg p-2">
           <h3 className="font-heading font-medium text-lg mb-3">Your Reserved Times</h3>
           <div className="space-y-2 mb-3">
             {selectedTimeSlots.map((slot, index) => (

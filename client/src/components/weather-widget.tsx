@@ -61,10 +61,10 @@ export default function WeatherWidget() {
   if (loading) {
     return (
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-1 pt-2 px-2">
           <CardTitle className="text-xl">Loading Weather...</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 py-1">
           <div className="animate-pulse flex flex-col items-center py-4">
             <div className="h-8 w-16 bg-gray-300 rounded mb-2"></div>
             <div className="h-4 w-24 bg-gray-300 rounded"></div>
@@ -77,10 +77,10 @@ export default function WeatherWidget() {
   if (error || !weather) {
     return (
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-1 pt-2 px-2">
           <CardTitle className="text-xl">Weather</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 py-1">
           <div className="text-center py-4 text-red-500">
             {error || "Unable to load weather data"}
           </div>
