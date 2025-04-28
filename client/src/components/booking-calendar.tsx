@@ -42,6 +42,7 @@ interface CalendarTimeSlot {
 interface BookingCalendarProps {
   onDateRangeChange?: (startDate: Date, endDate: Date) => void;
   isAdmin?: boolean;
+  onAdminSlotSelect?: (timeSlot: SchemaTimeSlot) => void;
 }
 
 // Converter function to match our calendar UI slots with the DB schema
@@ -60,7 +61,7 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
 }
 
 // Simplified booking calendar with mock data
-const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
+const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendarProps) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   
   // Use the booking context
@@ -259,14 +260,21 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   
   // Toggle slot selection
   const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
-    if (status !== "available" && !isAdmin) return;
-    
     // Find the actual slot object
     const slot = timeSlots.find(s => s.id === slotId);
     if (!slot) return;
     
     // Convert our UI slot to a schema slot before passing to context
     const schemaSlot = toSchemaTimeSlot(slot);
+    
+    // If in admin mode, allow selecting any slot and pass to admin handler
+    if (isAdmin && onAdminSlotSelect) {
+      onAdminSlotSelect(schemaSlot);
+      return;
+    }
+    
+    // For regular users, only allow selecting available slots
+    if (status !== "available") return;
     
     // Update booking context
     toggleTimeSlot(schemaSlot);
