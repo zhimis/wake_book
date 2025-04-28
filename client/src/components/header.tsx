@@ -1,12 +1,31 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Menu, LogOut } from "lucide-react";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logoutMutation } = useAuth();
+  const [, navigate] = useLocation();
   
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+  };
+  
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        navigate("/");
+      }
+    });
   };
   
   return (
@@ -19,9 +38,30 @@ const Header = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <Link href="/admin/login">
-            <span className="hidden md:block text-primary font-semibold cursor-pointer">Admin</span>
-          </Link>
+          {user ? (
+            <div className="hidden md:flex items-center space-x-2">
+              <span className="text-sm text-gray-600">
+                Welcome, <span className="font-medium">{user.username}</span>
+              </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : (
+            <Link href="/admin/login">
+              <span className="hidden md:block text-primary font-semibold cursor-pointer">Admin</span>
+            </Link>
+          )}
           
           <button 
             className="md:hidden text-gray-700"
@@ -43,9 +83,27 @@ const Header = () => {
           <Link href="/">
             <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Home</span>
           </Link>
-          <Link href="/admin/login">
-            <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Admin</span>
-          </Link>
+          
+          {user ? (
+            <>
+              {user && (
+                <div className="text-sm text-gray-600 py-1">
+                  Welcome, <span className="font-medium">{user.username}</span>
+                </div>
+              )}
+              <button 
+                onClick={handleLogout}
+                className="text-left text-red-600 hover:text-red-700 font-medium py-1 cursor-pointer flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Log Out</span>
+              </button>
+            </>
+          ) : (
+            <Link href="/admin/login">
+              <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Admin</span>
+            </Link>
+          )}
         </nav>
       </div>
     </header>
