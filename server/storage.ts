@@ -169,68 +169,72 @@ export class DatabaseStorage implements IStorage {
         const dayOfWeek = currentDate.getDay();
         const operatingHour = allOperatingHours.find(oh => oh.dayOfWeek === dayOfWeek);
         
-        // Skip if the day is closed
-        if (operatingHour && !operatingHour.isClosed) {
-          // Parse opening and closing hours
-          const [openHour, openMinute] = operatingHour.openTime.split(':').map(Number);
-          const [closeHour, closeMinute] = operatingHour.closeTime.split(':').map(Number);
+        // Skip if no operating hours defined for this day or if the day is closed
+        if (!operatingHour || operatingHour.isClosed) {
+          // Continue to next day
+          currentDate.setDate(currentDate.getDate() + 1);
+          continue;
+        }
+        
+        // Parse opening and closing hours
+        const [openHour, openMinute] = operatingHour.openTime.split(':').map(Number);
+        const [closeHour, closeMinute] = operatingHour.closeTime.split(':').map(Number);
           
-          // Create time slots in 30-minute increments
-          for (let hour = openHour; hour < closeHour; hour++) {
-            for (let minute of [0, 30]) {
-              // Skip if we're at opening time but have non-zero minutes
-              if (hour === openHour && minute < openMinute) continue;
+        // Create time slots in 30-minute increments
+        for (let hour = openHour; hour < closeHour; hour++) {
+          for (let minute of [0, 30]) {
+            // Skip if we're at opening time but have non-zero minutes
+            if (hour === openHour && minute < openMinute) continue;
+            
+            // Skip if we're at closing time
+            if (hour === closeHour - 1 && minute >= closeMinute) continue;
+            
+            const startTime = new Date(currentDate);
+            startTime.setHours(hour, minute, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + 30);
+            
+            // Determine price based on time and day
+            const standardPricing = allPricing.find(p => p.name === 'standard');
+            const peakPricing = allPricing.find(p => p.name === 'peak');
+            const weekendPricing = allPricing.find(p => p.name === 'weekend');
+            
+            let price = standardPricing ? standardPricing.price : 50; // Default
+            
+            // Check if it's peak hours
+            if (peakPricing && peakPricing.startTime && peakPricing.endTime) {
+              const [peakStartHour, peakStartMinute] = peakPricing.startTime.split(':').map(Number);
+              const [peakEndHour, peakEndMinute] = peakPricing.endTime.split(':').map(Number);
               
-              // Skip if we're at closing time
-              if (hour === closeHour - 1 && minute >= closeMinute) continue;
+              const isPeakHour = 
+                (hour > peakStartHour || (hour === peakStartHour && minute >= peakStartMinute)) && 
+                (hour < peakEndHour || (hour === peakEndHour && minute < peakEndMinute));
               
-              const startTime = new Date(currentDate);
-              startTime.setHours(hour, minute, 0, 0);
-              
-              const endTime = new Date(startTime);
-              endTime.setMinutes(endTime.getMinutes() + 30);
-              
-              // Determine price based on time and day
-              const standardPricing = allPricing.find(p => p.name === 'standard');
-              const peakPricing = allPricing.find(p => p.name === 'peak');
-              const weekendPricing = allPricing.find(p => p.name === 'weekend');
-              
-              let price = standardPricing ? standardPricing.price : 50; // Default
-              
-              // Check if it's peak hours
-              if (peakPricing && peakPricing.startTime && peakPricing.endTime) {
-                const [peakStartHour, peakStartMinute] = peakPricing.startTime.split(':').map(Number);
-                const [peakEndHour, peakEndMinute] = peakPricing.endTime.split(':').map(Number);
-                
-                const isPeakHour = 
-                  (hour > peakStartHour || (hour === peakStartHour && minute >= peakStartMinute)) && 
-                  (hour < peakEndHour || (hour === peakEndHour && minute < peakEndMinute));
-                
-                if (isPeakHour) {
-                  price = peakPricing.price;
-                }
+              if (isPeakHour) {
+                price = peakPricing.price;
               }
-              
-              // Apply weekend multiplier if applicable
-              if (weekendPricing && weekendPricing.applyToWeekends && 
-                  (dayOfWeek === 0 || dayOfWeek === 6)) { // Saturday or Sunday
-                price = price * (weekendPricing.weekendMultiplier || 1.2);
-              }
-              
-              // Add to batch
-              batchInserts.push({
-                startTime: startTime,
-                endTime: endTime,
-                price: Math.round(price), // Round to nearest whole number
-                status: 'available',
-                reservationExpiry: null
-              });
-              
-              // Insert in batches to avoid memory issues
-              if (batchInserts.length >= BATCH_SIZE) {
-                await db.insert(timeSlots).values(batchInserts);
-                batchInserts = [];
-              }
+            }
+            
+            // Apply weekend multiplier if applicable
+            if (weekendPricing && weekendPricing.applyToWeekends && 
+                (dayOfWeek === 0 || dayOfWeek === 6)) { // Saturday or Sunday
+              price = price * (weekendPricing.weekendMultiplier || 1.2);
+            }
+            
+            // Add to batch
+            batchInserts.push({
+              startTime: startTime,
+              endTime: endTime,
+              price: Math.round(price), // Round to nearest whole number
+              status: 'available',
+              reservationExpiry: null
+            });
+            
+            // Insert in batches to avoid memory issues
+            if (batchInserts.length >= BATCH_SIZE) {
+              await db.insert(timeSlots).values(batchInserts);
+              batchInserts = [];
             }
           }
         }

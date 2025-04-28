@@ -3,8 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { bookingFormSchema } from "@shared/schema";
+import { bookingFormSchema, timeSlots } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
+import { db } from "./db";
+import { gte } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -435,6 +437,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!updatedHours) {
         return res.status(404).json({ error: "Operating hours not found" });
+      }
+      
+      // Regenerate timeslots for the next 4 weeks to apply the new operating hours
+      try {
+        // Get the current date
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Get the end date (4 weeks from now)
+        const endDate = new Date(today);
+        endDate.setDate(endDate.getDate() + 28);
+        
+        // Delete all future time slots
+        await db.delete(timeSlots)
+          .where(
+            gte(timeSlots.startTime, today)
+          );
+        
+        // Call the private method to regenerate time slots
+        await storage.regenerateTimeSlots();
+        
+        console.log(`Regenerated time slots after operating hours update for day ${updatedHours.dayOfWeek}`);
+      } catch (error) {
+        console.error("Error regenerating time slots:", error);
+        // We don't want to fail the API call if regeneration fails, just log it
       }
       
       res.json(updatedHours);

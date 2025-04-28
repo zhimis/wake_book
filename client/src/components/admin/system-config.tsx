@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +36,8 @@ const AdminSystemConfig = () => {
   const [visibilityWeeks, setVisibilityWeeks] = useState<number>(4);
   
   // Set initial state values when data is loaded
-  useState(() => {
+  // This should be useEffect, not useState!
+  useEffect(() => {
     if (data) {
       // Transform operating hours data to include isOpen (inverse of isClosed)
       const transformedHours = (data.operatingHours || []).map(hour => ({
@@ -47,7 +48,7 @@ const AdminSystemConfig = () => {
       setPricingState(data.pricing || []);
       setVisibilityWeeks(data.visibilityWeeks || 4);
     }
-  });
+  }, [data]);
   
   // Mutations
   const updateOperatingHoursMutation = useMutation({
