@@ -329,6 +329,12 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
   
   // Get CSS class for time slot based on status
   const getSlotClass = (status: TimeSlotStatus, isSelected: boolean) => {
+    // If admin mode and selected, this takes priority over everything else
+    if (isAdmin && isSelected) {
+      // No need to return anything, we're using the admin-selected-slot global class
+      return "";
+    }
+    
     // For regular user view
     if (!isAdmin) {
       // Regular user selected slots styling
@@ -349,13 +355,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
       }
     }
     
-    // Admin view styling
-    if (isSelected) {
-      // Admin selected slots styling - EXTREMELY prominent with !important to override button styling
-      return "!bg-red-200 !text-red-900 !border-4 !border-red-500 !outline !outline-2 !outline-red-500 !ring-4 !ring-red-500 !ring-opacity-70 !shadow-lg !z-20 !scale-110 !font-bold";
-    }
-    
-    // Admin slot status styling
+    // Admin slot status styling (not selected)
     switch (status) {
       case "available":
         return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
@@ -546,8 +546,9 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
                             className={cn(
                               "h-14 py-0 px-1 justify-center items-center text-center text-xs",
                               getSlotClass(slot.status, isSelected),
-                              isAdmin && isSelected ? "!border-4 !border-red-500 !ring-2 !ring-red-500 !scale-105 !z-10" : ""
+                              isAdmin && isSelected ? "admin-selected-slot" : ""
                             )}
+                            data-admin-selected={isAdmin && isSelected ? "true" : "false"}
                             disabled={slot.status !== "available" && !isAdmin}
                             onClick={() => handleSlotToggle(slot.id, slot.status)}
                           >
@@ -600,9 +601,10 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
                           className={cn(
                             "h-14 py-0 px-1 justify-center items-center text-center text-xs",
                             getSlotClass(slot.status, isSelected),
-                            isAdmin && isSelected ? "!border-4 !border-red-500 !ring-2 !ring-red-500 !scale-105 !z-10" : "",
+                            isAdmin && isSelected ? "admin-selected-slot" : "",
                             isCurrentDay && !isSelected && slot.status === "available" ? "border-blue-300" : ""
                           )}
+                          data-admin-selected={isAdmin && isSelected ? "true" : "false"}
                           disabled={slot.status !== "available" && !isAdmin}
                           onClick={() => handleSlotToggle(slot.id, slot.status)}
                         >

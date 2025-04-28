@@ -57,3 +57,42 @@
   }
 }
 
+/* Custom styles for admin calendar */
+.admin-selected-slot {
+  border: 4px solid #ef4444 !important;
+  outline: 2px solid #ef4444 !important;
+  background-color: #fecaca !important;
+  color: #7f1d1d !important;
+  font-weight: bold !important;
+  z-index: 50 !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7) !important;
+  position: relative !important;
+}
+
+/* Ensure admin selected slots are very visible */
+button.admin-selected-slot,
+.admin-selected-slot button {
+  border: 4px solid rgb(220, 38, 38) !important; 
+  outline: 2px solid rgb(220, 38, 38) !important;
+  background-color: rgb(254, 202, 202) !important;
+  color: rgb(127, 29, 29) !important;
+  font-weight: bold !important;
+  transform: scale(1.1) !important;
+  z-index: 50 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Direct targeting of the Button components */
+[data-admin-selected="true"] {
+  border: 4px solid rgb(220, 38, 38) !important; 
+  outline: 2px solid rgb(220, 38, 38) !important;
+  background-color: rgb(254, 202, 202) !important;
+  color: rgb(127, 29, 29) !important;
+  font-weight: bold !important;
+  transform: scale(1.1) !important;
+  z-index: 50 !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8) !important;
+}
+
