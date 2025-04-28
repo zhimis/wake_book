@@ -329,8 +329,11 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
   
   // Get CSS class for time slot based on status
   const getSlotClass = (status: TimeSlotStatus, isSelected: boolean) => {
-    if (isSelected) {
+    // Special styling for admin-selected slots
+    if (isSelected && isAdmin) {
       return "bg-red-50 text-red-800 border-2 border-red-500 ring-2 ring-red-500 ring-offset-0 shadow-md";
+    } else if (isSelected) {
+      return "bg-primary text-primary-foreground hover:bg-primary/90";
     }
     
     switch (status) {
