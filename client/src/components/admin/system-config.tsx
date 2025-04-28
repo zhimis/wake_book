@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { getLatvianDayIndex, getLatvianDayName } from "@/lib/utils";
 
 const AdminSystemConfig = () => {
   const { toast } = useToast();
@@ -280,8 +281,7 @@ const AdminSystemConfig = () => {
   }
   
   const getDayName = (dayOfWeek: number): string => {
-    // Display days with Monday-first format (assuming DB is 0=Sunday, 1=Monday)
-    // We need to convert this to display with dayOfWeek where Monday is visually first  
+    // dayOfWeek is in standard JS format (0=Sunday, 1=Monday, etc.)
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[dayOfWeek];
   };

@@ -142,3 +142,32 @@ export function getDaysBetweenDates(startDate: Date, endDate: Date): Date[] {
   
   return days;
 }
+
+// Convert standard JS day index (0 = Sunday, 1 = Monday, etc) to Latvia format (0 = Monday, 1 = Tuesday, etc)
+export function getLatvianDayIndex(standardDayIndex: number): number {
+  // Convert from 0=Sunday to 0=Monday
+  return standardDayIndex === 0 ? 6 : standardDayIndex - 1;
+}
+
+// Convert Latvia day index (0 = Monday, 1 = Tuesday, etc) to standard JS day (0 = Sunday, 1 = Monday, etc)
+export function getStandardDayIndex(latvianDayIndex: number): number {
+  // Convert from 0=Monday to 0=Sunday
+  return latvianDayIndex === 6 ? 0 : latvianDayIndex + 1;
+}
+
+// Get day name from Latvia day index (0 = Monday, 1 = Tuesday, etc)
+export function getLatvianDayName(latvianDayIndex: number): string {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  return days[latvianDayIndex];
+}
+
+// Get Latvia day index from a Date object
+export function getLatvianDayIndexFromDate(date: Date): number {
+  const standardDayIndex = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  return getLatvianDayIndex(standardDayIndex);
+}
+
+// Get standard day index from a Date object (this is just date.getDay() but included for completeness)
+export function getStandardDayIndexFromDate(date: Date): number {
+  return date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+}
