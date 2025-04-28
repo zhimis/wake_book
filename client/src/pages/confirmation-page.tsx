@@ -56,10 +56,10 @@ const ConfirmationPage = () => {
   // If loading
   if (isLoading) {
     return (
-      <main className="container mx-auto px-4 py-6 md:py-8">
+      <main className="container mx-auto px-0.5 py-2">
         <div className="max-w-2xl mx-auto">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-2">
               <div className="text-center mb-6">
                 <Skeleton className="w-16 h-16 mx-auto rounded-full mb-4" />
                 <Skeleton className="h-8 w-48 mx-auto mb-2" />
@@ -78,10 +78,10 @@ const ConfirmationPage = () => {
   // If error or no data
   if (error || !data) {
     return (
-      <main className="container mx-auto px-4 py-6 md:py-8">
+      <main className="container mx-auto px-0.5 py-2">
         <div className="max-w-2xl mx-auto">
           <Card>
-            <CardContent className="p-6 text-center">
+            <CardContent className="p-2 text-center">
               <h2 className="text-2xl font-heading font-bold text-gray-800 mb-4">Booking Not Found</h2>
               <p className="text-gray-600 mb-6">
                 The booking reference you provided was not found or there was an error fetching the booking details.
@@ -109,10 +109,10 @@ const ConfirmationPage = () => {
     `${formatTimeSlot(sortedTimeSlots[0].startTime, sortedTimeSlots[sortedTimeSlots.length - 1].endTime)}` : '';
   
   return (
-    <main className="container mx-auto px-4 py-6 md:py-8">
+    <main className="container mx-auto px-0.5 py-2">
       <div className="max-w-2xl mx-auto">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-2">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-success bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="h-8 w-8 text-success" />

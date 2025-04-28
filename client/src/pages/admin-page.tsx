@@ -20,7 +20,7 @@ const AdminPage = () => {
   };
   
   return (
-    <main className="container mx-auto px-4 py-6 md:py-8">
+    <main className="container mx-auto px-0.5 py-2">
       <div className="mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-heading font-bold text-gray-800 mb-4 md:mb-0">Admin Dashboard</h2>

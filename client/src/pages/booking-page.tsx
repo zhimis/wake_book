@@ -38,7 +38,7 @@ const BookingPage = () => {
   };
   
   return (
-    <main className="container mx-auto px-4 py-6 md:py-8">
+    <main className="container mx-auto px-0.5 py-2">
       <BookingForm onCancel={handleCancel} />
     </main>
   );
