@@ -42,20 +42,28 @@ const LoginForm = () => {
   // Handle form submission
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
+    console.log("Login form submitted with:", data.username);
     
     try {
       loginMutation.mutate(
         { username: data.username, password: data.password },
         {
-          onSuccess: () => {
-            navigate("/admin");
+          onSuccess: (user) => {
+            console.log("Login mutation success, user:", user);
+            // Add a slight delay before navigation to ensure data is updated
+            setTimeout(() => {
+              console.log("Navigating to admin page");
+              navigate("/admin");
+            }, 300);
           },
           onError: (err) => {
+            console.error("Login mutation error:", err);
             setError("Login failed. Please check your credentials and try again.");
           }
         }
       );
     } catch (err) {
+      console.error("Login form submission error:", err);
       setError("Login failed. Please check your credentials and try again.");
     }
   };
