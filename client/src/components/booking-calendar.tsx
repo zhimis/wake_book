@@ -15,7 +15,7 @@ import {
   Sun,
   Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getLatvianDayIndex, getStandardDayIndex, getLatvianDayName, getLatvianDayIndexFromDate } from "@/lib/utils";
 import { useWeather } from "@/hooks/use-weather";
 import { useBooking } from "@/context/booking-context";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +27,8 @@ type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
 // Local TimeSlot interface with UI-specific properties
 interface CalendarTimeSlot {
   id: string;
-  day: number; // 0-6 for day of week
+  day: number; // Days difference from current date
+  latvianDayIndex?: number; // 0-6 where 0 = Monday (Latvian format)
   hour: number; // hour in 24-hour format
   minute: number; // 0 or 30
   price: number;
@@ -114,14 +115,20 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
     return selectedTimeSlots.some(slot => slot.id === id);
   };
   
-  // Create 7 day week starting today
+  // Create 7 day week starting today (Latvia format with Monday as first day)
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = addDays(currentDate, i);
+    // Get the Latvia day index where 0 = Monday
+    const latvianDayIndex = getLatvianDayIndexFromDate(date);
     return {
       date,
       name: format(date, "EEE"),
-      day: format(date, "d")
+      day: format(date, "d"),
+      latvianDayIndex // Include Latvia day index for proper sorting
     };
+  }).sort((a, b) => {
+    // Sort by Latvian day index (Monday first)
+    return a.latvianDayIndex - b.latvianDayIndex;
   });
   
   // Build status map from database time slots
@@ -180,7 +187,9 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
       
       // Only show slots that are within the current week view (0-6 days from current date)
       if (daysDiff >= 0 && daysDiff < 7) {
-        const day = daysDiff;
+        // Get the Latvia day index (0 = Monday) for this slot
+        const latvianDayIndex = getLatvianDayIndexFromDate(startTime);
+        const day = daysDiff; // Keep for backward compatibility
         const hour = startTime.getHours();
         const minute = startTime.getMinutes();
         
@@ -194,6 +203,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         slots.push({
           id: dbSlot.id.toString(),
           day,
+          latvianDayIndex, // Add Latvian day index for better sorting
           hour,
           minute,
           price,

@@ -282,8 +282,9 @@ const AdminSystemConfig = () => {
   
   const getDayName = (dayOfWeek: number): string => {
     // dayOfWeek is in standard JS format (0=Sunday, 1=Monday, etc.)
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[dayOfWeek];
+    // Convert to Latvian day index first (0=Monday)
+    const latvianDayIndex = getLatvianDayIndex(dayOfWeek);
+    return getLatvianDayName(latvianDayIndex);
   };
   
   return (
