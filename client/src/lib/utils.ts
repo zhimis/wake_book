@@ -56,16 +56,16 @@ export function formatTimeSlot(startTime: Date | string, endTime: Date | string)
 
 export function getTimeSlotClass(status: string, isSelected: boolean = false): string {
   if (isSelected) {
-    return "slot-selected bg-primary-light bg-opacity-20 border-2 border-primary";
+    return "slot-selected bg-primary-light bg-opacity-20 border-2 border-red-500 ring-2 ring-red-500";
   }
   
   switch (status) {
     case "available":
       return "slot-available bg-success bg-opacity-10 border border-success";
     case "booked":
-      return "slot-booked bg-destructive bg-opacity-10 border border-destructive cursor-not-allowed opacity-60";
+      return "slot-booked bg-destructive bg-opacity-10 border border-destructive";
     case "reserved":
-      return "slot-reserved bg-warning bg-opacity-10 border border-warning cursor-not-allowed opacity-60";
+      return "slot-reserved bg-warning bg-opacity-10 border border-warning";
     default:
       return "slot-available bg-success bg-opacity-10 border border-success";
   }

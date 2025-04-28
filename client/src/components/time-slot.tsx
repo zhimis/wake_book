@@ -16,9 +16,18 @@ const TimeSlotComponent = ({
   isSelected,
   isAdmin = false
 }: TimeSlotProps) => {
-  const isInteractive = timeSlot.status === "available" || isSelected;
+  // For admin, all slots are interactive regardless of status
+  // For regular users, only available slots are interactive
+  const isInteractive = isAdmin ? true : (timeSlot.status === "available" || isSelected);
   
   const handleClick = () => {
+    // In admin mode, all slots can be clicked
+    if (isAdmin) {
+      onClick(timeSlot);
+      return;
+    }
+    
+    // For regular users, only allow interaction with available slots
     if (isInteractive) {
       onClick(timeSlot);
     }

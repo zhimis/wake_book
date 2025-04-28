@@ -469,7 +469,21 @@ const AdminCalendarView = () => {
             <Alert className="mb-4">
               <AlertTitle>Selection Active</AlertTitle>
               <AlertDescription>
-                {selectedTimeSlots.length} time slot(s) selected. You can create a booking or block these slots.
+                <div className="mb-2">
+                  {selectedTimeSlots.length} time slot(s) selected. You can create a booking or block these slots.
+                </div>
+                <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                  <div className="font-semibold">Selected slots:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
+                    {selectedTimeSlots.map((slot) => (
+                      <div key={slot.id} className="text-xs flex gap-1">
+                        <span>{format(new Date(slot.startTime), "EEE, MMM d")}</span>
+                        <span>•</span>
+                        <span>{format(new Date(slot.startTime), "HH:mm")}-{format(new Date(slot.endTime), "HH:mm")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </AlertDescription>
             </Alert>
           )}
