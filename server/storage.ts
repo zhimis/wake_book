@@ -11,10 +11,26 @@ import createMemoryStore from "memorystore";
 import { eq, and, gte, lte } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 
-// Helper function to get weekday name
+// Helper functions for day conversion between standard JS (0=Sunday) and Latvian (0=Monday) format
 function getWeekdayName(dayOfWeek: number): string {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return days[dayOfWeek];
+}
+
+// Convert from standard JS day index (0=Sunday) to Latvian day index (0=Monday)
+function toLatvianDayIndex(jsDayIndex: number): number {
+  return (jsDayIndex + 6) % 7; // Shift by 6 to make Monday=0
+}
+
+// Convert from Latvian day index (0=Monday) to standard JS day index (0=Sunday)
+function fromLatvianDayIndex(latvianDayIndex: number): number {
+  return (latvianDayIndex + 1) % 7; // Shift by 1 to make Sunday=0
+}
+
+// Get Latvian day name (with Monday as first day)
+function getLatvianWeekdayName(latvianDayIndex: number): string {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  return days[latvianDayIndex];
 }
 
 const MemoryStore = createMemoryStore(session);
