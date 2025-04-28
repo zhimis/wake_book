@@ -21,6 +21,7 @@ import { useBooking } from "@/context/booking-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { TimeSlot as SchemaTimeSlot } from "@shared/schema";
+import CalendarDay from "@/components/calendar-day";
 
 type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
 
