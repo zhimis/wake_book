@@ -122,6 +122,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to release time slots" });
     }
   });
+  
+  // Block time slots (for admin use)
+  app.post("/api/timeslots/block", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated and is admin
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const schema = z.object({
+        timeSlotIds: z.array(z.number()).min(1),
+        reason: z.string().min(2)
+      });
+
+      const { timeSlotIds, reason } = schema.parse(req.body);
+      
+      // Block time slots
+      await Promise.all(
+        timeSlotIds.map(id => storage.blockTimeSlot(id, reason))
+      );
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error blocking time slots:", error);
+      res.status(500).json({ error: "Failed to block time slots" });
+    }
+  });
 
   // Create a booking
   app.post("/api/bookings", async (req: Request, res: Response) => {

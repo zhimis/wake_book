@@ -26,10 +26,12 @@ export interface IStorage {
   updateTimeSlot(id: number, timeSlot: Partial<TimeSlot>): Promise<TimeSlot | undefined>;
   reserveTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined>;
   releaseReservation(id: number): Promise<TimeSlot | undefined>;
+  blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined>;
   
   // Booking methods
   getBooking(id: number): Promise<Booking | undefined>;
   getBookingByReference(reference: string): Promise<Booking | undefined>;
+  getBookings(): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   deleteBooking(id: number): Promise<boolean>;
   getBookingTimeSlots(bookingId: number): Promise<TimeSlot[]>;
@@ -312,6 +314,33 @@ export class DatabaseStorage implements IStorage {
       .where(eq(timeSlots.id, id))
       .returning();
     return updatedTimeSlot;
+  }
+  
+  async blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined> {
+    const [updatedTimeSlot] = await db.update(timeSlots)
+      .set({ 
+        status: "blocked",
+        reservationExpiry: null
+      })
+      .where(eq(timeSlots.id, id))
+      .returning();
+    
+    // Store the reason for blocking in configuration if needed
+    await db.insert(configuration)
+      .values({
+        name: `block_reason_${id}`,
+        value: reason
+      })
+      .onConflictDoUpdate({
+        target: configuration.name,
+        set: { value: reason }
+      });
+      
+    return updatedTimeSlot;
+  }
+  
+  async getBookings(): Promise<Booking[]> {
+    return db.select().from(bookings);
   }
   
   async getBooking(id: number): Promise<Booking | undefined> {
@@ -781,6 +810,36 @@ export class MemStorage implements IStorage {
     
     this.timeSlots.set(id, updatedTimeSlot);
     return updatedTimeSlot;
+  }
+  
+  async blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined> {
+    const existingTimeSlot = this.timeSlots.get(id);
+    
+    if (!existingTimeSlot) {
+      return undefined;
+    }
+    
+    const updatedTimeSlot: TimeSlot = { 
+      ...existingTimeSlot, 
+      status: 'blocked',
+      reservationExpiry: null
+    };
+    
+    this.timeSlots.set(id, updatedTimeSlot);
+    
+    // Store the reason in configuration
+    const configId = this.currentConfigurationId++;
+    this.configurationMap.set(`block_reason_${id}`, {
+      id: configId,
+      name: `block_reason_${id}`,
+      value: reason
+    });
+    
+    return updatedTimeSlot;
+  }
+  
+  async getBookings(): Promise<Booking[]> {
+    return Array.from(this.bookings.values());
   }
   
   // Booking methods
