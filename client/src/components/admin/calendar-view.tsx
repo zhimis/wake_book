@@ -543,22 +543,17 @@ const AdminCalendarView = () => {
               
               <FormField
                 control={bookingForm.control}
-                name="experienceLevel"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Experience Level</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select experience level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">Intermediate</SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Email (Optional)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email" 
+                        placeholder="Enter customer email address" 
+                        {...field} 
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -678,8 +673,8 @@ const AdminCalendarView = () => {
                   <p>{selectedBooking.phoneNumber}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Experience Level</h4>
-                  <p className="capitalize">{selectedBooking.experienceLevel}</p>
+                  <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
+                  <p>{selectedBooking.email || "-"}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Booking Date</h4>
