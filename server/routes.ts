@@ -195,11 +195,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bookings", async (req: Request, res: Response) => {
     try {
       console.log("Received booking request:", req.body);
-      const schema = bookingFormSchema;
       
-      // Validate form data
-      const validatedData = schema.parse(req.body);
-      const { timeSlotIds, ...bookingData } = validatedData;
+      // Check if this is an admin booking (e.g., has 'customerName' instead of 'fullName')
+      let validatedData;
+      let timeSlotIds;
+      let bookingData;
+      
+      if (req.body.customerName) {
+        // Admin is creating a booking
+        const schema = manualBookingSchema;
+        validatedData = schema.parse(req.body);
+        const { timeSlotIds: ids, ...rest } = validatedData;
+        timeSlotIds = ids;
+        
+        // For admin bookings, we add a default experience level
+        bookingData = {
+          ...rest,
+          fullName: rest.customerName,
+          experienceLevel: "intermediate" // Default for admin bookings
+        };
+      } else {
+        // Regular user booking
+        const schema = bookingFormSchema;
+        validatedData = schema.parse(req.body);
+        const { timeSlotIds: ids, ...rest } = validatedData;
+        timeSlotIds = ids;
+        bookingData = rest;
+      }
       
       console.log("Time slot IDs received:", timeSlotIds);
       
@@ -249,6 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const booking = await storage.createBooking({
         customerName: bookingData.fullName,
         phoneNumber: bookingData.phoneNumber,
+        email: bookingData.email || null,
         experienceLevel: bookingData.experienceLevel,
         equipmentRental: false
       });
