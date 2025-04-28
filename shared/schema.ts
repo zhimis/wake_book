@@ -80,7 +80,6 @@ export const bookingFormSchema = z.object({
     message: "Phone number must be between 10-15 digits",
   }),
   experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
-  equipmentRental: z.boolean().default(false),
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
 });
 

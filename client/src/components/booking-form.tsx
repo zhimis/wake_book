@@ -51,7 +51,6 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       fullName: "",
       phoneNumber: "",
       experienceLevel: "beginner",
-      equipmentRental: false,
       timeSlotIds: selectedTimeSlots.map(slot => slot.id)
     }
   });
@@ -135,7 +134,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
           </div>
           <div className="flex justify-between items-center font-bold text-lg pt-2 border-t border-primary border-opacity-20">
             <span>Total:</span>
-            <span>{formatPrice(calculateTotalPrice(selectedTimeSlots, form.watch("equipmentRental")))}</span>
+            <span>{formatPrice(calculateTotalPrice(selectedTimeSlots, false))}</span>
           </div>
           
           {/* Reservation Timer */}
@@ -214,25 +213,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="equipmentRental"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      I need to rent equipment (+$30)
-                    </FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
+
             
             <div className="pt-4 border-t border-gray-200">
               <Button 

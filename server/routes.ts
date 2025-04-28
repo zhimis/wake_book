@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerName: bookingData.fullName,
         phoneNumber: bookingData.phoneNumber,
         experienceLevel: bookingData.experienceLevel,
-        equipmentRental: bookingData.equipmentRental
+        equipmentRental: false
       });
       
       // Associate time slots with the booking and update their status to "booked"
@@ -226,11 +226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return slot;
       });
       
-      // Calculate total price (including equipment rental if selected)
+      // Calculate total price
       let totalPrice = bookedTimeSlotsWithPrices.reduce((sum, slot) => sum + slot.price, 0);
-      if (bookingData.equipmentRental) {
-        totalPrice += 30; // $30 for equipment rental
-      }
       
       console.log("Created booking - total price:", totalPrice);
       
