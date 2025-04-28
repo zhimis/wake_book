@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
-import { useAuth } from "@/providers/auth-provider";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Form,
   FormControl,
@@ -27,8 +27,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const LoginForm = () => {
   const [, navigate] = useLocation();
-  const { login } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { loginMutation } = useAuth();
   const [error, setError] = useState<string | null>(null);
   
   // Initialize form
@@ -42,16 +41,19 @@ const LoginForm = () => {
   
   // Handle form submission
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
     setError(null);
     
     try {
-      await login(data.username, data.password);
-      navigate("/admin");
+      loginMutation.mutate(data, {
+        onSuccess: () => {
+          navigate("/admin");
+        },
+        onError: (err) => {
+          setError("Login failed. Please check your credentials and try again.");
+        }
+      });
     } catch (err) {
       setError("Login failed. Please check your credentials and try again.");
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -101,9 +103,9 @@ const LoginForm = () => {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isLoading}
+              disabled={loginMutation.isPending}
             >
-              {isLoading ? (
+              {loginMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Logging in...
