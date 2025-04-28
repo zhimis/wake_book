@@ -848,6 +848,106 @@ export class MemStorage implements IStorage {
     return updatedTimeSlot;
   }
   
+  async regenerateTimeSlots(): Promise<void> {
+    // Clear existing time slots for future dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Create a new map with only past time slots
+    const newTimeSlotsMap = new Map<number, TimeSlot>();
+    this.timeSlots.forEach((timeSlot, id) => {
+      const slotDate = new Date(timeSlot.startTime);
+      if (slotDate < today) {
+        newTimeSlotsMap.set(id, timeSlot);
+      }
+    });
+    
+    this.timeSlots = newTimeSlotsMap;
+    
+    // Regenerate future time slots
+    const endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + 28); // 4 weeks
+    
+    let currentDate = new Date(today);
+    
+    while (currentDate < endDate) {
+      const dayOfWeek = currentDate.getDay();
+      const operatingHours = Array.from(this.operatingHoursMap.values())
+        .find(oh => oh.dayOfWeek === dayOfWeek);
+      
+      // Skip if the day is closed
+      if (operatingHours && !operatingHours.isClosed) {
+        const [openHour, openMinute] = operatingHours.openTime.split(':').map(Number);
+        const [closeHour, closeMinute] = operatingHours.closeTime.split(':').map(Number);
+        
+        // Create time slots in 30-minute increments
+        for (let hour = openHour; hour < closeHour; hour++) {
+          for (let minute of [0, 30]) {
+            // Skip if we're at opening time but have non-zero minutes
+            if (hour === openHour && minute < openMinute) continue;
+            
+            // Skip if we're at closing time
+            if (hour === closeHour - 1 && minute >= closeMinute) continue;
+            
+            const startTime = new Date(currentDate);
+            startTime.setHours(hour, minute, 0, 0);
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + 30);
+            
+            // Determine price based on time and day
+            const standardPricing = Array.from(this.pricingMap.values())
+              .find(p => p.name === 'standard');
+            const peakPricing = Array.from(this.pricingMap.values())
+              .find(p => p.name === 'peak');
+            const weekendPricing = Array.from(this.pricingMap.values())
+              .find(p => p.name === 'weekend');
+            
+            let price = standardPricing ? standardPricing.price : 50; // Default
+            
+            // Check if it's peak hours
+            if (peakPricing && peakPricing.startTime && peakPricing.endTime) {
+              const peakStartHour = new Date(peakPricing.startTime).getHours();
+              const peakStartMinute = new Date(peakPricing.startTime).getMinutes();
+              const peakEndHour = new Date(peakPricing.endTime).getHours();
+              const peakEndMinute = new Date(peakPricing.endTime).getMinutes();
+              
+              const isPeakHour = 
+                (hour > peakStartHour || (hour === peakStartHour && minute >= peakStartMinute)) && 
+                (hour < peakEndHour || (hour === peakEndHour && minute < peakEndMinute));
+              
+              if (isPeakHour) {
+                price = peakPricing.price;
+              }
+            }
+            
+            // Apply weekend multiplier if applicable
+            if (weekendPricing && weekendPricing.applyToWeekends && 
+                (dayOfWeek === 0 || dayOfWeek === 6)) { // Saturday or Sunday
+              price = price * (weekendPricing.weekendMultiplier || 1.2);
+            }
+            
+            // Create a new time slot
+            const timeSlotId = this.currentTimeSlotId++;
+            this.timeSlots.set(timeSlotId, {
+              id: timeSlotId,
+              startTime,
+              endTime,
+              price: Math.round(price), // Round to nearest whole number
+              status: 'available',
+              reservationExpiry: null
+            });
+          }
+        }
+      }
+      
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log("Time slots regenerated successfully in MemStorage.");
+  }
+  
   async getBookings(): Promise<Booking[]> {
     return Array.from(this.bookings.values());
   }
