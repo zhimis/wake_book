@@ -75,7 +75,7 @@ import { formatPrice } from "@/lib/utils";
 const manualBookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
   phoneNumber: z.string().regex(/^[0-9]{10,15}$/, "Phone number must be 10-15 digits"),
-  experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
+  email: z.string().email("Invalid email address").optional(),
   timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot")
 });
 
@@ -145,7 +145,7 @@ const AdminCalendarView = () => {
     defaultValues: {
       customerName: "",
       phoneNumber: "",
-      experienceLevel: "beginner",
+      email: "",
       timeSlotIds: []
     }
   });
