@@ -36,7 +36,7 @@ const TimeSlotComponent = ({
         onClick={handleClick}
       >
         <span className="font-medium">
-          {format(new Date(timeSlot.startTime), "h:mm")} - {format(new Date(timeSlot.endTime), "h:mm a")}
+          {format(new Date(timeSlot.startTime), "HH:mm")} - {format(new Date(timeSlot.endTime), "HH:mm")}
         </span>
         <span className="text-xs text-gray-500">
           {formatPrice(timeSlot.price)} • {timeSlot.status === "booked" ? "Booked" : timeSlot.status === "reserved" ? "Reserved" : "Available"}

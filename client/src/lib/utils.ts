@@ -7,9 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("lv-LV", {
     style: "currency",
-    currency: "USD",
+    currency: "EUR",
     minimumFractionDigits: 0,
   }).format(price);
 }
@@ -34,7 +34,7 @@ export function formatDate(date: Date | string): string {
 
 export function formatTime(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  return format(dateObj, "h:mm a");
+  return format(dateObj, "HH:mm"); // 24-hour format for Latvia
 }
 
 export function formatDateShort(date: Date | string): string {
@@ -51,7 +51,7 @@ export function formatTimeSlot(startTime: Date | string, endTime: Date | string)
   const start = typeof startTime === "string" ? new Date(startTime) : startTime;
   const end = typeof endTime === "string" ? new Date(endTime) : endTime;
   
-  return `${format(start, "h:mm a")} - ${format(end, "h:mm a")}`;
+  return `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`; // 24-hour format for Latvia
 }
 
 export function getTimeSlotClass(status: string, isSelected: boolean = false): string {
@@ -125,7 +125,7 @@ export function calculateTotalPrice(timeSlots: any[], equipmentRental: boolean =
   let total = timeSlots.reduce((sum, slot) => sum + slot.price, 0);
   
   if (equipmentRental) {
-    total += 30; // $30 for equipment rental
+    total += 30; // €30 for equipment rental
   }
   
   return total;
