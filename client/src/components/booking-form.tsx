@@ -50,6 +50,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
     defaultValues: {
       fullName: "",
       phoneNumber: "",
+      email: "",
       experienceLevel: "beginner",
       timeSlotIds: selectedTimeSlots.map(slot => slot.id)
     }
@@ -182,6 +183,25 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
                     />
                   </FormControl>
                   <p className="mt-1 text-xs text-gray-500">We'll send your booking confirmation to this number</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email (Optional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="email" 
+                      placeholder="Enter your email address"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <p className="mt-1 text-xs text-gray-500">For booking updates and future account registration</p>
                   <FormMessage />
                 </FormItem>
               )}

@@ -51,6 +51,7 @@ export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   customerName: text("customer_name").notNull(),
   phoneNumber: text("phone_number").notNull(),
+  email: text("email"),  // Optional email field added
   experienceLevel: text("experience_level").notNull(),
   equipmentRental: boolean("equipment_rental").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -79,7 +80,24 @@ export const bookingFormSchema = z.object({
   phoneNumber: z.string().regex(/^[0-9]{10,15}$/, {
     message: "Phone number must be between 10-15 digits",
   }),
+  email: z.string().email({ message: "Invalid email format" }).optional(),
   experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
+  timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+});
+
+// Admin booking form - like the regular booking form but without experienceLevel requirement
+export const manualBookingSchema = z.object({
+  customerName: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  phoneNumber: z.string().regex(/^[0-9]{10,15}$/, {
+    message: "Phone number must be between 10-15 digits",
+  }),
+  email: z.string().email({ message: "Invalid email format" }).optional(),
+  timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+});
+
+// Block time slot form
+export const blockTimeSlotSchema = z.object({
+  reason: z.string().min(1, { message: "Reason is required" }),
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
 });
 
