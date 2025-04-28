@@ -147,6 +147,38 @@ const AdminSystemConfig = () => {
     }
   };
   
+  const saveAllOperatingHours = () => {
+    // Save each operating hour separately but in sequence
+    let promises = [];
+    
+    for (const hour of operatingHoursState) {
+      const promise = apiRequest("PUT", `/api/config/operating-hours/${hour.id}`, {
+        openTime: hour.openTime,
+        closeTime: hour.closeTime,
+        isClosed: !hour.isOpen
+      });
+      promises.push(promise);
+    }
+    
+    // Show the toast and invalidate the query only once all hours are saved
+    Promise.all(promises)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/config'] });
+        toast({
+          title: "Operating Hours Updated",
+          description: "All operating hours have been updated successfully.",
+          variant: "success", 
+        });
+      })
+      .catch(error => {
+        toast({
+          title: "Update Failed",
+          description: "Failed to update operating hours. Please try again.",
+          variant: "destructive",
+        });
+      });
+  };
+  
   const savePricing = (id: number) => {
     const priceToUpdate = pricingState.find(price => price.id === id);
     if (priceToUpdate) {
@@ -158,6 +190,37 @@ const AdminSystemConfig = () => {
         } 
       });
     }
+  };
+  
+  const saveAllPricing = () => {
+    // Save all pricing settings in sequence
+    let promises = [];
+    
+    for (const price of pricingState) {
+      const promise = apiRequest("PUT", `/api/config/pricing/${price.id}`, {
+        price: parseFloat(price.price),
+        weekendMultiplier: price.weekendMultiplier ? parseFloat(price.weekendMultiplier) : null
+      });
+      promises.push(promise);
+    }
+    
+    // Handle all promises
+    Promise.all(promises)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/config'] });
+        toast({
+          title: "Pricing Updated",
+          description: "All pricing settings have been updated successfully.",
+          variant: "success",
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: "Update Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
   };
   
   const saveVisibility = () => {
@@ -258,17 +321,22 @@ const AdminSystemConfig = () => {
                   </Label>
                 </div>
               </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => saveOperatingHours(hour.id)}
-                disabled={updateOperatingHoursMutation.isPending}
-              >
-                {updateOperatingHoursMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-              </Button>
             </div>
           ))}
+          
+          <div className="pt-4 mt-4 border-t border-gray-200 flex justify-end">
+            <Button 
+              variant="default" 
+              size="default"
+              onClick={saveAllOperatingHours}
+              disabled={updateOperatingHoursMutation.isPending}
+              className="w-full sm:w-auto"
+            >
+              {updateOperatingHoursMutation.isPending ? 
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</> : 
+                "Save All Operating Hours"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
       
@@ -300,16 +368,6 @@ const AdminSystemConfig = () => {
                       onChange={(e) => handlePricingUpdate(price.id, 'price', e.target.value)}
                     />
                   </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="ml-4"
-                    onClick={() => savePricing(price.id)}
-                    disabled={updatePricingMutation.isPending}
-                  >
-                    {updatePricingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                  </Button>
                 </div>
               ) : price.name === 'weekend' ? (
                 <div className="flex items-center">
@@ -325,20 +383,24 @@ const AdminSystemConfig = () => {
                     />
                     <span className="text-gray-500 ml-1">x</span>
                   </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="ml-4"
-                    onClick={() => savePricing(price.id)}
-                    disabled={updatePricingMutation.isPending}
-                  >
-                    {updatePricingMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                  </Button>
                 </div>
               ) : null}
             </div>
           ))}
+          
+          <div className="pt-4 mt-4 border-t border-gray-200 flex justify-end">
+            <Button 
+              variant="default" 
+              size="default"
+              onClick={saveAllPricing}
+              disabled={updatePricingMutation.isPending}
+              className="w-full sm:w-auto"
+            >
+              {updatePricingMutation.isPending ? 
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</> : 
+                "Save All Pricing"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
       
