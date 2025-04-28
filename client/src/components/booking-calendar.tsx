@@ -161,6 +161,8 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
 
     // Create calendar time slots ONLY from database time slots
     dbTimeSlots.timeSlots.forEach((dbSlot: SchemaTimeSlot) => {
+      // Create dates but keep them in local timezone (without timezone offset)
+      // The dates come from the server with timezone info already accounted for
       const startTime = new Date(dbSlot.startTime);
       const endTime = new Date(dbSlot.endTime);
       
@@ -190,6 +192,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
       
       // Only show slots that are within the current week view (0-6 days from current date)
       if (daysDiff >= 0 && daysDiff < 7) {
+        // Use the local time representation directly from the date object
         const hour = startTime.getHours();
         const minute = startTime.getMinutes();
         
