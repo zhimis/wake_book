@@ -473,13 +473,20 @@ const AdminCalendarView = () => {
                 <div className="text-xs text-muted-foreground mt-2 space-y-1">
                   <div className="font-semibold">Selected slots:</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
-                    {selectedTimeSlots.map((slot) => (
-                      <div key={slot.id} className="text-xs flex gap-1">
-                        <span>{format(new Date(slot.startTime), "EEE, MMM d")}</span>
-                        <span>•</span>
-                        <span>{format(new Date(slot.startTime), "HH:mm")}-{format(new Date(slot.endTime), "HH:mm")}</span>
-                      </div>
-                    ))}
+                    {selectedTimeSlots.map((slot) => {
+                      // Get actual time in local timezone
+                      const startTime = new Date(slot.startTime);
+                      const endTime = new Date(slot.endTime);
+                      
+                      return (
+                        <div key={slot.id} className="text-xs flex gap-1">
+                          <span>{format(startTime, "EEE, MMM d")}</span>
+                          <span>•</span>
+                          <span>{startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}-
+                                {endTime.getHours()}:{endTime.getMinutes().toString().padStart(2, '0')}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </AlertDescription>
@@ -561,15 +568,22 @@ const AdminCalendarView = () => {
             <div className="rounded-md bg-muted p-3">
               <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
               <div className="space-y-2">
-                {selectedTimeSlots.map((slot) => (
-                  <div key={slot.id} className="text-sm flex justify-between items-center">
-                    <span>
-                      {format(new Date(slot.startTime), "EEE, MMM d")} • {format(new Date(slot.startTime), "HH:mm")}-
-                      {format(new Date(slot.endTime), "HH:mm")}
-                    </span>
-                    <span>{formatPrice(slot.price)}</span>
-                  </div>
-                ))}
+                {selectedTimeSlots.map((slot) => {
+                  // Get actual time in local timezone
+                  const startTime = new Date(slot.startTime);
+                  const endTime = new Date(slot.endTime);
+                  
+                  return (
+                    <div key={slot.id} className="text-sm flex justify-between items-center">
+                      <span>
+                        {format(startTime, "EEE, MMM d")} • 
+                        {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}-
+                        {endTime.getHours()}:{endTime.getMinutes().toString().padStart(2, '0')}
+                      </span>
+                      <span>{formatPrice(slot.price)}</span>
+                    </div>
+                  );
+                })}
                 <div className="pt-2 mt-2 border-t text-sm font-semibold flex justify-between">
                   <span>Total:</span>
                   <span>{formatPrice(selectedTimeSlots.reduce((sum, slot) => sum + slot.price, 0))}</span>
@@ -664,12 +678,19 @@ const AdminCalendarView = () => {
             <div className="rounded-md bg-muted p-3">
               <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
               <div className="space-y-2">
-                {selectedTimeSlots.map((slot) => (
-                  <div key={slot.id} className="text-sm">
-                    {format(new Date(slot.startTime), "EEEE, MMM d")} • {format(new Date(slot.startTime), "HH:mm")}-
-                    {format(new Date(slot.endTime), "HH:mm")}
-                  </div>
-                ))}
+                {selectedTimeSlots.map((slot) => {
+                  // Get actual time in local timezone
+                  const startTime = new Date(slot.startTime);
+                  const endTime = new Date(slot.endTime);
+                  
+                  return (
+                    <div key={slot.id} className="text-sm">
+                      {format(startTime, "EEEE, MMM d")} • 
+                      {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}-
+                      {endTime.getHours()}:{endTime.getMinutes().toString().padStart(2, '0')}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -774,8 +795,13 @@ const AdminCalendarView = () => {
                             <div className="space-y-2">
                               {booking.slotCount > 0 ? (
                                 <div className="text-sm">
-                                  <p><strong>{booking.slotCount}</strong> time slots booked, starting at{" "}
-                                  <strong>{format(new Date(booking.firstSlotTime), "EEEE, MMMM d, h:mm a")}</strong></p>
+                                  {(() => {
+                                    const startTime = new Date(booking.firstSlotTime);
+                                    return (
+                                      <p><strong>{booking.slotCount}</strong> time slots booked, starting at{" "}
+                                      <strong>{format(startTime, "EEEE, MMMM d")}, {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}</strong></p>
+                                    );
+                                  })()}
                                 </div>
                               ) : (
                                 <p className="text-sm text-muted-foreground">No time slots found for this booking.</p>
