@@ -284,7 +284,12 @@ const AdminSystemConfig = () => {
     // dayOfWeek is in standard JS format (0=Sunday, 1=Monday, etc.)
     // Convert to Latvian day index first (0=Monday)
     const latvianDayIndex = getLatvianDayIndex(dayOfWeek);
-    return getLatvianDayName(latvianDayIndex);
+    const dayName = getLatvianDayName(latvianDayIndex);
+    
+    // Log for debugging
+    console.log(`Day conversion - JS day: ${dayOfWeek} (${dayOfWeek === 0 ? 'Sunday' : dayOfWeek === 1 ? 'Monday' : dayOfWeek === 2 ? 'Tuesday' : dayOfWeek === 3 ? 'Wednesday' : dayOfWeek === 4 ? 'Thursday' : dayOfWeek === 5 ? 'Friday' : 'Saturday'}) → Latvian: ${latvianDayIndex} (${dayName})`);
+    
+    return dayName;
   };
   
   return (

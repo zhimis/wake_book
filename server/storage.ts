@@ -190,9 +190,12 @@ export class DatabaseStorage implements IStorage {
       
       while (currentDate < endDate) {
         const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        console.log(`Generating slots for date ${currentDate.toISOString()}, day of week: ${dayOfWeek}`);
+        const latvianDayIndex = toLatvianDayIndex(dayOfWeek);
         
-        // Find operating hours for this day
+        console.log(`Generating slots for date ${currentDate.toISOString()}, day of week: ${dayOfWeek} (standard JS format)`);
+        console.log(`Latvian day index: ${latvianDayIndex} (${getLatvianWeekdayName(latvianDayIndex)})`);
+        
+        // Find operating hours for this day - use standard JS day index
         const operatingHour = allOperatingHours.find(oh => oh.dayOfWeek === dayOfWeek);
         
         if (!operatingHour) {
