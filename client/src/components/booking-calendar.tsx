@@ -164,13 +164,16 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
       const startTime = new Date(dbSlot.startTime);
       const endTime = new Date(dbSlot.endTime);
       
-      // Determine day of week relative to current date
-      const slotDate = new Date(startTime);
+      // Get the JS day of week for this time slot
+      const jsDayOfWeek = startTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
       
-      // Calculate days difference correctly - we need to compare the date part only
-      const slotYear = slotDate.getFullYear();
-      const slotMonth = slotDate.getMonth();
-      const slotDay = slotDate.getDate();
+      // Convert to Latvian day index for UI display (0 = Monday)
+      const latvianDayIndex = getLatvianDayIndexFromDate(startTime);
+      
+      // Calculate days difference with current date for UI display
+      const slotYear = startTime.getFullYear();
+      const slotMonth = startTime.getMonth();
+      const slotDay = startTime.getDate();
       
       const curYear = currentDate.getFullYear();
       const curMonth = currentDate.getMonth();
@@ -183,13 +186,10 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
       // Calculate difference in days
       const daysDiff = Math.floor((slotDateMidnight.getTime() - curDateMidnight.getTime()) / (1000 * 60 * 60 * 24));
       
-      console.log(`Slot at ${startTime.toLocaleString()}, day diff: ${daysDiff}`);
+      console.log(`Slot at ${startTime.toLocaleString()}, JS day: ${jsDayOfWeek}, Latvian day index: ${latvianDayIndex}, day diff: ${daysDiff}`);
       
       // Only show slots that are within the current week view (0-6 days from current date)
       if (daysDiff >= 0 && daysDiff < 7) {
-        // Get the Latvia day index (0 = Monday) for this slot
-        const latvianDayIndex = getLatvianDayIndexFromDate(startTime);
-        const day = daysDiff; // Keep for backward compatibility
         const hour = startTime.getHours();
         const minute = startTime.getMinutes();
         
@@ -202,8 +202,8 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         
         slots.push({
           id: dbSlot.id.toString(),
-          day,
-          latvianDayIndex, // Add Latvian day index for better sorting
+          day: daysDiff, // For backward compatibility
+          latvianDayIndex, // The key field that should be used for display positioning
           hour,
           minute,
           price,
@@ -220,7 +220,23 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   
   // Get time slots for a specific time (e.g. "8:00")
   const getTimeSlotsForTime = (hour: number, minute: number) => {
-    return timeSlots.filter(slot => slot.hour === hour && slot.minute === minute);
+    // Get all slots matching this time
+    const matchingSlots = timeSlots.filter(slot => slot.hour === hour && slot.minute === minute);
+    
+    // Create an array of 7 slots (one for each day) - all initially undefined
+    const slotsForWeek = Array(7).fill(undefined);
+    
+    // Place slots in the correct day position based on latvianDayIndex (0-6, Monday to Sunday)
+    matchingSlots.forEach(slot => {
+      const dayIndex = slot.latvianDayIndex;
+      if (dayIndex >= 0 && dayIndex < 7) {
+        slotsForWeek[dayIndex] = slot;
+      } else {
+        console.error(`Invalid latvianDayIndex: ${dayIndex} for slot:`, slot);
+      }
+    });
+    
+    return slotsForWeek;
   };
   
   // Get all time strings in format "HH:MM"
@@ -462,7 +478,17 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                     
                     {/* Slots for this time */}
                     <div className="flex-1 grid grid-cols-7 gap-1">
-                      {slots.map(slot => {
+                      {slots.map((slot, idx) => {
+                        // If slot is undefined, render an empty placeholder
+                        if (!slot) {
+                          return (
+                            <div 
+                              key={`empty-${idx}-${timeString}`} 
+                              className="h-14 bg-gray-50 rounded-md border border-gray-200"
+                            ></div>
+                          );
+                        }
+                        
                         const isSelected = isSlotSelected(slot.id);
                         return (
                           <Button
@@ -498,7 +524,17 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
                   
                   {/* Slots for this time */}
                   <div className="flex-1 grid grid-cols-7 gap-1">
-                    {slots.map(slot => {
+                    {slots.map((slot, idx) => {
+                      // If slot is undefined, render an empty placeholder
+                      if (!slot) {
+                        return (
+                          <div 
+                            key={`empty-${idx}-${timeString}`} 
+                            className="h-14 bg-gray-50 rounded-md border border-gray-200"
+                          ></div>
+                        );
+                      }
+                      
                       const isSelected = isSlotSelected(slot.id);
                       return (
                         <Button
