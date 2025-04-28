@@ -15,7 +15,7 @@ const AdminLoginPage = () => {
   }, [user, navigate]);
   
   return (
-    <main className="container mx-auto px-4 py-12 flex items-center justify-center">
+    <main className="container mx-auto px-0.5 py-2 flex items-center justify-center">
       <LoginForm />
     </main>
   );
