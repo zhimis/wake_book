@@ -42,16 +42,12 @@ interface BookingCalendarProps {
 }
 
 // Converter function to match our calendar UI slots with the DB schema
-function toSchemaTimeSlot(slot: CalendarTimeSlot, slotIdMap: Map<string, number>): SchemaTimeSlot {
-  // Get consistent ID from our ID mapping
-  if (!slotIdMap.has(slot.id)) {
-    // Create a consistent number ID for this string ID
-    const mockId = parseInt(slot.id.replace(/[^0-9]/g, '')) % 10000;
-    slotIdMap.set(slot.id, mockId);
-  }
+function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
+  // Use the numeric ID directly 
+  const id = parseInt(slot.id);
   
   return {
-    id: slotIdMap.get(slot.id) as number,
+    id: id,
     startTime: slot.startTime,
     endTime: slot.endTime,
     price: slot.price,
@@ -69,20 +65,15 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   const { forecast: weatherForecast, isLoading: weatherLoading } = useWeather();
   const { toast } = useToast();
   
-  // Create and populate the mapping between string IDs and schema numeric IDs
-  const [slotIdMap] = useState(() => new Map<string, number>());
+  // No longer need slotIdMap as we now use direct numeric IDs
   
-  // Function to check if a UI slot is selected (using ID mapping)
+  // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string): boolean => {
-    // For each timeSlot, create a matching schema ID and store in map
-    if (!slotIdMap.has(uiSlotId)) {
-      // Create a consistent number ID for this string ID
-      const mockId = parseInt(uiSlotId.replace(/[^0-9]/g, '')) % 10000;
-      slotIdMap.set(uiSlotId, mockId);
-    }
+    // Parse the string ID to a number and compare directly
+    const id = parseInt(uiSlotId);
     
     // Check if any selected slots match this ID
-    return selectedTimeSlots.some(slot => slot.id === slotIdMap.get(uiSlotId));
+    return selectedTimeSlots.some(slot => slot.id === id);
   };
   
   // Create 7 day week starting today
@@ -99,7 +90,8 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   const timeSlots: CalendarTimeSlot[] = [];
   const daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // 0 = Monday, 6 = Sunday in our view
   
-  // Generate all time slots
+  // Generate predictable time slots instead of random ones
+  // This ensures consistent behavior for development and testing
   daysOfWeek.forEach(day => {
     // From 8:00 to 22:00
     for (let hour = 8; hour < 22; hour++) {
@@ -112,12 +104,11 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         // Weekend price increase
         if (day >= 5) price += 5;
         
-        // Random status with weighted probabilities
-        const rand = Math.random();
-        let status: TimeSlotStatus = "available";
+        // Create a predictable ID for database lookup
+        const timeSlotId = day * 10000 + hour * 100 + minute;
         
-        if (rand < 0.1) status = "booked";
-        else if (rand < 0.2) status = "reserved";
+        // Always available for now (we'll implement real status later)
+        let status: TimeSlotStatus = "available";
         
         // Create slot date and times
         const slotDate = addDays(currentDate, day);
@@ -128,7 +119,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         endTime.setMinutes(endTime.getMinutes() + 30);
         
         timeSlots.push({
-          id: `day-${day}-${hour}-${minute}`,
+          id: timeSlotId.toString(),
           day,
           hour,
           minute,
@@ -166,7 +157,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
     if (!slot) return;
     
     // Convert our UI slot to a schema slot before passing to context
-    const schemaSlot = toSchemaTimeSlot(slot, slotIdMap);
+    const schemaSlot = toSchemaTimeSlot(slot);
     
     // Update booking context
     toggleTimeSlot(schemaSlot);
