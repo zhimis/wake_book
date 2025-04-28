@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { TimeSlot as SchemaTimeSlot } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
+import AdminTimeSlot from "@/components/admin/admin-time-slot";
 
 type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
 
@@ -538,7 +539,14 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
                         }
                         
                         const isSelected = isSlotSelected(slot.id);
-                        return (
+                        return isAdmin ? (
+                          <AdminTimeSlot
+                            key={slot.id}
+                            slot={toSchemaTimeSlot(slot)}
+                            isSelected={isSelected}
+                            onClick={() => handleSlotToggle(slot.id, slot.status)}
+                          />
+                        ) : (
                           <Button
                             key={slot.id}
                             variant="outline"
@@ -547,16 +555,6 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
                               "h-14 py-0 px-1 justify-center items-center text-center text-xs",
                               getSlotClass(slot.status, isSelected)
                             )}
-                            data-admin-selected={isAdmin && isSelected ? "true" : "false"}
-                            style={isAdmin && isSelected ? {
-                              border: '3px solid red',
-                              background: '#ffcccc',
-                              color: '#990000',
-                              fontWeight: 'bold',
-                              transform: 'scale(1.1)',
-                              zIndex: 50,
-                              boxShadow: '0 0 10px rgba(255,0,0,0.5)'
-                            } : undefined}
                             disabled={slot.status !== "available" && !isAdmin}
                             onClick={() => handleSlotToggle(slot.id, slot.status)}
                           >
@@ -601,7 +599,14 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
                       
                       const isSelected = isSlotSelected(slot.id);
                       
-                      return (
+                      return isAdmin ? (
+                        <AdminTimeSlot
+                          key={slot.id}
+                          slot={toSchemaTimeSlot(slot)}
+                          isSelected={isSelected}
+                          onClick={() => handleSlotToggle(slot.id, slot.status)}
+                        />
+                      ) : (
                         <Button
                           key={slot.id}
                           variant="outline"
@@ -611,16 +616,6 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect }: BookingCalendar
                             getSlotClass(slot.status, isSelected),
                             isCurrentDay && !isSelected && slot.status === "available" ? "border-blue-300" : ""
                           )}
-                          data-admin-selected={isAdmin && isSelected ? "true" : "false"}
-                          style={isAdmin && isSelected ? {
-                            border: '3px solid red',
-                            background: '#ffcccc',
-                            color: '#990000',
-                            fontWeight: 'bold',
-                            transform: 'scale(1.1)',
-                            zIndex: 50,
-                            boxShadow: '0 0 10px rgba(255,0,0,0.5)'
-                          } : undefined}
                           disabled={slot.status !== "available" && !isAdmin}
                           onClick={() => handleSlotToggle(slot.id, slot.status)}
                         >
