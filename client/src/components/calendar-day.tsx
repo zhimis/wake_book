@@ -7,19 +7,21 @@ interface CalendarDayProps {
   onTimeSlotClick: (timeSlot: TimeSlot) => void;
   isTimeSlotSelected: (timeSlot: TimeSlot) => boolean;
   isAdmin?: boolean;
+  isCurrentDay?: boolean;
 }
 
 const CalendarDay = ({ 
   day, 
   onTimeSlotClick, 
   isTimeSlotSelected,
-  isAdmin = false
+  isAdmin = false,
+  isCurrentDay = false
 }: CalendarDayProps) => {
   return (
-    <div className="flex flex-col min-w-[6rem] border-r border-gray-200">
-      <div className="h-10 flex flex-col items-center justify-center day-header">
-        <span className="font-medium text-gray-800">{day.dayShort}</span>
-        <span className="text-xs text-gray-500">{day.dateFormatted}</span>
+    <div className={`flex flex-col min-w-[6rem] border-r border-gray-200 ${isCurrentDay ? 'bg-blue-50' : ''}`}>
+      <div className={`h-10 flex flex-col items-center justify-center day-header ${isCurrentDay ? 'bg-blue-100' : ''}`}>
+        <span className={`font-medium ${isCurrentDay ? 'text-blue-700' : 'text-gray-800'}`}>{day.dayShort}</span>
+        <span className={`text-xs ${isCurrentDay ? 'text-blue-600' : 'text-gray-500'}`}>{format(day.date, "MMM d")}</span>
       </div>
       
       {/* Time slots for the day */}
