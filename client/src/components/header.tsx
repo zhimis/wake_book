@@ -54,24 +54,27 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate("/admin")}>
+                  <DropdownMenuItem onClick={() => {
+                    localStorage.removeItem("adminActiveTab");
+                    window.location.href = "/admin";
+                  }}>
                     Admin Dashboard
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
-                    navigate("/admin");
                     localStorage.setItem("adminActiveTab", "bookings");
+                    window.location.href = "/admin";
                   }}>
                     Bookings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
-                    navigate("/admin");
                     localStorage.setItem("adminActiveTab", "configuration");
+                    window.location.href = "/admin";
                   }}>
                     System Configuration
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => {
-                    navigate("/admin");
                     localStorage.setItem("adminActiveTab", "statistics");
+                    window.location.href = "/admin";
                   }}>
                     Statistics
                   </DropdownMenuItem>
@@ -121,7 +124,11 @@ const Header = () => {
               
               {/* Admin menu options */}
               <span 
-                onClick={() => handleNavigation("/admin")}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  localStorage.removeItem("adminActiveTab");
+                  window.location.href = "/admin";
+                }}
                 className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
               >
                 Admin Dashboard
@@ -130,9 +137,8 @@ const Header = () => {
               <span 
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  navigate("/admin");
-                  // We'll set a specific tab in admin page state
                   localStorage.setItem("adminActiveTab", "bookings");
+                  window.location.href = "/admin";
                 }}
                 className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
               >
@@ -142,9 +148,8 @@ const Header = () => {
               <span 
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  navigate("/admin");
-                  // We'll set a specific tab in admin page state
                   localStorage.setItem("adminActiveTab", "configuration");
+                  window.location.href = "/admin";
                 }}
                 className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
               >
@@ -154,9 +159,8 @@ const Header = () => {
               <span 
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  navigate("/admin");
-                  // We'll set a specific tab in admin page state
                   localStorage.setItem("adminActiveTab", "statistics");
+                  window.location.href = "/admin";
                 }}
                 className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
               >
