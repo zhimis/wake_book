@@ -405,18 +405,6 @@ const AdminCalendarView = () => {
     <div id="bookingsTab" className="admin-tab-content p-0.5">
       <div className="flex flex-col space-y-1 mb-1">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center space-x-2 mb-4 sm:mb-0">
-            <Button variant="outline" size="icon" onClick={() => handleNavigateDates('prev')}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <span className="text-sm font-medium text-gray-600">
-              {format(currentDateRange.start, "MMMM d")} - {format(currentDateRange.end, "MMMM d, yyyy")}
-            </span>
-            <Button variant="outline" size="icon" onClick={() => handleNavigateDates('next')}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-          
           <div className="flex items-center space-x-2">
             <Tabs defaultValue="calendar" value={viewMode} onValueChange={(v) => setViewMode(v as 'calendar' | 'list')}>
               <TabsList>
