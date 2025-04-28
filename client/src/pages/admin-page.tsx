@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import AdminCalendarView from "@/components/admin/calendar-view";
 import AdminSystemConfig from "@/components/admin/system-config";
 import AdminStatistics from "@/components/admin/statistics";

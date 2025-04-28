@@ -21,11 +21,18 @@ const Header = () => {
   };
   
   const handleLogout = () => {
+    setMobileMenuOpen(false); // Close mobile menu
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
         navigate("/");
       }
     });
+  };
+  
+  // Helper function to handle navigation with mobile menu closing
+  const handleNavigation = (path: string) => {
+    setMobileMenuOpen(false); // Close mobile menu
+    navigate(path);
   };
   
   return (
@@ -50,6 +57,27 @@ const Header = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate("/admin")}>
+                    Admin Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    navigate("/admin");
+                    localStorage.setItem("adminActiveTab", "bookings");
+                  }}>
+                    Bookings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    navigate("/admin");
+                    localStorage.setItem("adminActiveTab", "configuration");
+                  }}>
+                    System Configuration
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    navigate("/admin");
+                    localStorage.setItem("adminActiveTab", "statistics");
+                  }}>
+                    Statistics
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                     <LogOut className="h-4 w-4 mr-2" />
                     Log Out
@@ -80,29 +108,79 @@ const Header = () => {
         mobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
       )}>
         <nav className="flex flex-col space-y-3 py-2">
-          <Link href="/">
-            <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Home</span>
-          </Link>
+          <span 
+            onClick={() => handleNavigation("/")}
+            className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
+          >
+            Home
+          </span>
           
           {user ? (
             <>
-              {user && (
-                <div className="text-sm text-gray-600 py-1">
-                  Welcome, <span className="font-medium">{user.username}</span>
-                </div>
-              )}
+              {/* Admin menu items */}
+              <div className="text-sm text-gray-600 py-1">
+                Welcome, <span className="font-medium">{user.username}</span>
+              </div>
+              
+              {/* Admin menu options */}
+              <span 
+                onClick={() => handleNavigation("/admin")}
+                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
+              >
+                Admin Dashboard
+              </span>
+              
+              <span 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate("/admin");
+                  // We'll set a specific tab in admin page state
+                  localStorage.setItem("adminActiveTab", "bookings");
+                }}
+                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
+              >
+                - Bookings
+              </span>
+              
+              <span 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate("/admin");
+                  // We'll set a specific tab in admin page state
+                  localStorage.setItem("adminActiveTab", "configuration");
+                }}
+                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
+              >
+                - System Configuration
+              </span>
+              
+              <span 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate("/admin");
+                  // We'll set a specific tab in admin page state
+                  localStorage.setItem("adminActiveTab", "statistics");
+                }}
+                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
+              >
+                - Statistics
+              </span>
+              
               <button 
                 onClick={handleLogout}
-                className="text-left text-red-600 hover:text-red-700 font-medium py-1 cursor-pointer flex items-center gap-2"
+                className="text-left text-red-600 hover:text-red-700 font-medium py-1 cursor-pointer flex items-center gap-2 mt-2"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Log Out</span>
               </button>
             </>
           ) : (
-            <Link href="/admin/login">
-              <span className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer">Admin</span>
-            </Link>
+            <span 
+              onClick={() => handleNavigation("/admin/login")}
+              className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
+            >
+              Admin
+            </span>
           )}
         </nav>
       </div>
