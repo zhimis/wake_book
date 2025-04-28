@@ -285,8 +285,8 @@ export class DatabaseStorage implements IStorage {
       .from(timeSlots)
       .where(
         and(
-          gte(timeSlots.startTime, startDate.toISOString()),
-          lte(timeSlots.startTime, endDate.toISOString())
+          gte(timeSlots.startTime, startDate),
+          lte(timeSlots.startTime, endDate)
         )
       );
   }
@@ -308,7 +308,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedTimeSlot] = await db.update(timeSlots)
       .set({ 
         status: "reserved",
-        reservationExpiry: expiryTime.toISOString()
+        reservationExpiry: expiryTime
       })
       .where(eq(timeSlots.id, id))
       .returning();
@@ -342,7 +342,7 @@ export class DatabaseStorage implements IStorage {
     const bookingToInsert = {
       ...booking,
       reference,
-      createdAt: new Date().toISOString()
+      createdAt: new Date()
     };
     
     const [newBooking] = await db.insert(bookings).values(bookingToInsert).returning();
@@ -463,8 +463,8 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(
         and(
-          gte(bookings.createdAt, startDate.toISOString()),
-          lte(bookings.createdAt, endDate.toISOString())
+          gte(bookings.createdAt, startDate),
+          lte(bookings.createdAt, endDate)
         )
       );
     
