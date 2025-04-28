@@ -185,22 +185,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         equipmentRental: bookingData.equipmentRental
       });
       
-      // Associate time slots with the booking
-      await Promise.all(
-        timeSlotIds.map(timeSlotId => storage.addTimeSlotToBooking({
+      // Associate time slots with the booking and update their status to "booked"
+      const bookingTimeSlotPromises = timeSlotIds.map(async timeSlotId => {
+        // Add to booking-timeslot relation
+        const result = await storage.addTimeSlotToBooking({
           bookingId: booking.id,
           timeSlotId
-        }))
-      );
+        });
+        
+        // Additionally ensure the time slot itself is marked as booked
+        await storage.updateTimeSlot(timeSlotId, {
+          status: "booked",
+          reservationExpiry: null
+        });
+        
+        return result;
+      });
+      
+      await Promise.all(bookingTimeSlotPromises);
       
       // Get all time slots for the booking to calculate total price
       const bookedTimeSlots = await storage.getBookingTimeSlots(booking.id);
       
+      // If time slots don't have proper prices, set default prices
+      const bookedTimeSlotsWithPrices = bookedTimeSlots.map(slot => {
+        if (!slot.price || slot.price <= 0) {
+          // Apply the same price logic as in the UI
+          let price = 15;
+          const hour = new Date(slot.startTime).getHours();
+          const dayOfWeek = new Date(slot.startTime).getDay();
+          
+          if (hour >= 12 && hour < 17) price = 18;
+          if (hour >= 17) price = 20;
+          
+          // Weekend price increase (Saturday or Sunday)
+          if (dayOfWeek === 0 || dayOfWeek === 6) price += 5;
+          
+          return { ...slot, price };
+        }
+        return slot;
+      });
+      
       // Calculate total price (including equipment rental if selected)
-      let totalPrice = bookedTimeSlots.reduce((sum, slot) => sum + slot.price, 0);
+      let totalPrice = bookedTimeSlotsWithPrices.reduce((sum, slot) => sum + slot.price, 0);
       if (bookingData.equipmentRental) {
         totalPrice += 30; // $30 for equipment rental
       }
+      
+      console.log("Created booking - total price:", totalPrice);
       
       res.status(201).json({
         booking,
@@ -229,17 +261,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Booking not found" });
       }
       
+      // Get time slots for this booking from database
       const timeSlots = await storage.getBookingTimeSlots(booking.id);
       
+      console.log("Fetched time slots for booking:", timeSlots);
+      
+      // If the time slots don't have proper prices (which seems to be an issue),
+      // we'll set some default prices
+      const timeSlotsWithPrices = timeSlots.map(slot => {
+        if (!slot.price || slot.price <= 0) {
+          // Apply the same price logic as in the UI
+          let price = 15;
+          const hour = new Date(slot.startTime).getHours();
+          const dayOfWeek = new Date(slot.startTime).getDay();
+          
+          if (hour >= 12 && hour < 17) price = 18;
+          if (hour >= 17) price = 20;
+          
+          // Weekend price increase (Saturday or Sunday)
+          if (dayOfWeek === 0 || dayOfWeek === 6) price += 5;
+          
+          return { ...slot, price };
+        }
+        return slot;
+      });
+      
       // Calculate total price
-      let totalPrice = timeSlots.reduce((sum, slot) => sum + slot.price, 0);
+      let totalPrice = timeSlotsWithPrices.reduce((sum, slot) => sum + slot.price, 0);
       if (booking.equipmentRental) {
         totalPrice += 30; // $30 for equipment rental
       }
       
+      console.log("Calculated total price:", totalPrice);
+      
       res.json({
         booking,
-        timeSlots,
+        timeSlots: timeSlotsWithPrices,
         totalPrice
       });
     } catch (error) {

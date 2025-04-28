@@ -65,8 +65,6 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   const { forecast: weatherForecast, isLoading: weatherLoading } = useWeather();
   const { toast } = useToast();
   
-  // No longer need slotIdMap as we now use direct numeric IDs
-  
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string): boolean => {
     // Parse the string ID to a number and compare directly
@@ -90,8 +88,10 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
   const timeSlots: CalendarTimeSlot[] = [];
   const daysOfWeek = [0, 1, 2, 3, 4, 5, 6]; // 0 = Monday, 6 = Sunday in our view
   
-  // Generate predictable time slots instead of random ones
-  // This ensures consistent behavior for development and testing
+  // Generate sequential ID time slots to match the database
+  // (In a real app, we would fetch this from the API)
+  let slotIdCounter = 1; // Database starts from ID 1
+  
   daysOfWeek.forEach(day => {
     // From 8:00 to 22:00
     for (let hour = 8; hour < 22; hour++) {
@@ -103,9 +103,6 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         
         // Weekend price increase
         if (day >= 5) price += 5;
-        
-        // Create a predictable ID for database lookup
-        const timeSlotId = day * 10000 + hour * 100 + minute;
         
         // Always available for now (we'll implement real status later)
         let status: TimeSlotStatus = "available";
@@ -119,7 +116,7 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
         endTime.setMinutes(endTime.getMinutes() + 30);
         
         timeSlots.push({
-          id: timeSlotId.toString(),
+          id: slotIdCounter.toString(), // Use a sequential ID that matches the database
           day,
           hour,
           minute,
@@ -129,6 +126,8 @@ const BookingCalendar = ({ isAdmin = false }: BookingCalendarProps) => {
           endTime,
           reservationExpiry: null
         });
+        
+        slotIdCounter++;
       }
     }
   });
