@@ -15,7 +15,15 @@ import {
   Sun,
   Loader2,
 } from "lucide-react";
-import { cn, getLatvianDayIndex, getStandardDayIndex, getLatvianDayName, getLatvianDayIndexFromDate } from "@/lib/utils";
+import { 
+  cn, 
+  getLatvianDayIndex, 
+  getStandardDayIndex, 
+  getLatvianDayName, 
+  getLatvianDayIndexFromDate,
+  toLatviaTime,
+  formatInLatviaTime
+} from "@/lib/utils";
 import { useWeather } from "@/hooks/use-weather";
 import { useBooking } from "@/context/booking-context";
 import { useToast } from "@/hooks/use-toast";
@@ -233,10 +241,19 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
 
     // Create calendar time slots ONLY from database time slots
     dbTimeSlots.timeSlots.forEach((dbSlot: SchemaTimeSlot) => {
-      // Create dates but keep them in local timezone (without timezone offset)
-      // The dates come from the server with timezone info already accounted for
-      const startTime = new Date(dbSlot.startTime);
-      const endTime = new Date(dbSlot.endTime);
+      // Convert dates from UTC to Latvia time zone
+      // This is crucial to ensure times display correctly in the UI
+      const startTime = toLatviaTime(dbSlot.startTime);
+      const endTime = toLatviaTime(dbSlot.endTime);
+      
+      // Debug log to help diagnose timezone issues
+      if (isAdmin) {
+        console.log(`Time slot ${dbSlot.id}:`, {
+          rawStart: dbSlot.startTime,
+          latviaStart: formatInLatviaTime(dbSlot.startTime, "yyyy-MM-dd HH:mm:ss"),
+          convertedHour: startTime.getHours()
+        });
+      }
       
       // Get the JS day of week for this time slot
       const jsDayOfWeek = startTime.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -264,9 +281,9 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       
       // Only show slots that are within the current week view (0-6 days from current date)
       if (daysDiff >= 0 && daysDiff < 7) {
-        // Get time components - adjust for the 3-hour timezone difference
-        // This ensures the UI displays the correct local time
-        const hour = startTime.getHours() - 3; // Adjust for 3-hour offset
+        // Get time components from the converted Latvia time
+        // No need for manual offset since toLatviaTime already converted it
+        const hour = startTime.getHours();
         const minute = startTime.getMinutes();
         
         // Use database price if available
