@@ -75,7 +75,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   
   // Use the booking context
-  const { selectedTimeSlots, toggleTimeSlot, setReservationExpiry, clearSelectedTimeSlots } = useBooking();
+  const { selectedTimeSlots, toggleTimeSlot, clearSelectedTimeSlots } = useBooking();
   // Only fetch weather data if not in admin view
   const { forecast: weatherForecast, isLoading: weatherLoading } = !isAdmin ? useWeather() : { forecast: null, isLoading: false };
   const { toast } = useToast();
