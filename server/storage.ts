@@ -352,11 +352,9 @@ export class DatabaseStorage implements IStorage {
   }
   
   async blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined> {
-    const [updatedTimeSlot] = await db.update(timeSlots)
-      .set({ 
-        status: "blocked",
-        reservationExpiry: null
-      })
+    // Instead of updating to blocked status, we'll delete the time slot entirely
+    // This will make it appear as an unallocated gray slot in the UI
+    const [removedTimeSlot] = await db.delete(timeSlots)
       .where(eq(timeSlots.id, id))
       .returning();
     
@@ -371,7 +369,7 @@ export class DatabaseStorage implements IStorage {
         set: { value: reason }
       });
       
-    return updatedTimeSlot;
+    return removedTimeSlot;
   }
   
   // Public method to regenerate time slots
@@ -947,13 +945,10 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
-    const updatedTimeSlot: TimeSlot = { 
-      ...existingTimeSlot, 
-      status: 'blocked',
-      reservationExpiry: null
-    };
-    
-    this.timeSlots.set(id, updatedTimeSlot);
+    // Instead of updating to blocked status, we'll delete the time slot entirely
+    // This will make it appear as an unallocated gray slot in the UI
+    const removedTimeSlot = {...existingTimeSlot};
+    this.timeSlots.delete(id);
     
     // Store the reason in configuration
     const configId = this.currentConfigurationId++;
@@ -963,7 +958,7 @@ export class MemStorage implements IStorage {
       value: reason
     });
     
-    return updatedTimeSlot;
+    return removedTimeSlot;
   }
   
   async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }> {
