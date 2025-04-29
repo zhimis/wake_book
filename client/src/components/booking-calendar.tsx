@@ -378,12 +378,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       return;
     }
     
-    // Navigate to booking page right away
-    toast({
-      title: "Time Slots Selected",
-      description: "Proceeding to booking form.",
-      variant: "default"
-    });
+    // Navigate to booking page right away without showing a toast
   };
   
   // Get CSS class for time slot based on status
