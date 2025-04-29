@@ -74,13 +74,9 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
       <div className="text-center w-full flex flex-col items-center justify-center">
         {slot.status === 'booked' ? (
           <>
-            <Badge variant="outline" className="px-1 h-4 text-[10px] mb-1">
+            <Badge variant="outline" className="px-1 h-4 text-[10px]">
               €{slot.price}
             </Badge>
-            <div className="flex justify-center items-center">
-              <Eye className="h-3 w-3 mr-1" />
-              <span className="text-[9px] font-medium">View Details</span>
-            </div>
           </>
         ) : (
           <>
