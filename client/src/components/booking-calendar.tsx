@@ -367,51 +367,23 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     toggleTimeSlot(schemaSlot);
   };
   
-  // Reserve time slots on the server and navigate to booking form
-  const reserveAndProceed = async () => {
-    try {
-      if (selectedTimeSlots.length === 0) {
-        toast({
-          title: "No Time Slots Selected",
-          description: "Please select at least one time slot before proceeding.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Make API call to reserve the selected time slots
-      const response = await fetch('/api/timeslots/reserve', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          timeSlotIds: selectedTimeSlots.map(slot => slot.id),
-          expiryMinutes: 15
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to reserve time slots');
-      }
-      
-      // Set a temporary 15-minute reservation expiry
-      const expiryTime = new Date(Date.now() + 15 * 60 * 1000);
-      setReservationExpiry(expiryTime);
-      
+  // Proceed to booking form without reserving slots
+  const proceedToBooking = () => {
+    if (selectedTimeSlots.length === 0) {
       toast({
-        title: "Time Slots Selected",
-        description: "Your selected time slots have been temporarily held for 15 minutes.",
-        variant: "default"
-      });
-      
-    } catch (error) {
-      toast({
-        title: "Selection Failed",
-        description: "There was an error selecting your time slots. Please try again.",
+        title: "No Time Slots Selected",
+        description: "Please select at least one time slot before proceeding.",
         variant: "destructive"
       });
+      return;
     }
+    
+    // Navigate to booking page right away
+    toast({
+      title: "Time Slots Selected",
+      description: "Proceeding to booking form.",
+      variant: "default"
+    });
   };
   
   // Get CSS class for time slot based on status
@@ -842,7 +814,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
             </div>
             <div className="text-right">
               <p className="text-sm font-medium">Total: €{calculateTotalPrice()}</p>
-              <Link href="/booking" onClick={reserveAndProceed}>
+              <Link href="/booking" onClick={proceedToBooking}>
                 <Button size="sm" className="mt-2">Proceed to Booking</Button>
               </Link>
             </div>
