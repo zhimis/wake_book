@@ -858,9 +858,25 @@ const AdminCalendarView = () => {
               </div>
             </div>
             
-            <DialogFooter className="flex justify-between sm:justify-between">
+            <DialogFooter className="flex flex-col w-full space-y-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setIsBookingDetailsDialogOpen(false);
+                  toast({
+                    title: "Edit Not Available",
+                    description: "Booking editing is not implemented yet.",
+                    variant: "default",
+                  });
+                }}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit Booking
+              </Button>
               <Button 
-                variant="destructive" 
+                variant="destructive"
+                className="w-full" 
                 onClick={handleDeleteBooking}
                 disabled={deleteBookingMutation.isPending}
               >
@@ -876,28 +892,6 @@ const AdminCalendarView = () => {
                   </>
                 )}
               </Button>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsBookingDetailsDialogOpen(false);
-                    toast({
-                      title: "Edit Not Available",
-                      description: "Booking editing is not implemented yet.",
-                      variant: "default",
-                    });
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit Booking
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setIsBookingDetailsDialogOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
