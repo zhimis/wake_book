@@ -5,8 +5,12 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import { bookingFormSchema, manualBookingSchema, blockTimeSlotSchema, timeSlots, operatingHours } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { db } from "./db";
 import { gte, eq, sql } from "drizzle-orm";
+
+// Latvia timezone (EET in winter, EEST in summer)
+const LATVIA_TIMEZONE = 'Europe/Riga';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -369,13 +373,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdTimeSlots = [];
       
       for (const slot of timeSlots) {
+        // Log the incoming times for debugging
+        console.log(`Processing time slot from client:`, {
+          rawStartTime: slot.startTime,
+          rawEndTime: slot.endTime,
+          localStart: formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss"),
+          localEnd: formatInTimeZone(new Date(slot.endTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss")
+        });
+        
         // Create a new time slot in the database with status "booked"
+        // The startTime and endTime are already in ISO format which inherently preserves timezone info
         const timeSlot = await storage.createTimeSlot({
           startTime: new Date(slot.startTime),
           endTime: new Date(slot.endTime),
           price: slot.price || 25, // Default price if not provided
           status: "booked",
           reservationExpiry: null
+        });
+        
+        // Log what was actually stored for debugging
+        console.log(`Stored time slot:`, {
+          id: timeSlot.id,
+          rawStartTime: timeSlot.startTime,
+          rawEndTime: timeSlot.endTime,
+          localStart: formatInTimeZone(new Date(timeSlot.startTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss"),
+          localEnd: formatInTimeZone(new Date(timeSlot.endTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss")
         });
         
         // Associate it with the booking

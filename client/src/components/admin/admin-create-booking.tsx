@@ -70,19 +70,24 @@ const AdminCreateBooking = ({
     const durationMinutes = parseInt(duration);
     const slots: TimeSlot[] = [];
     
-    // Create a date object for the start time in local browser time zone
-    // We create this as a Latvia time first, which will make sure the actual UTC value
-    // is correctly calculated when sent to the server
+    // Create a date object for the start time
+    // When we set hours/minutes on the client, we're setting them in local time (Latvia time)
+    // The date will be serialized to ISO format when sent to the server, preserving the time correctly
     let startTime = setMinutes(setHours(selectedDate, hour), minute);
     let endTime = addMinutes(startTime, 30); // Each slot is 30 minutes
     
-    console.log(`Creating booking with Latvia time: ${formatInLatviaTime(startTime, "yyyy-MM-dd HH:mm:ss")}`);
+    // Log both local time and what will be sent to server
+    console.log(`Creating booking slots:`, {
+      latviaTime: formatInLatviaTime(startTime, "yyyy-MM-dd HH:mm:ss"), 
+      isoString: startTime.toISOString()
+    });
     
     // Calculate how many 30-minute slots we need
     const numSlots = Math.ceil(durationMinutes / 30);
     
     for (let i = 0; i < numSlots; i++) {
       // Create a time slot object matching our schema
+      // These dates will be sent as ISO strings to the server
       slots.push({
         id: -1, // Temporary ID, will be replaced by the server
         startTime: new Date(startTime),
