@@ -123,6 +123,17 @@ export const blockTimeSlotSchema = z.object({
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
 });
 
+// Make available form
+export const makeAvailableSchema = z.object({
+  price: z.number().positive({ message: "Price must be a positive number" }),
+  timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+  unallocatedSlots: z.array(z.object({
+    id: z.number(), // This will be a negative ID from client
+    startTime: z.string().or(z.date()), // Accept either string or Date
+    endTime: z.string().or(z.date())
+  })).optional(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -148,6 +159,8 @@ export type InsertBookingTimeSlot = z.infer<typeof insertBookingTimeSlotsSchema>
 export type BookingFormData = z.infer<typeof bookingFormSchema>;
 export type ManualBookingFormData = z.infer<typeof manualBookingSchema>;
 export type AdminCustomBookingData = z.infer<typeof adminCustomBookingSchema>;
+export type BlockTimeSlotFormData = z.infer<typeof blockTimeSlotSchema>;
+export type MakeAvailableFormData = z.infer<typeof makeAvailableSchema>;
 
 // For frontend use
 export type TimeSlotStatus = "available" | "booked" | "selected";

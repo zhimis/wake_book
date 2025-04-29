@@ -258,7 +258,8 @@ const AdminCalendarView = () => {
     resolver: zodResolver(makeAvailableSchema),
     defaultValues: {
       price: 15,
-      timeSlotIds: []
+      timeSlotIds: [],
+      unallocatedSlots: []
     }
   });
   
