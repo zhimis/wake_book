@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { PlusCircle, Clock, X } from "lucide-react";
-import { format, setHours, setMinutes, addMinutes } from "date-fns";
+import { PlusCircle, Clock, X, Info, AlertCircle, Calendar as CalendarIcon } from "lucide-react";
+import { format, setHours, setMinutes, addMinutes, isSameDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { TimeSlot, AdminCustomBookingData, adminCustomBookingSchema } from "@shared/schema";
@@ -12,11 +12,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatInLatviaTime, LATVIA_TIMEZONE } from "@/lib/utils";
+// We'll implement the dialog inline since there's an issue importing it
 
 interface AdminCreateBookingProps {
   triggerButton?: React.ReactNode;
@@ -36,6 +37,8 @@ const AdminCreateBooking = ({
   const [selectedStartTime, setSelectedStartTime] = useState("12:00");
   const [duration, setDuration] = useState("30");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [existingBookings, setExistingBookings] = useState<TimeSlot[]>([]);
+  const [isCheckingBookings, setIsCheckingBookings] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -48,6 +51,48 @@ const AdminCreateBooking = ({
       setInternalOpen(value);
     }
   };
+  
+  // Check for existing bookings when date is selected
+  const checkExistingBookings = async (date: Date | undefined) => {
+    if (!date) return;
+    
+    setIsCheckingBookings(true);
+    try {
+      // Create start and end date for the selected date (full day)
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Fetch time slots for this date
+      const response = await fetch(`/api/timeslots?startDate=${startOfDay.toISOString()}&endDate=${endOfDay.toISOString()}`);
+      const data = await response.json();
+      
+      // Filter booked and reserved slots
+      const bookedSlots = data.timeSlots.filter((slot: TimeSlot) => 
+        slot.status === 'booked' || slot.status === 'reserved'
+      );
+      
+      setExistingBookings(bookedSlots);
+    } catch (error) {
+      console.error("Error checking existing bookings:", error);
+      toast({
+        title: "Error",
+        description: "Could not check existing bookings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingBookings(false);
+    }
+  };
+  
+  // Check bookings when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      checkExistingBookings(selectedDate);
+    }
+  }, [selectedDate]);
   
   // Admin custom booking form
   const form = useForm<AdminCustomBookingData>({
@@ -272,6 +317,80 @@ const AdminCreateBooking = ({
                 className="rounded-md border"
                 disabled={{ before: new Date() }}
               />
+              
+              {isCheckingBookings && (
+                <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
+                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Checking for existing bookings...
+                </div>
+              )}
+              
+              {!isCheckingBookings && existingBookings.length > 0 && selectedDate && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800 cursor-pointer hover:bg-amber-100 transition-colors">
+                      <div className="flex items-start">
+                        <AlertCircle className="h-4 w-4 mt-0.5 mr-2" />
+                        <div>
+                          <div className="font-medium">Existing Bookings</div>
+                          <div className="text-sm flex items-center gap-1">
+                            <span>There are {existingBookings.length} existing bookings on this date</span>
+                            <span className="text-xs text-amber-600">(click to view)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>
+                        Bookings for {formatInLatviaTime(selectedDate, 'EEEE, MMMM d, yyyy')}
+                      </DialogTitle>
+                      <DialogDescription>
+                        <div className="flex gap-2 mt-2">
+                          <div className="text-xs px-2 py-1 rounded-md bg-red-100 text-red-800 border border-red-300">
+                            Booked: {existingBookings.filter(slot => slot.status === 'booked').length}
+                          </div>
+                          <div className="text-xs px-2 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                            Reserved: {existingBookings.filter(slot => slot.status === 'reserved').length}
+                          </div>
+                        </div>
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <ScrollArea className="max-h-[60vh] mt-4">
+                      <div className="space-y-2 py-2">
+                        {[...existingBookings]
+                          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                          .map((slot) => {
+                            const statusColor = 
+                              slot.status === 'booked' ? 'bg-red-100 text-red-800 border-red-300' :
+                              slot.status === 'reserved' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                              'bg-green-100 text-green-800 border-green-300';
+                            
+                            return (
+                              <div 
+                                key={slot.id} 
+                                className={`px-3 py-2 rounded-md border ${statusColor} flex justify-between`}
+                              >
+                                <div>
+                                  {formatInLatviaTime(new Date(slot.startTime), 'HH:mm')} - {formatInLatviaTime(new Date(slot.endTime), 'HH:mm')}
+                                </div>
+                                <div className="font-medium capitalize">
+                                  {slot.status}
+                                </div>
+                              </div>
+                            );
+                          })
+                        }
+                      </div>
+                    </ScrollArea>
+                  </DialogContent>
+                </Dialog>
+              )}
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
