@@ -93,7 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Setting expiry time to:", expiryTime);
       
       const reservedSlots = await Promise.all(
-        timeSlotIds.map(id => storage.reserveTimeSlot(id, expiryTime))
+        timeSlotIds.map(id => storage.temporaryHoldTimeSlot(id, expiryTime))
       );
       
       console.log("Reserved slots:", reservedSlots);

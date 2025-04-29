@@ -47,7 +47,7 @@ export interface IStorage {
   getTimeSlotsByDateRange(startDate: Date, endDate: Date): Promise<TimeSlot[]>;
   createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot>;
   updateTimeSlot(id: number, timeSlot: Partial<TimeSlot>): Promise<TimeSlot | undefined>;
-  reserveTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined>;
+  temporaryHoldTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined>;
   releaseReservation(id: number): Promise<TimeSlot | undefined>;
   blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined>;
   regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }>;
@@ -329,10 +329,10 @@ export class DatabaseStorage implements IStorage {
     return updatedTimeSlot;
   }
   
-  async reserveTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined> {
+  async temporaryHoldTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined> {
     const [updatedTimeSlot] = await db.update(timeSlots)
       .set({ 
-        status: "reserved",
+        status: "booked",
         reservationExpiry: expiryTime
       })
       .where(eq(timeSlots.id, id))
