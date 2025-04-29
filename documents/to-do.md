@@ -1,0 +1,3 @@
+- Move 'Selection Active' card to the bottom of the calendar, so that it is right above the buttons of Create booking. 
+- For public calendar, do not allow to go to past weeks. 
+- When user moves to future time (weeks) that are further than our active calendar, please display some informative message in calendar place (instead of empty area) that says, that availability for this week will be published later, but for special requests they can call  +371 25422219

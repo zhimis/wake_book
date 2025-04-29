@@ -663,26 +663,27 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           })}
         </div>
         
-        {/* Selection summary */}
-        {selectedTimeSlots.length > 0 && (
-          <div className="mt-2 pt-2 border-t px-2 pb-2">
-            <div className="flex justify-between items-center">
-              <div>
-                <h4 className="font-medium text-sm">Selected Slots: {selectedTimeSlots.length}</h4>
-                <p className="text-xs text-muted-foreground">
-                  {format(currentDate, "EEE, MMM d")} {getSelectedTimeRange()}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium">Total: €{calculateTotalPrice()}</p>
-                <Link href="/booking" onClick={reserveAndProceed}>
-                  <Button size="sm" className="mt-2">Proceed to Booking</Button>
-                </Link>
-              </div>
+      </CardContent>
+      
+      {/* Selection summary - Moved to bottom of calendar */}
+      {selectedTimeSlots.length > 0 && (
+        <div className="px-4 py-3 border-t">
+          <div className="flex justify-between items-center">
+            <div>
+              <h4 className="font-medium text-sm">Selected Slots: {selectedTimeSlots.length}</h4>
+              <p className="text-xs text-muted-foreground">
+                {format(currentDate, "EEE, MMM d")} {getSelectedTimeRange()}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium">Total: €{calculateTotalPrice()}</p>
+              <Link href="/booking" onClick={reserveAndProceed}>
+                <Button size="sm" className="mt-2">Proceed to Booking</Button>
+              </Link>
             </div>
           </div>
-        )}
-      </CardContent>
+        </div>
+      )}
     </Card>
   );
 };
