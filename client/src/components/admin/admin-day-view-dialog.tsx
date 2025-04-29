@@ -15,8 +15,6 @@ interface AdminDayViewDialogProps {
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'booked':
-      return 'bg-red-100 text-red-800 border-red-300';
-    case 'reserved':
       return 'bg-amber-100 text-amber-800 border-amber-300';
     case 'available':
       return 'bg-green-100 text-green-800 border-green-300';
@@ -33,7 +31,6 @@ const AdminDayViewDialog: React.FC<AdminDayViewDialogProps> = ({ date, timeSlots
   
   // Count bookings by status
   const bookedCount = timeSlots.filter(slot => slot.status === 'booked').length;
-  const reservedCount = timeSlots.filter(slot => slot.status === 'reserved').length;
   const availableCount = timeSlots.filter(slot => slot.status === 'available').length;
   
   return (
@@ -48,11 +45,8 @@ const AdminDayViewDialog: React.FC<AdminDayViewDialogProps> = ({ date, timeSlots
           </DialogTitle>
           <DialogDescription>
             <div className="flex gap-2 mt-2">
-              <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
-                Booked: {bookedCount}
-              </Badge>
               <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
-                Reserved: {reservedCount}
+                Booked: {bookedCount}
               </Badge>
               <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
                 Available: {availableCount}

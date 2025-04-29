@@ -32,7 +32,7 @@ import { TimeSlot as SchemaTimeSlot } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
 import AdminTimeSlot from "@/components/admin/admin-time-slot";
 
-type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
+type TimeSlotStatus = "available" | "booked" | "selected";
 
 // Local TimeSlot interface with UI-specific properties
 interface CalendarTimeSlot {
@@ -434,9 +434,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         case "available":
           return "bg-green-100 text-green-800 hover:bg-green-200";
         case "booked":
-          return "bg-red-100 text-red-800 cursor-not-allowed opacity-70";
-        case "reserved":
-          return "bg-yellow-100 text-yellow-800 cursor-not-allowed opacity-70";
+          return "bg-amber-100 text-amber-800 cursor-not-allowed opacity-70";
         default:
           return "bg-gray-100 text-gray-800";
       }
@@ -447,9 +445,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       case "available":
         return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
       case "booked":
-        return "bg-red-100 text-red-800 hover:bg-red-200 hover:scale-105 transition-transform";
-      case "reserved":
-        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 hover:scale-105 transition-transform";
+        return "bg-amber-100 text-amber-800 hover:bg-amber-200 hover:scale-105 transition-transform";
       default:
         return "bg-gray-100 text-gray-800 hover:scale-105 transition-transform";
     }
