@@ -740,6 +740,49 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                       
                       // If slot is undefined, render an empty placeholder
                       if (!slot) {
+                        // For admin mode, make unallocated slots clickable for selection
+                        if (isAdmin) {
+                          // Create a dummy slot for unallocated time periods to allow selection
+                          const dummyDate = new Date(currentDate);
+                          dummyDate.setDate(dummyDate.getDate() + (idx - getLatvianDayIndexFromDate(currentDate)));
+                          
+                          // Set hours and minutes based on the time string
+                          const [dummyHour, dummyMinute] = timeString.split(':').map(Number);
+                          dummyDate.setHours(dummyHour, dummyMinute, 0, 0);
+                          
+                          // End time is 30 minutes later
+                          const dummyEndDate = new Date(dummyDate);
+                          dummyEndDate.setMinutes(dummyEndDate.getMinutes() + 30);
+                          
+                          // Create a dummy slot with "unallocated" status and unique ID
+                          const dummySlot: SchemaTimeSlot = {
+                            id: -1 * (Date.now() + idx + dummyHour + dummyMinute), // Negative ID to ensure uniqueness
+                            startTime: dummyDate,
+                            endTime: dummyEndDate,
+                            price: 25, // Default price
+                            status: "unallocated",
+                            reservationExpiry: null
+                          };
+                          
+                          const isSelected = adminSelectedSlots?.some(s => 
+                            s.startTime.getTime() === dummySlot.startTime.getTime() && 
+                            s.endTime.getTime() === dummySlot.endTime.getTime()
+                          );
+                          
+                          return (
+                            <div 
+                              key={`unallocated-${idx}-${timeString}`}
+                              className={`h-14 rounded-md border border-gray-200 cursor-pointer flex items-center justify-center ${isCurrentDay ? 'bg-blue-50' : 'bg-gray-50'} ${isSelected ? 'border-2 border-primary' : ''}`}
+                              onClick={() => onAdminSlotSelect?.(dummySlot)}
+                            >
+                              {isSelected && (
+                                <Badge className="w-3 h-3 p-0 bg-primary flex items-center justify-center">✓</Badge>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        // For regular user mode, render non-clickable placeholder
                         return (
                           <div 
                             key={`empty-${idx}-${timeString}`} 
