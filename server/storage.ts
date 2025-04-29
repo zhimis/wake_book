@@ -57,6 +57,7 @@ export interface IStorage {
   getBookingByReference(reference: string): Promise<Booking | undefined>;
   getBookings(): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
+  updateBooking(id: number, booking: Partial<Booking>): Promise<Booking | undefined>;
   deleteBooking(id: number): Promise<boolean>;
   getBookingTimeSlots(bookingId: number): Promise<TimeSlot[]>;
   addTimeSlotToBooking(bookingTimeSlot: InsertBookingTimeSlot): Promise<BookingTimeSlot>;
