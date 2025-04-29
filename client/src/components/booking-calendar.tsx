@@ -78,12 +78,41 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   
   // Navigation functions
   const goToPreviousWeek = () => {
+    // For public calendar, prevent going to past weeks
+    if (!isAdmin) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const prevWeekDate = subDays(currentDate, 7);
+      prevWeekDate.setHours(0, 0, 0, 0);
+      
+      // If previous week would be before today, don't allow navigation
+      if (prevWeekDate < today) {
+        return;
+      }
+    }
+    
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
     setCurrentDate(subDays(currentDate, 7));
   };
   
   const goToNextWeek = () => {
+    // Check if next week would be beyond visibility limit for regular users
+    if (!isAdmin) {
+      const threeWeeksFromToday = addDays(new Date(), 21); // Typical visibility window
+      const nextWeekDate = addDays(currentDate, 7);
+      
+      // If already viewing a week that's far in the future, show a toast notification
+      if (nextWeekDate > threeWeeksFromToday) {
+        toast({
+          title: "Limited Visibility",
+          description: "Booking schedule is only available up to 3 weeks in advance.",
+          variant: "warning",
+        });
+      }
+    }
+    
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
     setCurrentDate(addDays(currentDate, 7));
@@ -110,6 +139,24 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       return response.json();
     }
   });
+  
+  // Determine if we're viewing a week beyond the calendar's configured visibility range
+  const isFutureWeekBeyondVisibility = useMemo(() => {
+    // If we have time slots, this week is within the visibility range
+    if (dbTimeSlots?.timeSlots?.length > 0) {
+      return false;
+    }
+    
+    // If we're still loading, we don't know yet
+    if (timeSlotsLoading) {
+      return false;
+    }
+    
+    // If we have data but no time slots, this could be a future week beyond visibility
+    // A simple check: current date is more than 3 weeks in the future (typical visibility setting)
+    const threeWeeksFromNow = addDays(new Date(), 21);
+    return currentDate > threeWeeksFromNow;
+  }, [dbTimeSlots, timeSlotsLoading, currentDate]);
   
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string): boolean => {
@@ -525,9 +572,28 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           </div>
         </div>
         
+        {/* Future week message */}
+        {!isAdmin && isFutureWeekBeyondVisibility && (
+          <div className="py-8 px-4 text-center bg-blue-50 rounded-md mt-4">
+            <h3 className="text-lg font-medium text-blue-800 mb-2">Future Availability</h3>
+            <p className="text-blue-700 mb-3">
+              Availability for this week will be published later. 
+            </p>
+            <p className="text-sm text-blue-600">
+              For special requests or inquiries for this period, please call:
+              <a 
+                href="tel:+37125422219" 
+                className="block mt-1 font-bold hover:underline"
+              >
+                +371 25422219
+              </a>
+            </p>
+          </div>
+        )}
+        
         {/* Calendar grid with time slots */}
         <div className="mt-2">
-          {allTimeStrings.map(timeString => {
+          {(!isFutureWeekBeyondVisibility || isAdmin) && allTimeStrings.map(timeString => {
             const [hourStr, minuteStr] = timeString.split(':');
             const hour = parseInt(hourStr);
             const minute = parseInt(minuteStr);
