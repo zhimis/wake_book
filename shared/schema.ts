@@ -80,7 +80,10 @@ export const bookingFormSchema = z.object({
   phoneNumber: z.string().regex(/^[0-9]{10,15}$/, {
     message: "Phone number must be between 10-15 digits",
   }),
-  email: z.string().email({ message: "Invalid email format" }).optional(),
+  email: z.union([
+    z.string().email({ message: "Invalid email format" }),
+    z.string().length(0)
+  ]).optional(),
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
 });
 
@@ -90,7 +93,10 @@ export const manualBookingSchema = z.object({
   phoneNumber: z.string().regex(/^[0-9]{10,15}$/, {
     message: "Phone number must be between 10-15 digits",
   }),
-  email: z.string().email({ message: "Invalid email format" }).optional(),
+  email: z.union([
+    z.string().email({ message: "Invalid email format" }),
+    z.string().length(0)
+  ]).optional(),
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
   // Include information about unallocated slots that need to be created
   unallocatedSlots: z.array(z.object({
@@ -106,7 +112,10 @@ export const adminCustomBookingSchema = z.object({
   phoneNumber: z.string().regex(/^[0-9]{10,15}$/, {
     message: "Phone number must be between 10-15 digits",
   }),
-  email: z.string().email({ message: "Invalid email format" }).optional(),
+  email: z.union([
+    z.string().email({ message: "Invalid email format" }),
+    z.string().length(0)
+  ]).optional(),
   notes: z.string().optional(),
   timeSlots: z.array(z.object({
     startTime: z.date(),
