@@ -143,6 +143,8 @@ const AdminCalendarView = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isEditBookingDialogOpen, setIsEditBookingDialogOpen] = useState(false);
   const [isBookingDetailsDialogOpen, setIsBookingDetailsDialogOpen] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [cancelAction, setCancelAction] = useState<'delete' | 'clear' | null>(null);
   
   const { toast } = useToast();
   
@@ -475,9 +477,88 @@ const AdminCalendarView = () => {
     setIsBookingDetailsDialogOpen(true);
   };
   
+  // Add a clear time slots mutation (this will remove the slots entirely from the DB)
+  const clearTimeSlotsMutation = useMutation({
+    mutationFn: async (timeSlotIds: number[]) => {
+      const res = await apiRequest("POST", "/api/timeslots/release", { timeSlotIds });
+      return await res.json();
+    },
+    onSuccess: async () => {
+      setSelectedBooking(null);
+      setIsCancelDialogOpen(false);
+      setIsBookingDetailsDialogOpen(false);
+      
+      // Force immediate refetch of time slots
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
+      ]);
+      
+      // Additional explicit refetch for the current date range to ensure UI update
+      const res = await fetch(
+        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        queryClient.setQueryData([
+          '/api/timeslots',
+          currentDateRange.start.toISOString(),
+          currentDateRange.end.toISOString()
+        ], data);
+      }
+      
+      toast({
+        title: "Time Slots Cleared",
+        description: "The time slots have been successfully cleared.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Clearing Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleDeleteBooking = () => {
-    if (selectedBooking && confirm("Are you sure you want to delete this booking?")) {
+    // Open the cancel dialog instead of using browser confirm
+    setIsCancelDialogOpen(true);
+  };
+  
+  const confirmCancelAction = () => {
+    if (!selectedBooking) return;
+    
+    if (cancelAction === 'delete') {
+      // Delete the booking
       deleteBookingMutation.mutate(selectedBooking.id);
+    } else if (cancelAction === 'clear') {
+      // Get the time slot IDs from the booking and clear them
+      if (bookingsData) {
+        // We need to fetch the booking details for this booking
+        const getBookingTimeSlots = async () => {
+          try {
+            const res = await fetch(`/api/bookings/${selectedBooking.reference}`);
+            if (!res.ok) throw new Error('Failed to fetch booking details');
+            const bookingDetails = await res.json();
+            
+            // Clear the time slots
+            if (bookingDetails.timeSlots?.length > 0) {
+              const timeSlotIds = bookingDetails.timeSlots.map((slot: TimeSlot) => slot.id);
+              clearTimeSlotsMutation.mutate(timeSlotIds);
+            }
+          } catch (error) {
+            toast({
+              title: "Error",
+              description: "Failed to fetch booking details for clearing.",
+              variant: "destructive",
+            });
+          }
+        };
+        
+        getBookingTimeSlots();
+      }
     }
   };
   
@@ -979,6 +1060,51 @@ const AdminCalendarView = () => {
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+            <AlertDialogDescription>
+              What would you like to do with this booking?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <RadioGroup defaultValue="delete" onValueChange={(value) => setCancelAction(value as 'delete' | 'clear')}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="delete" id="delete" />
+                  <Label htmlFor="delete" className="font-medium">
+                    Cancel Booking
+                    <p className="text-xs text-muted-foreground">
+                      Delete the booking but keep the time slots available for new bookings.
+                    </p>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="clear" id="clear" />
+                  <Label htmlFor="clear" className="font-medium">
+                    Clear Slot
+                    <p className="text-xs text-muted-foreground">
+                      Delete both the booking and its time slots. The slots will appear as unallocated (gray).
+                    </p>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCancelAction}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
