@@ -37,14 +37,14 @@ export function useBookings() {
       queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
       
       toast({
-        title: "Time Slots Reserved",
-        description: "Your selected time slots have been reserved for 10 minutes.",
-        variant: "success",
+        title: "Time Slots Selected",
+        description: "Your selected time slots have been temporarily held for 10 minutes.",
+        variant: "default",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Reservation Failed",
+        title: "Selection Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -69,7 +69,7 @@ export function useBookings() {
   // Clear selected time slots
   const clearSelectedTimeSlots = useCallback(() => {
     if (selectedTimeSlots.length > 0 && reservationExpiry) {
-      // Release reserved time slots
+      // Release selected time slots
       const timeSlotIds = selectedTimeSlots.map(slot => slot.id);
       releaseTimeSlotsMutation.mutate(timeSlotIds);
     }
@@ -94,7 +94,7 @@ export function useBookings() {
     });
   }, []);
   
-  // Handle reserving time slots when selection changes
+  // Handle temporary hold for time slots when selection changes
   useEffect(() => {
     if (selectedTimeSlots.length > 0 && !reservationExpiry) {
       const timeSlotIds = selectedTimeSlots.map(slot => slot.id);
@@ -102,14 +102,14 @@ export function useBookings() {
     }
   }, [selectedTimeSlots, reservationExpiry, reserveTimeSlotsMutation]);
   
-  // Handle reservation expiry
+  // Handle hold expiry
   useEffect(() => {
     if (reservationExpiry && new Date() > reservationExpiry) {
       clearSelectedTimeSlots();
       
       toast({
-        title: "Reservation Expired",
-        description: "Your reservation has expired. Please select time slots again.",
+        title: "Selection Expired",
+        description: "Your time slot selection has expired. Please select time slots again.",
         variant: "destructive",
       });
     }

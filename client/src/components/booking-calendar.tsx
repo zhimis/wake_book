@@ -400,15 +400,15 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       setReservationExpiry(expiryTime);
       
       toast({
-        title: "Time Slots Reserved",
+        title: "Time Slots Selected",
         description: "Your selected time slots have been temporarily held for 15 minutes.",
         variant: "default"
       });
       
     } catch (error) {
       toast({
-        title: "Reservation Failed",
-        description: "There was an error reserving your time slots. Please try again.",
+        title: "Selection Failed",
+        description: "There was an error selecting your time slots. Please try again.",
         variant: "destructive"
       });
     }
