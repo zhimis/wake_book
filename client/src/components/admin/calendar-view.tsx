@@ -13,7 +13,7 @@ declare global {
 // Safe bookings cache helper functions
 function clearBookingsCache(): void {
   if (typeof window !== 'undefined') {
-    clearBookingsCache();
+    window.bookingsCache = {};
   }
 }
 
