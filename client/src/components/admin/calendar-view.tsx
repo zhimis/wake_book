@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import AdminCreateBooking from "./admin-create-booking";
 import { 
   Form,
   FormControl,
