@@ -179,11 +179,13 @@ const AdminCreateBooking = ({
                 Manually create a booking for any date and time.
               </DialogDescription>
             </div>
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogClose>
+            {isStandalone && (
+              <DialogClose asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogClose>
+            )}
           </div>
         </DialogHeader>
         
@@ -332,13 +334,15 @@ const AdminCreateBooking = ({
           </div>
         </ScrollArea>
         
-        <DialogFooter className="mt-4">
-          <DialogClose asChild>
-            <Button variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-        </DialogFooter>
+        {isStandalone && (
+          <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
