@@ -96,7 +96,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       toast({
         title: "Booking Confirmed!",
         description: "Your wakeboarding session has been successfully booked.",
-        variant: "success",
+        variant: "success" as any, // Type cast since we added this variant
       });
     },
     onError: (error: Error) => {
