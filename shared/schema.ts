@@ -42,7 +42,7 @@ export const timeSlots = pgTable("time_slots", {
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   price: real("price").notNull(),
-  status: text("status").notNull().default("available"), // available, booked, reserved
+  status: text("status").notNull().default("available"), // available, booked
   reservationExpiry: timestamp("reservation_expiry"), // When reservation expires
 });
 
