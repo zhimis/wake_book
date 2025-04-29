@@ -13,7 +13,7 @@ declare global {
 // Safe bookings cache helper functions
 function clearBookingsCache(): void {
   if (typeof window !== 'undefined') {
-    window.bookingsCache = {};
+    clearBookingsCache();
   }
 }
 
@@ -27,7 +27,7 @@ function getFromBookingsCache(key: string): any | undefined {
 function setInBookingsCache(key: string, value: any): void {
   if (typeof window !== 'undefined') {
     if (!window.bookingsCache) {
-      window.bookingsCache = {};
+      clearBookingsCache();
     }
     window.bookingsCache[key] = value;
   }
@@ -207,11 +207,9 @@ const AdminCalendarView = () => {
   
   const { toast } = useToast();
   
-  // Initialize window.bookingsCache on mount
+  // Initialize bookings cache on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.bookingsCache = {};
-    }
+    clearBookingsCache();
   }, []);
   
   // Form setup for manual booking
@@ -379,7 +377,7 @@ const AdminCalendarView = () => {
       await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
       
       // Clear the cache to force refetching booking details
-      window.bookingsCache = {};
+      clearBookingsCache();
       
       toast({
         title: "Booking Updated",
@@ -426,7 +424,7 @@ const AdminCalendarView = () => {
       }
       
       // Clear the cache to force refetching booking details
-      window.bookingsCache = {};
+      clearBookingsCache();
       
       toast({
         title: "Booking Deleted",
@@ -477,24 +475,18 @@ const AdminCalendarView = () => {
             // First get all bookings with their time slots (use cache if available)
             const bookingsWithSlots = await Promise.all(
               bookingsData.map(async (booking: Booking) => {
-                // Check if window and cache are available and has this reference
-                if (typeof window !== 'undefined' && 
-                    window.bookingsCache && 
-                    window.bookingsCache[booking.reference]) {
-                  return window.bookingsCache[booking.reference];
+                // Check if cache has this reference
+                const cachedBooking = getFromBookingsCache(booking.reference);
+                if (cachedBooking) {
+                  return cachedBooking;
                 }
                 
                 const res = await fetch(`/api/bookings/${booking.reference}`);
                 if (!res.ok) throw new Error('Failed to fetch booking details');
                 const bookingDetails = await res.json();
                 
-                // Cache the result if window is available
-                if (typeof window !== 'undefined') {
-                  if (!window.bookingsCache) {
-                    window.bookingsCache = {};
-                  }
-                  window.bookingsCache[booking.reference] = bookingDetails;
-                }
+                // Cache the result
+                setInBookingsCache(booking.reference, bookingDetails);
                 return bookingDetails;
               })
             );
