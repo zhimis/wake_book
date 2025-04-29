@@ -414,7 +414,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerName: bookingData.fullName,
         phoneNumber: bookingData.phoneNumber,
         email: bookingData.email || null,
-        equipmentRental: false
+        equipmentRental: false,
+        experienceLevel: "intermediate" // Set a default since this field was removed from UI
       });
       
       // Associate time slots with the booking and update their status to "booked"
@@ -540,7 +541,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phoneNumber,
         email: email || null,
         notes: notes || "",
-        equipmentRental: false
+        equipmentRental: false,
+        experienceLevel: "intermediate" // Set a default since this field was removed from UI
       });
       
       // Create time slots one by one and associate them with the booking
