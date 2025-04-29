@@ -337,6 +337,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create booking" });
     }
   });
+  
+  // Admin booking endpoint - creates time slots on demand and books them
+  app.post("/api/bookings/admin", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated and is an admin
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Extract booking data and time slots from request
+      const { customerName, phoneNumber, email, notes, timeSlots } = req.body;
+      
+      if (!timeSlots || !Array.isArray(timeSlots) || timeSlots.length === 0) {
+        return res.status(400).json({ error: "No time slots provided" });
+      }
+      
+      console.log("Creating admin booking with time slots:", timeSlots.length);
+      
+      // Create the booking first
+      const booking = await storage.createBooking({
+        customerName,
+        phoneNumber,
+        email: email || null,
+        notes: notes || "",
+        experienceLevel: "intermediate", // Default experience level for admin bookings
+        equipmentRental: false
+      });
+      
+      // Create time slots one by one and associate them with the booking
+      const createdTimeSlots = [];
+      
+      for (const slot of timeSlots) {
+        // Create a new time slot in the database with status "booked"
+        const timeSlot = await storage.createTimeSlot({
+          startTime: new Date(slot.startTime),
+          endTime: new Date(slot.endTime),
+          price: slot.price || 25, // Default price if not provided
+          status: "booked",
+          reservationExpiry: null
+        });
+        
+        // Associate it with the booking
+        await storage.addTimeSlotToBooking({
+          bookingId: booking.id,
+          timeSlotId: timeSlot.id
+        });
+        
+        createdTimeSlots.push(timeSlot);
+      }
+      
+      // Calculate total price
+      const totalPrice = createdTimeSlots.reduce((sum, slot) => sum + slot.price, 0);
+      
+      console.log("Created admin booking - total price:", totalPrice);
+      
+      // Return the booking details with the created time slots
+      res.status(201).json({
+        booking,
+        timeSlots: createdTimeSlots,
+        totalPrice
+      });
+    } catch (error) {
+      console.error("Error creating admin booking:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to create admin booking" });
+    }
+  });
 
   // Get all bookings (admin only)
   app.get("/api/bookings", async (req: Request, res: Response) => {

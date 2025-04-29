@@ -52,6 +52,7 @@ export const bookings = pgTable("bookings", {
   customerName: text("customer_name").notNull(),
   phoneNumber: text("phone_number").notNull(),
   email: text("email"),  // Optional email field added
+  notes: text("notes"),  // Optional notes field for admin bookings
   experienceLevel: text("experience_level").notNull(),
   equipmentRental: boolean("equipment_rental").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -95,6 +96,23 @@ export const manualBookingSchema = z.object({
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
 });
 
+// Admin custom booking form - for creating bookings with custom time slots
+export const adminCustomBookingSchema = z.object({
+  customerName: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  phoneNumber: z.string().regex(/^[0-9]{10,15}$/, {
+    message: "Phone number must be between 10-15 digits",
+  }),
+  email: z.string().email({ message: "Invalid email format" }).optional(),
+  notes: z.string().optional(),
+  timeSlots: z.array(z.object({
+    startTime: z.date(),
+    endTime: z.date(),
+    price: z.number().optional(),
+    status: z.string().optional(),
+    reservationExpiry: z.date().nullable().optional(),
+  })).min(1, { message: "At least one time slot is required" }),
+});
+
 // Block time slot form
 export const blockTimeSlotSchema = z.object({
   reason: z.string().min(1, { message: "Reason is required" }),
@@ -124,6 +142,7 @@ export type BookingTimeSlot = typeof bookingTimeSlots.$inferSelect;
 export type InsertBookingTimeSlot = z.infer<typeof insertBookingTimeSlotsSchema>;
 
 export type BookingFormData = z.infer<typeof bookingFormSchema>;
+export type AdminCustomBookingData = z.infer<typeof adminCustomBookingSchema>;
 
 // For frontend use
 export type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
