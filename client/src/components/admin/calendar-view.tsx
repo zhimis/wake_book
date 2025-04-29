@@ -345,15 +345,31 @@ const AdminCalendarView = () => {
       }
     } else {
       // For available or unallocated slots: Add to selection
-      const isSelected = selectedTimeSlots.some(slot => slot.id === timeSlot.id);
+      // Check if this slot is already selected
+      // Note: For unallocated slots with negative IDs, need to compare by time
+      const isSelected = timeSlot.id < 0 
+        ? selectedTimeSlots.some(slot => 
+            slot.startTime.getTime() === timeSlot.startTime.getTime() && 
+            slot.endTime.getTime() === timeSlot.endTime.getTime()
+          )
+        : selectedTimeSlots.some(slot => slot.id === timeSlot.id);
       
       if (isSelected) {
         // Remove from selection
         console.log(`Removing slot ${timeSlot.id} from selection`);
-        setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
+        if (timeSlot.id < 0) {
+          // For unallocated slots with negative IDs, filter by time
+          setSelectedTimeSlots(selectedTimeSlots.filter(slot => 
+            !(slot.startTime.getTime() === timeSlot.startTime.getTime() && 
+              slot.endTime.getTime() === timeSlot.endTime.getTime())
+          ));
+        } else {
+          // For regular slots, filter by ID
+          setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
+        }
       } else {
         // Add to selection
-        console.log(`Adding slot ${timeSlot.id} to selection`);
+        console.log(`Adding slot ${timeSlot.id} to selection (status: ${timeSlot.status})`);
         setSelectedTimeSlots(prev => [...prev, timeSlot]);
         
         // If this is the first slot selected, show the action buttons

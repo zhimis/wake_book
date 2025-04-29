@@ -26,6 +26,9 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
         return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
       case "booked":
         return "bg-amber-100 text-amber-800 hover:bg-amber-200";  // Remove hover effect for clarity
+      case "unallocated":
+        // Special handling for unallocated slots - light gray with hover effect
+        return "bg-gray-100 text-gray-800 hover:bg-gray-200 hover:scale-105 transition-transform";
       default:
         return "bg-gray-100 text-gray-800 hover:scale-105 transition-transform";
     }
@@ -73,12 +76,26 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     >
       <div className="text-center w-full flex flex-col items-center justify-center">
         {slot.status === 'booked' ? (
+          // Booked slots only show price (no selection indicator)
           <>
             <Badge variant="outline" className="px-1 h-4 text-[10px]">
               €{slot.price}
             </Badge>
           </>
+        ) : slot.status === 'unallocated' ? (
+          // Unallocated slots have special styling
+          <>
+            <Badge variant="outline" className="px-1 h-4 text-[10px] bg-gray-50">
+              {slot.id < 0 ? 'Empty' : `€${slot.price}`}
+            </Badge>
+            {isSelected && (
+              <div className="absolute top-0 right-0 -mt-1 -mr-1">
+                <Badge className="w-3 h-3 flex items-center justify-center p-0 bg-primary">✓</Badge>
+              </div>
+            )}
+          </>
         ) : (
+          // Default for available slots
           <>
             <Badge variant="outline" className="px-1 h-4 text-[10px]">
               €{slot.price}
