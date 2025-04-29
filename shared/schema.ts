@@ -145,7 +145,7 @@ export type BookingFormData = z.infer<typeof bookingFormSchema>;
 export type AdminCustomBookingData = z.infer<typeof adminCustomBookingSchema>;
 
 // For frontend use
-export type TimeSlotStatus = "available" | "booked" | "reserved" | "selected";
+export type TimeSlotStatus = "available" | "booked" | "selected";
 
 export type DaySchedule = {
   date: Date;

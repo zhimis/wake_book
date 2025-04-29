@@ -69,9 +69,9 @@ const AdminCreateBooking = ({
       const response = await fetch(`/api/timeslots?startDate=${startOfDay.toISOString()}&endDate=${endOfDay.toISOString()}`);
       const data = await response.json();
       
-      // Filter booked and reserved slots
+      // Filter booked slots
       const bookedSlots = data.timeSlots.filter((slot: TimeSlot) => 
-        slot.status === 'booked' || slot.status === 'reserved'
+        slot.status === 'booked'
       );
       
       setExistingBookings(bookedSlots);
@@ -138,9 +138,9 @@ const AdminCreateBooking = ({
       const response = await fetch(`/api/timeslots?startDate=${queryStartDate}&endDate=${queryEndDate}`);
       const data = await response.json();
       
-      // Find any booked or reserved slots that would overlap
+      // Find any booked slots that would overlap
       const conflicts = data.timeSlots.filter((slot: TimeSlot) => 
-        (slot.status === 'booked' || slot.status === 'reserved') && 
+        slot.status === 'booked' && 
         new Date(slot.startTime) < overallEndTime && 
         new Date(slot.endTime) > overallStartTime
       );
@@ -351,11 +351,8 @@ const AdminCreateBooking = ({
                       </DialogTitle>
                       <DialogDescription>
                         <div className="flex gap-2 mt-2">
-                          <div className="text-xs px-2 py-1 rounded-md bg-red-100 text-red-800 border border-red-300">
-                            Booked: {existingBookings.filter(slot => slot.status === 'booked').length}
-                          </div>
                           <div className="text-xs px-2 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
-                            Reserved: {existingBookings.filter(slot => slot.status === 'reserved').length}
+                            Booked: {existingBookings.length}
                           </div>
                         </div>
                       </DialogDescription>
@@ -366,10 +363,7 @@ const AdminCreateBooking = ({
                         {[...existingBookings]
                           .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
                           .map((slot) => {
-                            const statusColor = 
-                              slot.status === 'booked' ? 'bg-red-100 text-red-800 border-red-300' :
-                              slot.status === 'reserved' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                              'bg-green-100 text-green-800 border-green-300';
+                            const statusColor = 'bg-amber-100 text-amber-800 border-amber-300';
                             
                             return (
                               <div 
