@@ -71,6 +71,20 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
   const bookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
       const res = await apiRequest("POST", "/api/bookings", data);
+      if (!res.ok) {
+        const errorData = await res.json();
+        
+        // Handle specific case of already booked slots
+        if (res.status === 409 && errorData.alreadyBookedSlots) {
+          throw new Error(
+            "One or more selected time slots have been booked by someone else. Please go back and select different times."
+          );
+        }
+        
+        // Otherwise throw the general error message
+        throw new Error(errorData.error || "Booking failed. Please try again.");
+      }
+      
       return await res.json();
     },
     onSuccess: (data) => {

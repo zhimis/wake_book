@@ -225,47 +225,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Time slot IDs received:", timeSlotIds);
       
-      // TEMPORARY FIX: For development purposes, we'll allow booking without verifying slots
-      // In production, this validation should be enabled
-      
-      /* 
-      // Verify all time slots are reserved and not expired
+      // Verify all time slots exist and check their status
       const timeSlots = await Promise.all(
         timeSlotIds.map(id => storage.getTimeSlot(id))
       );
       
       console.log("Time slots for booking:", timeSlots);
       
-      const now = new Date();
-      
-      // Check if any time slots are unavailable or reservations expired
-      const invalidSlots = timeSlots.filter(
+      // Check if any time slots are already booked or unavailable
+      const alreadyBookedSlots = timeSlots.filter(
         slot => {
-          console.log("Checking slot:", slot);
           if (!slot) {
-            console.log("Slot is undefined");
+            console.log("Time slot not found");
             return true;
           }
           
-          console.log("Slot status:", slot.status);
-          if (slot.status !== 'reserved') {
-            console.log("Slot is not reserved");
+          console.log(`Checking slot ${slot.id} with status: ${slot.status}`);
+          if (slot.status === 'booked') {
+            console.log(`Time slot ${slot.id} is already booked`);
             return true;
           }
           
-          // Skip reservation expiry check for now - we'll implement this properly later
           return false;
         }
       );
       
-      console.log("Invalid slots:", invalidSlots.length);
+      console.log("Already booked slots:", alreadyBookedSlots.length);
       
-      if (invalidSlots.length > 0) {
-        return res.status(400).json({ 
-          error: "One or more selected time slots are no longer available" 
+      if (alreadyBookedSlots.length > 0) {
+        return res.status(409).json({ 
+          error: "One or more selected time slots have already been booked",
+          alreadyBookedSlots: alreadyBookedSlots.map(slot => slot?.id)
         });
       }
-      */
       
       // Create the booking
       const booking = await storage.createBooking({
@@ -354,6 +346,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log("Creating admin booking with time slots:", timeSlots.length);
+      
+      // Check for conflicts with existing time slots
+      const conflicts = [];
+      
+      for (const slot of timeSlots) {
+        // Check for overlapping time slots that are already booked
+        const startTime = new Date(slot.startTime);
+        const endTime = new Date(slot.endTime);
+        
+        // Get all time slots in the same time range
+        const existingSlots = await storage.getTimeSlotsByDateRange(startTime, endTime);
+        
+        // Check if any existing slot overlaps and is booked
+        for (const existingSlot of existingSlots) {
+          const existingStart = new Date(existingSlot.startTime);
+          const existingEnd = new Date(existingSlot.endTime);
+          
+          // Check for overlap
+          if (existingSlot.status === 'booked' && 
+              ((startTime >= existingStart && startTime < existingEnd) || 
+               (endTime > existingStart && endTime <= existingEnd) ||
+               (startTime <= existingStart && endTime >= existingEnd))) {
+            conflicts.push({
+              requestedSlot: { startTime, endTime },
+              conflictingSlot: existingSlot
+            });
+          }
+        }
+      }
+      
+      if (conflicts.length > 0) {
+        console.log("Booking conflicts detected:", conflicts.length);
+        return res.status(409).json({ 
+          error: "Time slot conflicts detected with existing bookings",
+          conflicts,
+          alreadyBookedSlots: conflicts.map(c => c.conflictingSlot.id)
+        });
+      }
       
       // Create the booking first
       const booking = await storage.createBooking({

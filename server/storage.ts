@@ -1057,6 +1057,17 @@ export class MemStorage implements IStorage {
     }
     
     console.log("Time slots regenerated successfully in MemStorage.");
+    
+    // Restore the booked time slots
+    for (const bookedSlot of bookedTimeSlots) {
+      this.timeSlots.set(bookedSlot.id, bookedSlot);
+    }
+    
+    return {
+      success: true,
+      preservedBookings: bookedTimeSlots.length,
+      conflicts: []
+    };
   }
   
   async getBookings(): Promise<Booking[]> {

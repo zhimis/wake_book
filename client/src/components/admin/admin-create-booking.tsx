@@ -112,6 +112,20 @@ const AdminCreateBooking = ({
   const createBookingMutation = useMutation({
     mutationFn: async (data: AdminCustomBookingData) => {
       const res = await apiRequest("POST", "/api/bookings/admin", data);
+      if (!res.ok) {
+        const errorData = await res.json();
+        
+        // Handle specific case of already booked slots
+        if (res.status === 409 && errorData.alreadyBookedSlots) {
+          throw new Error(
+            "One or more selected time slots are already booked. Please adjust the booking time."
+          );
+        }
+        
+        // Otherwise throw the general error message
+        throw new Error(errorData.error || "Booking failed. Please try again.");
+      }
+      
       return await res.json();
     },
     onSuccess: () => {

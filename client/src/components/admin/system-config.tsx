@@ -270,12 +270,17 @@ const AdminSystemConfig = () => {
   const regenerateTimeSlots = async () => {
     try {
       setIsRegenerating(true);
-      await apiRequest("POST", "/api/timeslots/regenerate");
+      const response = await apiRequest("POST", "/api/timeslots/regenerate");
+      const result = await response.json();
+      
       toast({
         title: "Time Slots Regenerated",
-        description: "All future time slots have been regenerated with the updated pricing and rules.",
+        description: `Future time slots have been regenerated successfully, preserving ${result.preservedBookings} existing bookings.`,
         variant: "success",
       });
+      
+      // Refresh all data
+      queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
     } catch (error) {
       toast({
         title: "Regeneration Failed",
@@ -492,7 +497,7 @@ const AdminSystemConfig = () => {
             <div className="flex flex-col space-y-2">
               <p className="text-sm text-gray-700">
                 After making changes to operating hours or pricing, you can regenerate time slots to apply the new settings
-                to all future time slots. This will delete all existing time slots and create new ones.
+                to all future time slots. This will preserve existing bookings while creating new available time slots.
               </p>
               
               <div className="p-3 border border-yellow-200 bg-yellow-50 rounded text-sm mb-4">
