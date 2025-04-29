@@ -866,9 +866,24 @@ export class MemStorage implements IStorage {
   }
   
   async getTimeSlotsByDateRange(startDate: Date, endDate: Date): Promise<TimeSlot[]> {
-    return Array.from(this.timeSlots.values()).filter(
-      slot => slot.startTime >= startDate && slot.startTime <= endDate
-    );
+    // We need to find slots that overlap with the given range,
+    // not just slots whose start time is in the range
+    return Array.from(this.timeSlots.values()).filter(slot => {
+      // Check for different types of overlaps
+      const slotStart = new Date(slot.startTime);
+      const slotEnd = new Date(slot.endTime);
+      
+      // Case 1: Slot starts within the range
+      const startWithinRange = slotStart >= startDate && slotStart < endDate;
+      
+      // Case 2: Slot ends within the range
+      const endWithinRange = slotEnd > startDate && slotEnd <= endDate;
+      
+      // Case 3: Slot completely contains the range
+      const containsRange = slotStart <= startDate && slotEnd >= endDate;
+      
+      return startWithinRange || endWithinRange || containsRange;
+    });
   }
   
   async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
