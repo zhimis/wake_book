@@ -24,9 +24,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
       case "available":
         return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
       case "booked":
-        return "bg-red-100 text-red-800 hover:bg-red-200 hover:scale-105 transition-transform";
-      case "reserved":
-        return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 hover:scale-105 transition-transform";
+        return "bg-amber-100 text-amber-800 hover:bg-amber-200 hover:scale-105 transition-transform";
       default:
         return "bg-gray-100 text-gray-800 hover:scale-105 transition-transform";
     }
