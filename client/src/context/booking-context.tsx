@@ -9,17 +9,14 @@ import { TimeSlot } from "@shared/schema";
 
 type BookingContextType = {
   selectedTimeSlots: TimeSlot[];
-  reservationExpiry: Date | null;
   toggleTimeSlot: (timeSlot: TimeSlot) => void;
   clearSelectedTimeSlots: () => void;
-  setReservationExpiry: (date: Date | null) => void;
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 export function BookingProvider({ children }: { children: ReactNode }) {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[]>([]);
-  const [reservationExpiry, setReservationExpiry] = useState<Date | null>(null);
   
   // Toggle time slot selection - simplified version without toast
   const toggleTimeSlot = useCallback((timeSlot: TimeSlot) => {
@@ -40,17 +37,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   // Clear selected time slots
   const clearSelectedTimeSlots = useCallback(() => {
     setSelectedTimeSlots([]);
-    setReservationExpiry(null);
   }, []);
   
   return (
     <BookingContext.Provider
       value={{
         selectedTimeSlots,
-        reservationExpiry,
         toggleTimeSlot,
-        clearSelectedTimeSlots,
-        setReservationExpiry
+        clearSelectedTimeSlots
       }}
     >
       {children}

@@ -13,7 +13,6 @@ import {
   formatPrice,
   calculateTotalPrice,
 } from "@/lib/utils";
-import CountdownTimer from "./ui/countdown-timer";
 import { Button } from "./ui/button";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -40,20 +39,9 @@ interface BookingFormProps {
 }
 
 const BookingForm = ({ onCancel }: BookingFormProps) => {
-  const { selectedTimeSlots, reservationExpiry, clearSelectedTimeSlots } =
-    useBooking();
+  const { selectedTimeSlots, clearSelectedTimeSlots } = useBooking();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-
-  // Calculate time remaining in seconds
-  const timeRemaining = reservationExpiry
-    ? Math.max(
-        0,
-        Math.floor(
-          (new Date(reservationExpiry).getTime() - new Date().getTime()) / 1000,
-        ),
-      )
-    : 0;
 
   // Create form
   const form = useForm<BookingFormData>({
@@ -118,16 +106,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
     bookingMutation.mutate(formData);
   };
 
-  const handleReservationExpiry = () => {
-    toast({
-      title: "Reservation Expired",
-      description:
-        "Your reservation has expired. Please select time slots again.",
-      variant: "destructive",
-    });
-
-    onCancel();
-  };
+  // No need for reservation expiry handler
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -169,16 +148,6 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
               {formatPrice(calculateTotalPrice(selectedTimeSlots, false))}
             </span>
           </div>
-
-          {/* Reservation Timer */}
-          {timeRemaining > 0 && (
-            <div className="mt-4">
-              <CountdownTimer
-                initialSeconds={timeRemaining}
-                onExpire={handleReservationExpiry}
-              />
-            </div>
-          )}
         </div>
 
         {/* Booking Form */}
