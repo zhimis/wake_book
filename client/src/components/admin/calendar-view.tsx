@@ -539,38 +539,55 @@ const AdminCalendarView = () => {
     setIsCancelDialogOpen(true);
   };
   
-  const confirmCancelAction = () => {
+  const confirmCancelAction = async () => {
     if (!selectedBooking) return;
     
-    if (cancelAction === 'delete') {
-      // Delete the booking
-      deleteBookingMutation.mutate(selectedBooking.id);
-    } else if (cancelAction === 'clear') {
-      // Get the time slot IDs from the booking and clear them
-      if (bookingsData) {
-        // We need to fetch the booking details for this booking
-        const getBookingTimeSlots = async () => {
-          try {
-            const res = await fetch(`/api/bookings/${selectedBooking.reference}`);
-            if (!res.ok) throw new Error('Failed to fetch booking details');
-            const bookingDetails = await res.json();
-            
-            // Clear the time slots
-            if (bookingDetails.timeSlots?.length > 0) {
-              const timeSlotIds = bookingDetails.timeSlots.map((slot: TimeSlot) => slot.id);
-              clearTimeSlotsMutation.mutate(timeSlotIds);
-            }
-          } catch (error) {
-            toast({
-              title: "Error",
-              description: "Failed to fetch booking details for clearing.",
-              variant: "destructive",
-            });
-          }
-        };
+    try {
+      if (cancelAction === 'delete') {
+        // Regular delete - keeps time slots available
+        await deleteBookingMutation.mutateAsync(selectedBooking.id);
         
-        getBookingTimeSlots();
+        toast({
+          title: "Booking Cancelled",
+          description: "The booking has been cancelled and slots are available for new bookings.",
+          variant: "default",
+        });
+      } else if (cancelAction === 'clear') {
+        // We need to fetch the booking details for this booking to get time slots
+        const res = await fetch(`/api/bookings/${selectedBooking.reference}`);
+        if (!res.ok) throw new Error('Failed to fetch booking details');
+        const bookingDetails = await res.json();
+        
+        // First delete the booking
+        await deleteBookingMutation.mutateAsync(selectedBooking.id);
+        
+        // Then block each time slot (which now removes them completely)
+        if (bookingDetails.timeSlots?.length > 0) {
+          const timeSlotIds = bookingDetails.timeSlots.map((slot: TimeSlot) => slot.id);
+          
+          await blockTimeSlotsMutation.mutateAsync({
+            timeSlotIds,
+            reason: `Cleared from booking ${selectedBooking.reference}`
+          });
+        }
+        
+        toast({
+          title: "Booking Cancelled",
+          description: "The booking has been cancelled and slots have been cleared.",
+          variant: "default",
+        });
       }
+      
+      // Close the dialogs
+      setIsCancelDialogOpen(false);
+      setIsBookingDetailsDialogOpen(false);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to cancel booking",
+        variant: "destructive",
+      });
     }
   };
   
