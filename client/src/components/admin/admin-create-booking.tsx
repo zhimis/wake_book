@@ -6,7 +6,7 @@ import { PlusCircle, Clock } from "lucide-react";
 import { format, setHours, setMinutes, addMinutes } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { TimeSlot, BookingFormData, manualBookingSchema } from "@shared/schema";
+import { TimeSlot, AdminCustomBookingData, adminCustomBookingSchema } from "@shared/schema";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +24,18 @@ const AdminCreateBooking = () => {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Admin custom booking form
+  const form = useForm<AdminCustomBookingData>({
+    resolver: zodResolver(adminCustomBookingSchema),
+    defaultValues: {
+      customerName: "",
+      phoneNumber: "",
+      email: "",
+      notes: "",
+      timeSlots: []
+    }
+  });
   
   // Convert selected date and time to time slots
   const generateTimeSlots = () => {
@@ -58,22 +70,14 @@ const AdminCreateBooking = () => {
     }
     
     setTimeSlots(slots);
+    
+    // Update the form with the new time slots
+    form.setValue("timeSlots", slots);
   };
-  
-  // Manual booking form
-  const form = useForm<BookingFormData>({
-    resolver: zodResolver(manualBookingSchema),
-    defaultValues: {
-      customerName: "",
-      phoneNumber: "",
-      email: "",
-      notes: ""
-    }
-  });
   
   // Create booking mutation
   const createBookingMutation = useMutation({
-    mutationFn: async (data: BookingFormData & { timeSlots: TimeSlot[] }) => {
+    mutationFn: async (data: AdminCustomBookingData) => {
       const res = await apiRequest("POST", "/api/bookings/admin", data);
       return await res.json();
     },
@@ -117,8 +121,8 @@ const AdminCreateBooking = () => {
     { value: "180", label: "3 hours" }
   ];
   
-  const onSubmit = (data: BookingFormData) => {
-    if (timeSlots.length === 0) {
+  const onSubmit = (data: AdminCustomBookingData) => {
+    if (data.timeSlots.length === 0) {
       toast({
         title: "No Time Selected",
         description: "Please select a date, time, and duration first.",
@@ -127,10 +131,7 @@ const AdminCreateBooking = () => {
       return;
     }
     
-    createBookingMutation.mutate({
-      ...data,
-      timeSlots
-    });
+    createBookingMutation.mutate(data);
   };
   
   return (
