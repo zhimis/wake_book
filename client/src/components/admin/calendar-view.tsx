@@ -489,59 +489,77 @@ const AdminCalendarView = () => {
                   <AlertTriangle className="h-4 w-4 mr-1" />
                   Block Time Slots
                 </Button>
+                
+                {/* Advanced Admin Create Booking */}
+                <div className="mt-4">
+                  <AdminCreateBooking />
+                </div>
               </div>
             </>
           ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Bookings</CardTitle>
-                <CardDescription>View and manage all bookings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Reference</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {bookingsData?.length > 0 ? (
-                      bookingsData.map((booking: Booking) => (
-                        <TableRow key={booking.id}>
-                          <TableCell className="font-medium">{booking.reference}</TableCell>
-                          <TableCell>{booking.customerName}</TableCell>
-                          <TableCell>{booking.phoneNumber}</TableCell>
-                          <TableCell>{format(new Date(booking.createdAt), "MMM d, yyyy")}</TableCell>
-                          <TableCell>
-                            <StatusBadge status="booked" />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleBookingDetails(booking)}
-                            >
-                              Details
-                            </Button>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Bookings</CardTitle>
+                  <CardDescription>View and manage all bookings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Reference</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bookingsData?.length > 0 ? (
+                        bookingsData.map((booking: Booking) => (
+                          <TableRow key={booking.id}>
+                            <TableCell className="font-medium">{booking.reference}</TableCell>
+                            <TableCell>{booking.customerName}</TableCell>
+                            <TableCell>{booking.phoneNumber}</TableCell>
+                            <TableCell>{format(new Date(booking.createdAt), "MMM d, yyyy")}</TableCell>
+                            <TableCell>
+                              <StatusBadge status="booked" />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleBookingDetails(booking)}
+                              >
+                                Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-4">
+                            No bookings found
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4">
-                          No bookings found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+              
+              {/* Advanced Booking Creation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Advanced Booking Options</CardTitle>
+                  <CardDescription>Create custom bookings for any date and time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AdminCreateBooking />
+                </CardContent>
+              </Card>
+            </div>
           )}
         </>
       )}
