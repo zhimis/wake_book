@@ -133,6 +133,7 @@ const AdminCalendarView = () => {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[]>([]);
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
+  const [isAdvancedBookingDialogOpen, setIsAdvancedBookingDialogOpen] = useState(false);
   // Always use calendar view as requested (removing list view)
   const viewMode = 'calendar';
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -366,11 +367,14 @@ const AdminCalendarView = () => {
   };
   
   const handleCreateBooking = () => {
-    // Update form with selected time slot IDs
-    bookingForm.setValue("timeSlotIds", selectedTimeSlots.map(slot => slot.id));
-    
-    // Open booking dialog
-    setIsBookingDialogOpen(true);
+    if (selectedTimeSlots.length > 0) {
+      // If slots are selected, use the regular booking dialog
+      bookingForm.setValue("timeSlotIds", selectedTimeSlots.map(slot => slot.id));
+      setIsBookingDialogOpen(true);
+    } else {
+      // If no slots are selected, open the advanced booking dialog for custom dates/times
+      setIsAdvancedBookingDialogOpen(true);
+    }
   };
   
   const handleBlockTimeSlots = () => {
@@ -474,7 +478,6 @@ const AdminCalendarView = () => {
                 <Button 
                   className="bg-primary hover:bg-primary/90"
                   onClick={handleCreateBooking}
-                  disabled={selectedTimeSlots.length === 0}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Create Booking
@@ -490,10 +493,7 @@ const AdminCalendarView = () => {
                   Block Time Slots
                 </Button>
                 
-                {/* Advanced Admin Create Booking */}
-                <div className="mt-4">
-                  <AdminCreateBooking />
-                </div>
+                {/* We're now using the Create Booking button for both regular and advanced booking */}
               </div>
             </>
           ) : (
@@ -760,6 +760,16 @@ const AdminCalendarView = () => {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Advanced Booking Dialog */}
+      <Dialog open={isAdvancedBookingDialogOpen} onOpenChange={setIsAdvancedBookingDialogOpen}>
+        <DialogContent className="p-0 max-w-3xl">
+          <AdminCreateBooking 
+            isStandalone={false}
+            triggerButton={null}
+          />
         </DialogContent>
       </Dialog>
       

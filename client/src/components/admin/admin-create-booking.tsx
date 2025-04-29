@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { PlusCircle, Clock } from "lucide-react";
+import { PlusCircle, Clock, X } from "lucide-react";
 import { format, setHours, setMinutes, addMinutes } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -15,8 +15,14 @@ import { Input } from "@/components/ui/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const AdminCreateBooking = () => {
+interface AdminCreateBookingProps {
+  triggerButton?: React.ReactNode;
+  isStandalone?: boolean;
+}
+
+const AdminCreateBooking = ({ triggerButton, isStandalone = true }: AdminCreateBookingProps) => {
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedStartTime, setSelectedStartTime] = useState("");
@@ -136,167 +142,185 @@ const AdminCreateBooking = () => {
   
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
-          <PlusCircle size={16} />
-          Create Booking
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl">
+      {isStandalone ? (
+        <DialogTrigger asChild>
+          {triggerButton || (
+            <Button variant="outline" className="flex items-center gap-2">
+              <PlusCircle size={16} />
+              Create Booking
+            </Button>
+          )}
+        </DialogTrigger>
+      ) : null}
+      
+      <DialogContent className="max-w-3xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Create New Booking</DialogTitle>
-          <DialogDescription>
-            Manually create a booking for any date and time.
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>Create New Booking</DialogTitle>
+              <DialogDescription>
+                Manually create a booking for any date and time.
+              </DialogDescription>
+            </div>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
+          </div>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left side - Calendar and time selection */}
-          <div className="space-y-4">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="rounded-md border"
-              disabled={{ before: new Date() }}
-            />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Time</Label>
-                <Select value={selectedStartTime} onValueChange={setSelectedStartTime}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        <ScrollArea className="max-h-[calc(90vh-10rem)] pr-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left side - Calendar and time selection */}
+            <div className="space-y-4">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-md border"
+                disabled={{ before: new Date() }}
+              />
               
-              <div className="space-y-2">
-                <Label>Duration</Label>
-                <Select value={duration} onValueChange={setDuration}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {durationOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <Button 
-              type="button" 
-              variant="secondary" 
-              onClick={generateTimeSlots}
-              className="w-full"
-            >
-              <Clock size={16} className="mr-2" />
-              Generate Time Slots
-            </Button>
-            
-            {timeSlots.length > 0 && (
-              <div className="border rounded-md p-3 mt-4 bg-muted/50">
-                <h4 className="font-medium text-sm mb-2">Selected Time Slots:</h4>
-                <div className="space-y-1 text-xs">
-                  {timeSlots.map((slot, index) => (
-                    <div key={index} className="flex justify-between">
-                      <span>{format(slot.startTime, "MMM d, yyyy HH:mm")}</span>
-                      <span>-</span>
-                      <span>{format(slot.endTime, "HH:mm")}</span>
-                    </div>
-                  ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Time</Label>
+                  <Select value={selectedStartTime} onValueChange={setSelectedStartTime}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Duration</Label>
+                  <Select value={duration} onValueChange={setDuration}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {durationOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
+              
+              <Button 
+                type="button" 
+                variant="secondary" 
+                onClick={generateTimeSlots}
+                className="w-full"
+              >
+                <Clock size={16} className="mr-2" />
+                Generate Time Slots
+              </Button>
+              
+              {timeSlots.length > 0 && (
+                <div className="border rounded-md p-3 mt-4 bg-muted/50">
+                  <h4 className="font-medium text-sm mb-2">Selected Time Slots:</h4>
+                  <div className="space-y-1 text-xs">
+                    {timeSlots.map((slot, index) => (
+                      <div key={index} className="flex justify-between">
+                        <span>{format(slot.startTime, "MMM d, yyyy HH:mm")}</span>
+                        <span>-</span>
+                        <span>{format(slot.endTime, "HH:mm")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Right side - Customer info form */}
+            <div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="customerName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter customer name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+371 12345678" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="customer@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Any special requests or notes" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full mt-4"
+                    disabled={createBookingMutation.isPending}
+                  >
+                    {createBookingMutation.isPending ? "Creating..." : "Create Booking"}
+                  </Button>
+                </form>
+              </Form>
+            </div>
           </div>
-          
-          {/* Right side - Customer info form */}
-          <div>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="customerName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Customer Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter customer name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="+371 12345678" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="customer@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notes</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Any special requests or notes" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button 
-                  type="submit" 
-                  className="w-full mt-4"
-                  disabled={createBookingMutation.isPending}
-                >
-                  {createBookingMutation.isPending ? "Creating..." : "Create Booking"}
-                </Button>
-              </form>
-            </Form>
-          </div>
-        </div>
+        </ScrollArea>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
-          </Button>
+        <DialogFooter className="mt-4">
+          <DialogClose asChild>
+            <Button variant="outline">
+              Cancel
+            </Button>
+          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>
