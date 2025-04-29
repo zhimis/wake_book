@@ -89,9 +89,7 @@ export function getTimeSlotClass(status: string, isSelected: boolean = false): s
     case "available":
       return "slot-available bg-success bg-opacity-10 border border-success";
     case "booked":
-      return "slot-booked bg-destructive bg-opacity-10 border border-destructive cursor-not-allowed opacity-60";
-    case "reserved":
-      return "slot-reserved bg-warning bg-opacity-10 border border-warning cursor-not-allowed opacity-60";
+      return "slot-booked bg-warning bg-opacity-10 border border-warning cursor-not-allowed opacity-60";
     default:
       return "slot-available bg-success bg-opacity-10 border border-success";
   }
