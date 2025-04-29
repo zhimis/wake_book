@@ -104,10 +104,10 @@ const Header = () => {
       
       {/* Mobile menu */}
       <div className={cn(
-        "md:hidden bg-white px-4 py-2 shadow-lg transition-all duration-200 ease-in-out overflow-hidden",
+        "md:hidden bg-white px-4 py-1 shadow-lg transition-all duration-200 ease-in-out overflow-hidden",
         mobileMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
       )}>
-        <nav className="flex flex-col space-y-3 py-2">
+        <nav className="flex flex-col space-y-2">
           <span 
             onClick={() => handleNavigation("/")}
             className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
