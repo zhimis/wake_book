@@ -136,7 +136,6 @@ const editBookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
   phoneNumber: z.string().regex(/^[0-9]{10,15}$/, "Phone number must be 10-15 digits"),
   email: z.string().email("Invalid email address").optional().nullable(),
-  experienceLevel: z.string(),
   equipmentRental: z.boolean().default(false),
   notes: z.string().optional().nullable(),
   // We don't edit time slots directly - that would be a separate operation
@@ -232,7 +231,6 @@ const AdminCalendarView = () => {
       customerName: "",
       phoneNumber: "",
       email: null,
-      experienceLevel: "beginner",
       equipmentRental: false,
       notes: null
     }
@@ -645,7 +643,6 @@ const AdminCalendarView = () => {
         customerName: selectedBooking.customerName,
         phoneNumber: selectedBooking.phoneNumber,
         email: selectedBooking.email || null,
-        experienceLevel: selectedBooking.experienceLevel,
         equipmentRental: selectedBooking.equipmentRental || false,
         notes: selectedBooking.notes || null
       });
@@ -1319,28 +1316,7 @@ const AdminCalendarView = () => {
                 )}
               />
               
-              <FormField
-                control={editBookingForm.control}
-                name="experienceLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Experience Level</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select experience level" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">Intermediate</SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
               
               <FormField
                 control={editBookingForm.control}

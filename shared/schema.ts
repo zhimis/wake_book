@@ -53,7 +53,6 @@ export const bookings = pgTable("bookings", {
   phoneNumber: text("phone_number").notNull(),
   email: text("email"),  // Optional email field added
   notes: text("notes"),  // Optional notes field for admin bookings
-  experienceLevel: text("experience_level").notNull(),
   equipmentRental: boolean("equipment_rental").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   reference: text("reference").notNull(),
@@ -82,7 +81,6 @@ export const bookingFormSchema = z.object({
     message: "Phone number must be between 10-15 digits",
   }),
   email: z.string().email({ message: "Invalid email format" }).optional(),
-  experienceLevel: z.enum(["beginner", "intermediate", "advanced"]),
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
 });
 
