@@ -836,6 +836,10 @@ const AdminCalendarView = () => {
     blockTimeSlotsMutation.mutate(data);
   };
   
+  const onMakeAvailableSubmit = (data: MakeAvailableFormData) => {
+    makeAvailableSlotsMutation.mutate(data);
+  };
+  
   const isLoading = timeSlotsLoading || bookingsLoading;
   const hasError = timeSlotsError || bookingsError;
   
@@ -1199,6 +1203,99 @@ const AdminCalendarView = () => {
                     </>
                   ) : (
                     "Block Time Slots"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Make Available Dialog */}
+      <Dialog open={isMakeAvailableDialogOpen} onOpenChange={setIsMakeAvailableDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Make Time Slots Available</DialogTitle>
+            <DialogDescription>
+              Make selected time slots available for booking by setting a price.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 mb-4">
+            <div className="rounded-md bg-muted p-3">
+              <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
+              <div className="space-y-2">
+                {selectedTimeSlots.map((slot) => {
+                  // Get actual time in local timezone
+                  const startTime = new Date(slot.startTime);
+                  const endTime = new Date(slot.endTime);
+                  
+                  // Adjust for the 3-hour difference (subtract 3 hours)
+                  const adjustedStartTime = new Date(startTime);
+                  adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                  
+                  const adjustedEndTime = new Date(endTime);
+                  adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
+                  
+                  return (
+                    <div key={slot.id} className="text-sm">
+                      {format(adjustedStartTime, "EEEE, MMM d")} • 
+                      {adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
+                      {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          
+          <Form {...makeAvailableForm}>
+            <form onSubmit={makeAvailableForm.handleSubmit(onMakeAvailableSubmit)} className="space-y-4">
+              <FormField
+                control={makeAvailableForm.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price (€)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min={5} 
+                        step={1} 
+                        placeholder="Enter price per slot" 
+                        {...field} 
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Set a price for each time slot (minimum €5).
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsMakeAvailableDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="default" 
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={makeAvailableSlotsMutation.isPending}
+                >
+                  {makeAvailableSlotsMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Make Available"
                   )}
                 </Button>
               </DialogFooter>
