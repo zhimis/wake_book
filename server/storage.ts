@@ -906,7 +906,7 @@ export class MemStorage implements IStorage {
     return updatedTimeSlot;
   }
   
-  async reserveTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined> {
+  async temporaryHoldTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined> {
     const existingTimeSlot = this.timeSlots.get(id);
     
     if (!existingTimeSlot || existingTimeSlot.status !== 'available') {
@@ -915,7 +915,7 @@ export class MemStorage implements IStorage {
     
     const updatedTimeSlot: TimeSlot = { 
       ...existingTimeSlot, 
-      status: 'reserved',
+      status: 'booked',
       reservationExpiry: expiryTime
     };
     
