@@ -77,7 +77,12 @@ const manualBookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
   phoneNumber: z.string().regex(/^[0-9]{10,15}$/, "Phone number must be 10-15 digits"),
   email: z.string().email("Invalid email address").optional(),
-  timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot")
+  timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot"),
+  unallocatedSlots: z.array(z.object({
+    id: z.number(), 
+    startTime: z.string().or(z.date()),
+    endTime: z.string().or(z.date())
+  })).optional()
 });
 
 // Schema for blocking time slots
@@ -148,7 +153,8 @@ const AdminCalendarView = () => {
       customerName: "",
       phoneNumber: "",
       email: "",
-      timeSlotIds: []
+      timeSlotIds: [],
+      unallocatedSlots: []
     }
   });
   

@@ -148,6 +148,7 @@ export type BookingTimeSlot = typeof bookingTimeSlots.$inferSelect;
 export type InsertBookingTimeSlot = z.infer<typeof insertBookingTimeSlotsSchema>;
 
 export type BookingFormData = z.infer<typeof bookingFormSchema>;
+export type ManualBookingFormData = z.infer<typeof manualBookingSchema>;
 export type AdminCustomBookingData = z.infer<typeof adminCustomBookingSchema>;
 
 // For frontend use
