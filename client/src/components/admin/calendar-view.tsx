@@ -184,6 +184,13 @@ const AdminCalendarView = () => {
   
   const { toast } = useToast();
   
+  // Initialize window.bookingsCache on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.bookingsCache = {};
+    }
+  }, []);
+  
   // Form setup for manual booking
   const bookingForm = useForm<ManualBookingFormData>({
     resolver: zodResolver(manualBookingSchema),
@@ -444,15 +451,13 @@ const AdminCalendarView = () => {
         // We need to fetch the booking details for this time slot
         const getBookingDetailsForSlot = async () => {
           try {
-            // Cache all booking details to avoid refetching
-            if (!window.bookingsCache) {
-              window.bookingsCache = {};
-            }
-            
             // First get all bookings with their time slots (use cache if available)
             const bookingsWithSlots = await Promise.all(
               bookingsData.map(async (booking: Booking) => {
-                if (window.bookingsCache[booking.reference]) {
+                // Check if window and cache are available and has this reference
+                if (typeof window !== 'undefined' && 
+                    window.bookingsCache && 
+                    window.bookingsCache[booking.reference]) {
                   return window.bookingsCache[booking.reference];
                 }
                 
@@ -460,8 +465,13 @@ const AdminCalendarView = () => {
                 if (!res.ok) throw new Error('Failed to fetch booking details');
                 const bookingDetails = await res.json();
                 
-                // Cache the result
-                window.bookingsCache[booking.reference] = bookingDetails;
+                // Cache the result if window is available
+                if (typeof window !== 'undefined') {
+                  if (!window.bookingsCache) {
+                    window.bookingsCache = {};
+                  }
+                  window.bookingsCache[booking.reference] = bookingDetails;
+                }
                 return bookingDetails;
               })
             );
