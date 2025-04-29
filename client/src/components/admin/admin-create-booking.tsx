@@ -20,16 +20,33 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface AdminCreateBookingProps {
   triggerButton?: React.ReactNode;
   isStandalone?: boolean;
+  externalOpenState?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const AdminCreateBooking = ({ triggerButton, isStandalone = true }: AdminCreateBookingProps) => {
-  const [open, setOpen] = useState(false);
+const AdminCreateBooking = ({ 
+  triggerButton, 
+  isStandalone = true, 
+  externalOpenState, 
+  onOpenChange 
+}: AdminCreateBookingProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedStartTime, setSelectedStartTime] = useState("");
+  const [selectedStartTime, setSelectedStartTime] = useState("12:00");
   const [duration, setDuration] = useState("30");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Use external or internal state based on props
+  const open = externalOpenState !== undefined ? externalOpenState : internalOpen;
+  const setOpen = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value);
+    } else {
+      setInternalOpen(value);
+    }
+  };
   
   // Admin custom booking form
   const form = useForm<AdminCustomBookingData>({

@@ -763,15 +763,13 @@ const AdminCalendarView = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Advanced Booking Dialog */}
-      <Dialog open={isAdvancedBookingDialogOpen} onOpenChange={setIsAdvancedBookingDialogOpen}>
-        <DialogContent className="p-0 max-w-3xl">
-          <AdminCreateBooking 
-            isStandalone={false}
-            triggerButton={null}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Advanced Booking Dialog - Using the component with controlled open state */}
+      <AdminCreateBooking 
+        isStandalone={false}
+        triggerButton={null}
+        externalOpenState={isAdvancedBookingDialogOpen}
+        onOpenChange={setIsAdvancedBookingDialogOpen}
+      />
       
       {/* Booking Details Dialog */}
       {selectedBooking && (
