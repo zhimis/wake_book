@@ -301,67 +301,70 @@ const AdminCalendarView = () => {
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
     console.log(`Admin selecting slot: ${timeSlot.id}, status: ${timeSlot.status}, start: ${new Date(timeSlot.startTime).toLocaleTimeString()}`);
     
-    // In admin mode, FIRST toggle the selection for ALL slot types
-    const isSelected = selectedTimeSlots.some(slot => slot.id === timeSlot.id);
-    
-    if (isSelected) {
-      // Remove from selection
-      console.log(`Removing slot ${timeSlot.id} from selection`);
-      setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
-    } else {
-      // Add to selection - REGARDLESS of status
-      console.log(`Adding slot ${timeSlot.id} to selection`);
-      setSelectedTimeSlots(prev => [...prev, timeSlot]);
-      
-      // If this is the first slot selected, show the action buttons
-      if (selectedTimeSlots.length === 0) {
-        toast({
-          title: "Time Slot Selected",
-          description: "You can now create a booking or block this time slot.",
-          variant: "default",
-        });
-      }
-    }
-    
-    // Only AFTER handling the selection, if it's a booked slot, also show booking details
-    if (timeSlot.status === 'booked' && bookingsData) {
-      // We need to fetch the booking details for this time slot
-      const getBookingDetailsForSlot = async () => {
-        try {
-          // First get all bookings with their time slots
-          const bookingsWithSlots = await Promise.all(
-            bookingsData.map(async (booking: Booking) => {
-              const res = await fetch(`/api/bookings/${booking.reference}`);
-              if (!res.ok) throw new Error('Failed to fetch booking details');
-              return await res.json();
-            })
-          );
-          
-          // Find the booking that contains this time slot
-          const matchingBooking = bookingsWithSlots.find(bookingData => {
-            return bookingData.timeSlots.some((slot: TimeSlot) => slot.id === timeSlot.id);
-          });
-          
-          if (matchingBooking) {
-            setSelectedBooking(matchingBooking.booking);
-            setIsBookingDetailsDialogOpen(true);
-          } else {
+    // Different behavior based on the time slot status
+    if (timeSlot.status === 'booked') {
+      // For booked slots: Show booking details without adding to selection
+      if (bookingsData) {
+        // We need to fetch the booking details for this time slot
+        const getBookingDetailsForSlot = async () => {
+          try {
+            // First get all bookings with their time slots
+            const bookingsWithSlots = await Promise.all(
+              bookingsData.map(async (booking: Booking) => {
+                const res = await fetch(`/api/bookings/${booking.reference}`);
+                if (!res.ok) throw new Error('Failed to fetch booking details');
+                return await res.json();
+              })
+            );
+            
+            // Find the booking that contains this time slot
+            const matchingBooking = bookingsWithSlots.find(bookingData => {
+              return bookingData.timeSlots.some((slot: TimeSlot) => slot.id === timeSlot.id);
+            });
+            
+            if (matchingBooking) {
+              setSelectedBooking(matchingBooking.booking);
+              setIsBookingDetailsDialogOpen(true);
+            } else {
+              toast({
+                title: "Booking Not Found",
+                description: "Could not find booking details for this time slot.",
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
             toast({
-              title: "Booking Not Found",
-              description: "Could not find booking details for this time slot.",
+              title: "Error",
+              description: "Failed to fetch booking details.",
               variant: "destructive",
             });
           }
-        } catch (error) {
+        };
+        
+        getBookingDetailsForSlot();
+      }
+    } else {
+      // For available or unallocated slots: Add to selection
+      const isSelected = selectedTimeSlots.some(slot => slot.id === timeSlot.id);
+      
+      if (isSelected) {
+        // Remove from selection
+        console.log(`Removing slot ${timeSlot.id} from selection`);
+        setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
+      } else {
+        // Add to selection
+        console.log(`Adding slot ${timeSlot.id} to selection`);
+        setSelectedTimeSlots(prev => [...prev, timeSlot]);
+        
+        // If this is the first slot selected, show the action buttons
+        if (selectedTimeSlots.length === 0) {
           toast({
-            title: "Error",
-            description: "Failed to fetch booking details.",
-            variant: "destructive",
+            title: "Time Slot Selected",
+            description: "You can now create a booking or block this time slot.",
+            variant: "default",
           });
         }
-      };
-      
-      getBookingDetailsForSlot();
+      }
     }
   };
   
@@ -864,21 +867,37 @@ const AdminCalendarView = () => {
                 {deleteBookingMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Deleting...
+                    Cancelling...
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4 mr-1" />
-                    Delete Booking
+                    Cancel Booking
                   </>
                 )}
               </Button>
-              <Button
-                type="button"
-                onClick={() => setIsBookingDetailsDialogOpen(false)}
-              >
-                Close
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsBookingDetailsDialogOpen(false);
+                    toast({
+                      title: "Edit Not Available",
+                      description: "Booking editing is not implemented yet.",
+                      variant: "default",
+                    });
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit Booking
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setIsBookingDetailsDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
