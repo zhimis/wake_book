@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
+// Add TypeScript declaration for window.bookingsCache
+declare global {
+  interface Window {
+    bookingsCache?: Record<string, any>;
+  }
+}
 import { Button } from "@/components/ui/button";
 import { 
   Plus, 
@@ -42,12 +49,15 @@ import AdminCreateBooking from "./admin-create-booking";
 import { 
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage 
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -97,6 +107,18 @@ const manualBookingSchema = z.object({
   })).optional()
 });
 
+// Schema for edit booking - similar to manual booking but with additional fields
+const editBookingSchema = z.object({
+  id: z.number(),
+  customerName: z.string().min(2, "Name must be at least 2 characters"),
+  phoneNumber: z.string().regex(/^[0-9]{10,15}$/, "Phone number must be 10-15 digits"),
+  email: z.string().email("Invalid email address").optional().nullable(),
+  experienceLevel: z.string(),
+  equipmentRental: z.boolean().default(false),
+  notes: z.string().optional().nullable(),
+  // We don't edit time slots directly - that would be a separate operation
+});
+
 // Schema for blocking time slots
 const blockTimeSlotSchema = z.object({
   reason: z.string().min(2, "Reason must be at least 2 characters"),
@@ -104,6 +126,7 @@ const blockTimeSlotSchema = z.object({
 });
 
 type ManualBookingFormData = z.infer<typeof manualBookingSchema>;
+type EditBookingFormData = z.infer<typeof editBookingSchema>;
 type BlockTimeSlotFormData = z.infer<typeof blockTimeSlotSchema>;
 
 // Component to format time slot display
@@ -157,6 +180,7 @@ const AdminCalendarView = () => {
   const [isBookingDetailsDialogOpen, setIsBookingDetailsDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [cancelAction, setCancelAction] = useState<'delete' | 'clear' | null>(null);
+  const [bookingDetails, setBookingDetails] = useState<any>(null); // Store full booking details including time slots
   
   const { toast } = useToast();
   
@@ -169,6 +193,20 @@ const AdminCalendarView = () => {
       email: "",
       timeSlotIds: [],
       unallocatedSlots: []
+    }
+  });
+  
+  // Form setup for edit booking
+  const editBookingForm = useForm<EditBookingFormData>({
+    resolver: zodResolver(editBookingSchema),
+    defaultValues: {
+      id: 0,
+      customerName: "",
+      phoneNumber: "",
+      email: null,
+      experienceLevel: "beginner",
+      equipmentRental: false,
+      notes: null
     }
   });
   
@@ -296,6 +334,38 @@ const AdminCalendarView = () => {
     }
   });
   
+  // Edit booking mutation
+  const editBookingMutation = useMutation({
+    mutationFn: async (data: EditBookingFormData) => {
+      const res = await apiRequest("PUT", `/api/bookings/${data.id}`, data);
+      return await res.json();
+    },
+    onSuccess: async () => {
+      setSelectedBooking(null);
+      setIsEditBookingDialogOpen(false);
+      setIsBookingDetailsDialogOpen(false);
+      
+      // Force immediate refetch of bookings
+      await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      
+      // Clear the cache to force refetching booking details
+      window.bookingsCache = {};
+      
+      toast({
+        title: "Booking Updated",
+        description: "The booking has been successfully updated.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   // Delete booking mutation
   const deleteBookingMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -324,6 +394,9 @@ const AdminCalendarView = () => {
           currentDateRange.end.toISOString()
         ], data);
       }
+      
+      // Clear the cache to force refetching booking details
+      window.bookingsCache = {};
       
       toast({
         title: "Booking Deleted",
@@ -371,29 +444,69 @@ const AdminCalendarView = () => {
         // We need to fetch the booking details for this time slot
         const getBookingDetailsForSlot = async () => {
           try {
-            // First get all bookings with their time slots
+            // Cache all booking details to avoid refetching
+            if (!window.bookingsCache) {
+              window.bookingsCache = {};
+            }
+            
+            // First get all bookings with their time slots (use cache if available)
             const bookingsWithSlots = await Promise.all(
               bookingsData.map(async (booking: Booking) => {
+                if (window.bookingsCache[booking.reference]) {
+                  return window.bookingsCache[booking.reference];
+                }
+                
                 const res = await fetch(`/api/bookings/${booking.reference}`);
                 if (!res.ok) throw new Error('Failed to fetch booking details');
-                return await res.json();
+                const bookingDetails = await res.json();
+                
+                // Cache the result
+                window.bookingsCache[booking.reference] = bookingDetails;
+                return bookingDetails;
               })
             );
             
             // Find the booking that contains this time slot
             const matchingBooking = bookingsWithSlots.find(bookingData => {
-              return bookingData.timeSlots.some((slot: TimeSlot) => slot.id === timeSlot.id);
+              return bookingData.timeSlots && bookingData.timeSlots.some((slot: TimeSlot) => slot.id === timeSlot.id);
             });
             
             if (matchingBooking) {
               setSelectedBooking(matchingBooking.booking);
               setIsBookingDetailsDialogOpen(true);
             } else {
-              toast({
-                title: "Booking Not Found",
-                description: "Could not find booking details for this time slot.",
-                variant: "destructive",
+              // Try to find by overlapping time periods as a fallback
+              // This helps with bookings that span multiple slots
+              const slotStart = new Date(timeSlot.startTime);
+              const slotEnd = new Date(timeSlot.endTime);
+              
+              const overlappingBooking = bookingsWithSlots.find(bookingData => {
+                if (!bookingData.timeSlots || bookingData.timeSlots.length === 0) return false;
+                
+                // Check if any slot in this booking overlaps with our selected slot's time
+                return bookingData.timeSlots.some((bookingSlot: TimeSlot) => {
+                  const bookingSlotStart = new Date(bookingSlot.startTime);
+                  const bookingSlotEnd = new Date(bookingSlot.endTime);
+                  
+                  // Check for time overlap
+                  return (
+                    (slotStart >= bookingSlotStart && slotStart < bookingSlotEnd) || 
+                    (slotEnd > bookingSlotStart && slotEnd <= bookingSlotEnd) ||
+                    (slotStart <= bookingSlotStart && slotEnd >= bookingSlotEnd)
+                  );
+                });
               });
+              
+              if (overlappingBooking) {
+                setSelectedBooking(overlappingBooking.booking);
+                setIsBookingDetailsDialogOpen(true);
+              } else {
+                toast({
+                  title: "Booking Not Found",
+                  description: "Could not find booking details for this time slot.",
+                  variant: "destructive",
+                });
+              }
             }
           } catch (error) {
             toast({
@@ -487,6 +600,40 @@ const AdminCalendarView = () => {
   const handleBookingDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsBookingDetailsDialogOpen(true);
+  };
+  
+  const handleEditBooking = async () => {
+    if (!selectedBooking) return;
+    
+    try {
+      // Fetch the full booking details
+      const res = await fetch(`/api/bookings/${selectedBooking.reference}`);
+      if (!res.ok) throw new Error('Failed to fetch booking details');
+      const details = await res.json();
+      
+      // Store the details for potential use in time slot editing later
+      setBookingDetails(details);
+      
+      // Reset form with current values
+      editBookingForm.reset({
+        id: selectedBooking.id,
+        customerName: selectedBooking.customerName,
+        phoneNumber: selectedBooking.phoneNumber,
+        email: selectedBooking.email || null,
+        experienceLevel: selectedBooking.experienceLevel,
+        equipmentRental: selectedBooking.equipmentRental || false,
+        notes: selectedBooking.notes || null
+      });
+      
+      // Show the edit dialog
+      setIsEditBookingDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load booking details for editing.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Add a clear time slots mutation (this will remove the slots entirely from the DB)
@@ -1055,17 +1202,20 @@ const AdminCalendarView = () => {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => {
-                  setIsBookingDetailsDialogOpen(false);
-                  toast({
-                    title: "Edit Not Available",
-                    description: "Booking editing is not implemented yet.",
-                    variant: "default",
-                  });
-                }}
+                onClick={handleEditBooking}
+                disabled={editBookingMutation.isPending}
               >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit Booking
+                {editBookingMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit Booking
+                  </>
+                )}
               </Button>
               <Button 
                 variant="destructive"
@@ -1089,6 +1239,135 @@ const AdminCalendarView = () => {
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Edit Booking Dialog */}
+      <Dialog open={isEditBookingDialogOpen} onOpenChange={setIsEditBookingDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Booking</DialogTitle>
+            <DialogDescription>
+              Update booking information.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...editBookingForm}>
+            <form onSubmit={editBookingForm.handleSubmit((data) => editBookingMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={editBookingForm.control}
+                name="customerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter customer name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editBookingForm.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editBookingForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter email (optional)" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editBookingForm.control}
+                name="experienceLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Experience Level</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select experience level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="beginner">Beginner</SelectItem>
+                        <SelectItem value="intermediate">Intermediate</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editBookingForm.control}
+                name="equipmentRental"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Equipment Rental</FormLabel>
+                      <FormDescription>
+                        Does the customer need equipment rental?
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editBookingForm.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Enter notes (optional)" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="submit" disabled={editBookingMutation.isPending}>
+                  {editBookingMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
       
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
