@@ -53,7 +53,7 @@ export const bookings = pgTable("bookings", {
   phoneNumber: text("phone_number").notNull(),
   email: text("email"),  // Optional email field added
   notes: text("notes"),  // Optional notes field for admin bookings
-  experienceLevel: text("experience_level").notNull().default("intermediate"), // Set default value for backward compatibility
+  experienceLevel: text("experience_level"),  // Made optional (nullable) as per requirements
   equipmentRental: boolean("equipment_rental").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   reference: text("reference").notNull(),
