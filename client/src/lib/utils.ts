@@ -1,9 +1,25 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, isToday, isYesterday, isTomorrow, addMinutes } from "date-fns";
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+
+// Latvia timezone (EET in winter, EEST in summer)
+export const LATVIA_TIMEZONE = 'Europe/Riga';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+// Convert any date to Latvia time
+export function toLatviaTime(date: Date | string): Date {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return toZonedTime(dateObj, LATVIA_TIMEZONE);
+}
+
+// Format a date directly in Latvia time zone
+export function formatInLatviaTime(date: Date | string, formatStr: string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return formatInTimeZone(dateObj, LATVIA_TIMEZONE, formatStr);
 }
 
 export function formatPrice(price: number): string {
@@ -34,24 +50,34 @@ export function formatDate(date: Date | string): string {
 
 export function formatTime(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  return format(dateObj, "HH:mm"); // 24-hour format for Latvia
+  // Convert to Latvia time before formatting
+  const latviaTime = toLatviaTime(dateObj);
+  return format(latviaTime, "HH:mm"); // 24-hour format for Latvia
 }
 
 export function formatDateShort(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  return format(dateObj, "EEE, MMM d");
+  // Convert to Latvia time before formatting
+  const latviaTime = toLatviaTime(dateObj);
+  return format(latviaTime, "EEE, MMM d");
 }
 
 export function formatDayShort(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  return format(dateObj, "EEE");
+  // Convert to Latvia time before formatting
+  const latviaTime = toLatviaTime(dateObj);
+  return format(latviaTime, "EEE");
 }
 
 export function formatTimeSlot(startTime: Date | string, endTime: Date | string): string {
   const start = typeof startTime === "string" ? new Date(startTime) : startTime;
   const end = typeof endTime === "string" ? new Date(endTime) : endTime;
   
-  return `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`; // 24-hour format for Latvia
+  // Convert to Latvia time before formatting
+  const latviaStartTime = toLatviaTime(start);
+  const latviaEndTime = toLatviaTime(end);
+  
+  return `${format(latviaStartTime, "HH:mm")} - ${format(latviaEndTime, "HH:mm")}`; // 24-hour format for Latvia
 }
 
 export function getTimeSlotClass(status: string, isSelected: boolean = false): string {

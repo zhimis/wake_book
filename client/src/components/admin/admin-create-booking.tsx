@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatInLatviaTime, LATVIA_TIMEZONE } from "@/lib/utils";
 
 interface AdminCreateBookingProps {
   triggerButton?: React.ReactNode;
@@ -69,9 +70,13 @@ const AdminCreateBooking = ({
     const durationMinutes = parseInt(duration);
     const slots: TimeSlot[] = [];
     
-    // Create a date object for the start time
+    // Create a date object for the start time in local browser time zone
+    // We create this as a Latvia time first, which will make sure the actual UTC value
+    // is correctly calculated when sent to the server
     let startTime = setMinutes(setHours(selectedDate, hour), minute);
     let endTime = addMinutes(startTime, 30); // Each slot is 30 minutes
+    
+    console.log(`Creating booking with Latvia time: ${formatInLatviaTime(startTime, "yyyy-MM-dd HH:mm:ss")}`);
     
     // Calculate how many 30-minute slots we need
     const numSlots = Math.ceil(durationMinutes / 30);
@@ -251,9 +256,9 @@ const AdminCreateBooking = ({
                   <div className="space-y-1 text-xs">
                     {timeSlots.map((slot, index) => (
                       <div key={index} className="flex justify-between">
-                        <span>{format(slot.startTime, "MMM d, yyyy HH:mm")}</span>
+                        <span>{formatInLatviaTime(slot.startTime, "MMM d, yyyy HH:mm")}</span>
                         <span>-</span>
-                        <span>{format(slot.endTime, "HH:mm")}</span>
+                        <span>{formatInLatviaTime(slot.endTime, "HH:mm")}</span>
                       </div>
                     ))}
                   </div>
