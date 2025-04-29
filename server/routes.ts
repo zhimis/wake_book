@@ -308,7 +308,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerName: bookingData.fullName,
         phoneNumber: bookingData.phoneNumber,
         email: bookingData.email || null,
-        experienceLevel: bookingData.experienceLevel,
         equipmentRental: false
       });
       
@@ -435,7 +434,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phoneNumber,
         email: email || null,
         notes: notes || "",
-        experienceLevel: "intermediate", // Default experience level for admin bookings
         equipmentRental: false
       });
       

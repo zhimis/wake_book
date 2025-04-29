@@ -62,7 +62,6 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       fullName: "",
       phoneNumber: "",
       email: "",
-      experienceLevel: "beginner",
       timeSlotIds: selectedTimeSlots.map((slot) => slot.id),
     },
   });
