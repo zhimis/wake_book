@@ -926,7 +926,7 @@ export class MemStorage implements IStorage {
   async releaseReservation(id: number): Promise<TimeSlot | undefined> {
     const existingTimeSlot = this.timeSlots.get(id);
     
-    if (!existingTimeSlot || existingTimeSlot.status !== 'reserved') {
+    if (!existingTimeSlot || existingTimeSlot.status !== 'booked' || !existingTimeSlot.reservationExpiry) {
       return undefined;
     }
     
