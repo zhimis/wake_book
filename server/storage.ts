@@ -470,6 +470,28 @@ export class DatabaseStorage implements IStorage {
     return newBooking;
   }
   
+  async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | undefined> {
+    try {
+      // Ensure we're not trying to update fields that shouldn't be modified
+      const safeUpdate = { ...bookingData };
+      
+      // Don't allow changing reference or createdAt fields
+      delete safeUpdate.reference;
+      delete safeUpdate.createdAt;
+      
+      // Update the booking
+      const [updatedBooking] = await db.update(bookings)
+        .set(safeUpdate)
+        .where(eq(bookings.id, id))
+        .returning();
+      
+      return updatedBooking;
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      return undefined;
+    }
+  }
+  
   async deleteBooking(id: number): Promise<boolean> {
     // First get the booking time slots to update their status
     const bookingTimeSlotEntries = await db.select()
