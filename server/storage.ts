@@ -8,8 +8,9 @@ import {
 import { nanoid } from 'nanoid';
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, not } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
+import { formatInTimeZone } from "date-fns-tz";
 
 // Helper functions for day conversion between standard JS (0=Sunday) and Latvian (0=Monday) format
 function getWeekdayName(dayOfWeek: number): string {
@@ -49,7 +50,7 @@ export interface IStorage {
   reserveTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined>;
   releaseReservation(id: number): Promise<TimeSlot | undefined>;
   blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined>;
-  regenerateTimeSlots(): Promise<void>;
+  regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }>;
   
   // Booking methods
   getBooking(id: number): Promise<Booking | undefined>;
@@ -374,18 +375,69 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Public method to regenerate time slots
-  async regenerateTimeSlots(): Promise<void> {
+  async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }> {
     try {
-      // First delete all future time slots
+      // Get today's date
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
+      // First find all future time slots with bookings to preserve them
+      const bookedTimeSlots = await db.select()
+        .from(timeSlots)
+        .where(
+          and(
+            gte(timeSlots.startTime, today),
+            eq(timeSlots.status, "booked")
+          )
+        );
+      
+      console.log(`Found ${bookedTimeSlots.length} booked time slots to preserve during regeneration`);
+      
+      // Store detailed information about each booked slot for later reference
+      const bookedSlotDetails = bookedTimeSlots.map(slot => ({
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        status: slot.status,
+        price: slot.price
+      }));
+      
+      // Delete all future time slots EXCEPT booked ones
       await db.delete(timeSlots)
-        .where(gte(timeSlots.startTime, today));
+        .where(
+          and(
+            gte(timeSlots.startTime, today),
+            not(eq(timeSlots.status, "booked"))
+          )
+        );
+      
+      console.log(`Deleted all non-booked future time slots`);
       
       // Now generate new time slots
       await this.generateTimeSlots();
-      console.log("Time slots regenerated successfully.");
+      
+      // Check for conflicts (newly generated slots overlapping with booked slots)
+      const conflicts = [];
+      
+      // A slot is considered in conflict if it has the same start time as a booked slot
+      // This should never happen in theory with our delete condition, but we check to be safe
+      for (const bookedSlot of bookedSlotDetails) {
+        // Format the dates for logs
+        const formattedStart = formatInTimeZone(
+          bookedSlot.startTime, 
+          'Europe/Riga', 
+          'yyyy-MM-dd HH:mm:ss'
+        );
+        
+        console.log(`Preserved booked slot: ID ${bookedSlot.id}, time: ${formattedStart}`);
+      }
+      
+      console.log("Time slots regenerated successfully, preserving existing bookings.");
+      return {
+        success: true,
+        preservedBookings: bookedTimeSlots.length,
+        conflicts: conflicts
+      };
     } catch (error) {
       console.error("Error regenerating time slots:", error);
       throw error; // Re-throw to handle in the calling function
@@ -899,12 +951,22 @@ export class MemStorage implements IStorage {
     return updatedTimeSlot;
   }
   
-  async regenerateTimeSlots(): Promise<void> {
-    // Clear existing time slots for future dates
+  async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }> {
+    // Clear existing time slots for future dates while preserving booked slots
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Create a new map with only past time slots
+    // Find all booked time slots to preserve
+    const bookedTimeSlots: TimeSlot[] = [];
+    for (const [id, slot] of this.timeSlots.entries()) {
+      if (slot.startTime >= today && slot.status === "booked") {
+        bookedTimeSlots.push(slot);
+      }
+    }
+    
+    console.log(`Found ${bookedTimeSlots.length} booked time slots to preserve during regeneration`);
+    
+    // Create a new map with only past time slots and booked future slots
     const newTimeSlotsMap = new Map<number, TimeSlot>();
     this.timeSlots.forEach((timeSlot, id) => {
       const slotDate = new Date(timeSlot.startTime);

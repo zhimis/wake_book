@@ -169,17 +169,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allOperatingHours = await db.select().from(operatingHours);
       console.log("Current operating hours configuration:", JSON.stringify(allOperatingHours, null, 2));
       
-      // Delete all future time slots
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const deleteResult = await db.delete(timeSlots)
-        .where(gte(timeSlots.startTime, today));
-      
-      console.log("Deleted existing future time slots");
-      
-      // Then regenerate time slots
-      await storage.regenerateTimeSlots();
+      // Call the improved regenerateTimeSlots method that preserves bookings
+      const result = await storage.regenerateTimeSlots();
       
       // Verify the time slots were generated properly
       const allTimeSlots = await db.select().from(timeSlots);
@@ -187,8 +178,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Time slots after regeneration:", timeSlotCount);
       
       console.log("Time slots regenerated successfully after admin request");
+      console.log(`Preserved ${result.preservedBookings} existing bookings during regeneration`);
       
-      res.json({ success: true, message: "Time slots regenerated successfully" });
+      res.json({ 
+        success: true, 
+        message: `Time slots regenerated successfully, preserving ${result.preservedBookings} existing bookings`,
+        preservedBookings: result.preservedBookings
+      });
     } catch (error) {
       console.error("Error regenerating time slots:", error);
       res.status(500).json({ error: "Failed to regenerate time slots" });
