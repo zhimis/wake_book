@@ -1,26 +1,20 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useBooking } from "@/context/booking-context";
-import { useToast } from "@/hooks/use-toast";
 import BookingForm from "@/components/booking-form";
 
 const BookingPage = () => {
   const [, navigate] = useLocation();
   const { selectedTimeSlots } = useBooking();
-  const { toast } = useToast();
   
-  // Check if there are selected time slots
+  // Check if there are selected time slots without showing toast
   useEffect(() => {
     if (selectedTimeSlots.length === 0) {
-      toast({
-        title: "No Time Slots Selected",
-        description: "Please select time slots from the calendar first.",
-        variant: "destructive",
-      });
+      // Simply redirect back without showing notification
       navigate("/");
       return;
     }
-  }, [selectedTimeSlots, navigate, toast]);
+  }, [selectedTimeSlots, navigate]);
   
   const handleCancel = () => {
     navigate("/");
