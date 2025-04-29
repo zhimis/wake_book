@@ -42,8 +42,8 @@ const HomePage = () => {
                 <li>• Select consecutive time slots</li>
                 <li>• Prices vary by time and weekends</li>
                 <li>• Green slots are available</li>
-                <li>• Yellow slots are reserved</li>
-                <li>• Red slots are booked</li>
+                <li>• Yellow slots are booked</li>
+                <li>• Red slots are blocked</li>
               </ul>
             </div>
           </div>

@@ -113,8 +113,7 @@ const TimeSlotDisplay = ({ timeSlot }: { timeSlot: TimeSlot }) => {
 const StatusBadge = ({ status }: { status: string }) => {
   let bgColor = "bg-gray-100 text-gray-800";
   
-  if (status === "booked") bgColor = "bg-green-100 text-green-800";
-  if (status === "reserved") bgColor = "bg-yellow-100 text-yellow-800";
+  if (status === "booked") bgColor = "bg-yellow-100 text-yellow-800";
   if (status === "blocked") bgColor = "bg-red-100 text-red-800";
   
   return (

@@ -401,7 +401,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       
       toast({
         title: "Time Slots Reserved",
-        description: "Your selected time slots have been reserved for 15 minutes.",
+        description: "Your selected time slots have been temporarily held for 15 minutes.",
         variant: "default"
       });
       
