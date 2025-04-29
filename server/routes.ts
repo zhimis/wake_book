@@ -225,6 +225,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Time slot IDs received:", timeSlotIds);
       
+      // Process time slots - create new ones for "unallocated" slots with negative IDs
+      const processedTimeSlotIds = [];
+      
+      for (const id of timeSlotIds) {
+        // Check if this is an unallocated slot (negative ID)
+        if (id < 0) {
+          try {
+            // This is a placeholder/unallocated slot, we need to create a real one
+            // Extract time info from the client-side data
+            const timeInfo = req.body.unallocatedSlots?.find(slot => slot.id === id);
+            
+            if (!timeInfo) {
+              // If we don't have time information, we can't create the slot
+              console.log(`No time information for unallocated slot with ID ${id}`);
+              return res.status(400).json({
+                error: "Missing time information for unallocated slot"
+              });
+            }
+            
+            // Create a new time slot with this information
+            const newSlot = await storage.createTimeSlot({
+              startTime: new Date(timeInfo.startTime),
+              endTime: new Date(timeInfo.endTime),
+              price: 25, // Default price
+              status: 'available'
+            });
+            
+            console.log(`Created new time slot with ID ${newSlot.id} for unallocated slot`);
+            processedTimeSlotIds.push(newSlot.id);
+          } catch (error) {
+            console.error("Error creating time slot:", error);
+            return res.status(500).json({
+              error: "Failed to create time slot"
+            });
+          }
+        } else {
+          // Regular existing slot
+          processedTimeSlotIds.push(id);
+        }
+      }
+      
+      // Now use processed IDs instead of original ones
+      timeSlotIds = processedTimeSlotIds;
+      
       // Verify all time slots exist and check their status
       const timeSlots = await Promise.all(
         timeSlotIds.map(id => storage.getTimeSlot(id))

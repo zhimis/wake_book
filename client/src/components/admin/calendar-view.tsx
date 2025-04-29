@@ -387,7 +387,25 @@ const AdminCalendarView = () => {
   const handleCreateBooking = () => {
     if (selectedTimeSlots.length > 0) {
       // If slots are selected, use the regular booking dialog
+      
+      // Extract IDs for the booking form
       bookingForm.setValue("timeSlotIds", selectedTimeSlots.map(slot => slot.id));
+      
+      // Also set the unallocated slots information as a separate field
+      // Filter out unallocated slots (those with negative IDs) and include their time information
+      const unallocatedSlots = selectedTimeSlots
+        .filter(slot => slot.id < 0)
+        .map(slot => ({
+          id: slot.id,
+          startTime: slot.startTime,
+          endTime: slot.endTime
+        }));
+      
+      if (unallocatedSlots.length > 0) {
+        console.log("Including unallocated slots:", unallocatedSlots);
+        bookingForm.setValue("unallocatedSlots", unallocatedSlots);
+      }
+      
       setIsBookingDialogOpen(true);
     } else {
       // If no slots are selected, open the advanced booking dialog for custom dates/times

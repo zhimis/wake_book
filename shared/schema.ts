@@ -94,6 +94,12 @@ export const manualBookingSchema = z.object({
   }),
   email: z.string().email({ message: "Invalid email format" }).optional(),
   timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+  // Include information about unallocated slots that need to be created
+  unallocatedSlots: z.array(z.object({
+    id: z.number(), // This will be a negative ID from client
+    startTime: z.string().or(z.date()), // Accept either string or Date
+    endTime: z.string().or(z.date())
+  })).optional(),
 });
 
 // Admin custom booking form - for creating bookings with custom time slots
