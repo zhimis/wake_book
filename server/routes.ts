@@ -166,39 +166,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const schema = z.object({
         timeSlotIds: z.array(z.number()).min(1),
-        price: z.number().positive()
+        price: z.number().positive(),
+        unallocatedSlots: z.array(z.object({
+          id: z.number(),
+          startTime: z.union([z.string(), z.date()]),
+          endTime: z.union([z.string(), z.date()])
+        })).optional()
       });
 
-      const { timeSlotIds, price } = schema.parse(req.body);
+      const { timeSlotIds, price, unallocatedSlots } = schema.parse(req.body);
+      
+      console.log("Make available request received:", {
+        timeSlotIds,
+        price,
+        unallocatedSlotsCount: unallocatedSlots?.length || 0
+      });
       
       // Create time slots in available status
       const createdTimeSlots = await Promise.all(
         timeSlotIds.map(async (id) => {
-          // Get the time slot to determine start/end times
-          const timeSlot = await storage.getTimeSlot(id);
-          
-          if (!timeSlot) {
-            // If time slot doesn't exist, create a new one
+          // For negative IDs (unallocated slots), we need to create a new time slot
+          if (id < 0) {
+            // Find the matching unallocated slot data
+            const unallocatedSlot = unallocatedSlots?.find(slot => slot.id === id);
+            
+            if (!unallocatedSlot) {
+              console.error(`No data found for unallocated slot with ID: ${id}`);
+              return null;
+            }
+            
+            console.log(`Creating new time slot from unallocated data:`, unallocatedSlot);
+            
+            // Create a new time slot with proper data
             return storage.createTimeSlot({
-              id,
-              startTime: new Date(req.body.startTime), // Use provided start time if no existing slot
-              endTime: new Date(req.body.endTime),     // Use provided end time if no existing slot
+              startTime: new Date(unallocatedSlot.startTime),
+              endTime: new Date(unallocatedSlot.endTime),
               price,
               status: 'available',
               reservationExpiry: null
             });
           } else {
-            // Update existing time slot to be available
-            return storage.updateTimeSlot(id, {
-              status: 'available',
-              price,
-              reservationExpiry: null
-            });
+            // For positive IDs, get the time slot to determine start/end times
+            const timeSlot = await storage.getTimeSlot(id);
+            
+            if (!timeSlot) {
+              console.error(`Time slot with ID ${id} not found`);
+              return null;
+            } else {
+              // Update existing time slot to be available
+              return storage.updateTimeSlot(id, {
+                status: 'available',
+                price,
+                reservationExpiry: null
+              });
+            }
           }
         })
       );
       
-      res.json({ success: true, createdTimeSlots });
+      // Filter out null results
+      const validTimeSlots = createdTimeSlots.filter(slot => slot !== null);
+      
+      res.json({ success: true, createdTimeSlots: validTimeSlots });
     } catch (error) {
       console.error("Error making time slots available:", error);
       res.status(500).json({ error: "Failed to make time slots available" });

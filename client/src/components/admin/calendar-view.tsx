@@ -838,7 +838,23 @@ const AdminCalendarView = () => {
   };
   
   const onMakeAvailableSubmit = (data: MakeAvailableFormData) => {
-    makeAvailableSlotsMutation.mutate(data);
+    // Identify which time slots are unallocated (have negative IDs)
+    const unallocatedSlots = selectedTimeSlots.filter(slot => slot.id < 0);
+    
+    // Prepare the data to send to the server
+    const formData = {
+      ...data,
+      timeSlotIds: selectedTimeSlots.map(slot => slot.id),
+      // Include the full unallocated slot data for server-side processing
+      unallocatedSlots: unallocatedSlots.map(slot => ({
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime: slot.endTime
+      }))
+    };
+    
+    console.log("Make available data:", formData);
+    makeAvailableSlotsMutation.mutate(formData);
   };
   
   const isLoading = timeSlotsLoading || bookingsLoading;
