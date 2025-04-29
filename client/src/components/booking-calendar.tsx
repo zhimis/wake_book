@@ -116,7 +116,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         toast({
           title: "Limited Visibility",
           description: "Booking schedule is only available up to 3 weeks in advance.",
-          variant: "warning",
+          variant: "destructive"
         });
       }
     }
