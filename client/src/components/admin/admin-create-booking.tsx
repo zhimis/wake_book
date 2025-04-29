@@ -62,7 +62,7 @@ const AdminCreateBooking = ({
   });
   
   // Convert selected date and time to time slots
-  const generateTimeSlots = () => {
+  const generateTimeSlots = async () => {
     if (!selectedDate || !selectedStartTime) return;
     
     // Parse start time
@@ -76,36 +76,84 @@ const AdminCreateBooking = ({
     let startTime = setMinutes(setHours(selectedDate, hour), minute);
     let endTime = addMinutes(startTime, 30); // Each slot is 30 minutes
     
-    // Log both local time and what will be sent to server
-    console.log(`Creating booking slots:`, {
-      latviaTime: formatInLatviaTime(startTime, "yyyy-MM-dd HH:mm:ss"), 
-      isoString: startTime.toISOString()
-    });
-    
     // Calculate how many 30-minute slots we need
     const numSlots = Math.ceil(durationMinutes / 30);
     
+    // Calculate overall start and end times for the booking
+    const overallStartTime = new Date(startTime);
+    const overallEndTime = addMinutes(startTime, durationMinutes);
+    
+    // Check for existing bookings within this time range
+    try {
+      // Format dates for API request
+      const queryStartDate = overallStartTime.toISOString();
+      const queryEndDate = overallEndTime.toISOString();
+      
+      // Fetch time slots in the range
+      const response = await fetch(`/api/timeslots?startDate=${queryStartDate}&endDate=${queryEndDate}`);
+      const data = await response.json();
+      
+      // Find any booked or reserved slots that would overlap
+      const conflicts = data.timeSlots.filter((slot: TimeSlot) => 
+        (slot.status === 'booked' || slot.status === 'reserved') && 
+        new Date(slot.startTime) < overallEndTime && 
+        new Date(slot.endTime) > overallStartTime
+      );
+      
+      if (conflicts.length > 0) {
+        // Format the conflicts for display
+        const conflictTimes = conflicts.map((slot: TimeSlot) => 
+          formatInLatviaTime(new Date(slot.startTime), "MMM d, HH:mm")
+        ).join(', ');
+        
+        toast({
+          title: "Booking Conflict Detected",
+          description: `The selected time overlaps with existing bookings: ${conflictTimes}`,
+          variant: "destructive"
+        });
+        
+        return; // Don't create the slots
+      }
+    } catch (error) {
+      console.error("Error checking for booking conflicts:", error);
+      toast({
+        title: "Error",
+        description: "Could not check for booking conflicts. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // If no conflicts, create the time slots
+    let currentStartTime = startTime;
+    let currentEndTime = addMinutes(currentStartTime, 30);
+    
     for (let i = 0; i < numSlots; i++) {
       // Create a time slot object matching our schema
-      // These dates will be sent as ISO strings to the server
       slots.push({
         id: -1, // Temporary ID, will be replaced by the server
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
+        startTime: new Date(currentStartTime),
+        endTime: new Date(currentEndTime),
         price: 25, // Default price
         status: "available",
         reservationExpiry: null
       });
       
       // Move to next slot
-      startTime = new Date(endTime);
-      endTime = addMinutes(startTime, 30);
+      currentStartTime = new Date(currentEndTime);
+      currentEndTime = addMinutes(currentStartTime, 30);
     }
     
     setTimeSlots(slots);
     
     // Update the form with the new time slots
     form.setValue("timeSlots", slots);
+    
+    toast({
+      title: "Time Slots Generated",
+      description: `Created ${numSlots} time slots for booking.`,
+      variant: "default"
+    });
   };
   
   // Create booking mutation
@@ -262,7 +310,18 @@ const AdminCreateBooking = ({
               <Button 
                 type="button" 
                 variant="secondary" 
-                onClick={generateTimeSlots}
+                onClick={async () => {
+                  try {
+                    await generateTimeSlots();
+                  } catch (error) {
+                    console.error("Error generating time slots:", error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to generate time slots. Please try again.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
                 className="w-full"
               >
                 <Clock size={16} className="mr-2" />
