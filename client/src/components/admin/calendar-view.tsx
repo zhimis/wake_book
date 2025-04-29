@@ -6,7 +6,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 // Add TypeScript declaration for window.bookingsCache
 declare global {
   interface Window {
-    bookingsCache?: Record<string, any>;
+    bookingsCache: Record<string, any>;
   }
 }
 import { Button } from "@/components/ui/button";

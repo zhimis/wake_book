@@ -590,6 +590,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update booking endpoint
+  app.put("/api/bookings/:id", async (req: Request, res: Response) => {
+    try {
+      // This endpoint requires authentication
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const id = parseInt(req.params.id);
+      const bookingData = req.body;
+      
+      // First validate that the booking exists
+      const existingBooking = await storage.getBooking(id);
+      if (!existingBooking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Update booking with the new data
+      const updatedBooking = await storage.updateBooking(id, {
+        ...bookingData,
+        // Preserve certain fields from the original booking
+        id: id, // Ensure ID can't be changed
+        reference: existingBooking.reference, // Preserve reference
+        createdAt: existingBooking.createdAt // Preserve creation date
+      });
+      
+      if (updatedBooking) {
+        res.status(200).json(updatedBooking);
+      } else {
+        res.status(500).json({ error: "Failed to update booking" });
+      }
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      res.status(500).json({ error: "Failed to update booking" });
+    }
+  });
+
   // Requires authentication
   app.delete("/api/bookings/:id", async (req: Request, res: Response) => {
     try {

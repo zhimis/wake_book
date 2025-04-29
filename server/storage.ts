@@ -1133,6 +1133,37 @@ export class MemStorage implements IStorage {
     return newBooking;
   }
   
+  async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | undefined> {
+    try {
+      // Get existing booking
+      const existingBooking = this.bookings.get(id);
+      if (!existingBooking) {
+        return undefined;
+      }
+      
+      // Create a copy of the booking data to update
+      const safeUpdate = { ...bookingData };
+      
+      // Don't allow changing reference or createdAt fields
+      delete safeUpdate.reference;
+      delete safeUpdate.createdAt;
+      
+      // Merge existing booking with updates
+      const updatedBooking: Booking = {
+        ...existingBooking,
+        ...safeUpdate
+      };
+      
+      // Update in our map
+      this.bookings.set(id, updatedBooking);
+      
+      return updatedBooking;
+    } catch (error) {
+      console.error("Error updating booking in MemStorage:", error);
+      return undefined;
+    }
+  }
+  
   async deleteBooking(id: number): Promise<boolean> {
     // First find and delete all associated booking time slots
     const bookingTimeSlotEntries = Array.from(this.bookingTimeSlots.values())
