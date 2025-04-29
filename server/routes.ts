@@ -182,30 +182,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         unallocatedSlotsCount: unallocatedSlots?.length || 0
       });
       
-      // Create time slots in available status
-      const createdTimeSlots = await Promise.all(
-        timeSlotIds.map(async (id) => {
-          // For negative IDs (unallocated slots), we need to create a new time slot
-          if (id < 0) {
-            // Find the matching unallocated slot data
-            const unallocatedSlot = unallocatedSlots?.find(slot => slot.id === id);
-            
-            if (!unallocatedSlot) {
-              console.error(`No data found for unallocated slot with ID: ${id}`);
-              return null;
-            }
-            
-            console.log(`Creating new time slot from unallocated data:`, unallocatedSlot);
-            
-            // Create a new time slot with proper data
-            return storage.createTimeSlot({
-              startTime: new Date(unallocatedSlot.startTime),
-              endTime: new Date(unallocatedSlot.endTime),
-              price,
-              status: 'available',
-              reservationExpiry: null
-            });
-          } else {
+      // Separate positive and negative IDs for different processing
+      const positiveIds = timeSlotIds.filter(id => id > 0);
+      const negativeIds = timeSlotIds.filter(id => id < 0);
+      
+      console.log(`Processing ${positiveIds.length} existing slots and ${negativeIds.length} unallocated slots`);
+      
+      // Process results array to hold all created/updated time slots
+      const results = [];
+      
+      // Handle positive IDs (existing time slots)
+      if (positiveIds.length > 0) {
+        const existingSlotResults = await Promise.all(
+          positiveIds.map(async (id) => {
             // For positive IDs, get the time slot to determine start/end times
             const timeSlot = await storage.getTimeSlot(id);
             
@@ -220,14 +209,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 reservationExpiry: null
               });
             }
+          })
+        );
+        
+        // Add valid results to our results array
+        results.push(...existingSlotResults.filter(slot => slot !== null));
+      }
+      
+      // Handle negative IDs (unallocated slots)
+      if (negativeIds.length > 0 && unallocatedSlots && unallocatedSlots.length > 0) {
+        for (const id of negativeIds) {
+          // Find the matching unallocated slot data
+          const unallocatedSlot = unallocatedSlots.find(slot => slot.id === id);
+          
+          if (!unallocatedSlot) {
+            console.error(`No data found for unallocated slot with ID: ${id}`);
+            continue;
           }
-        })
-      );
+          
+          console.log(`Creating new time slot from unallocated data:`, {
+            id: unallocatedSlot.id,
+            startTime: new Date(unallocatedSlot.startTime).toISOString(),
+            endTime: new Date(unallocatedSlot.endTime).toISOString()
+          });
+          
+          try {
+            // Create a new time slot with proper data
+            const newSlot = await storage.createTimeSlot({
+              startTime: new Date(unallocatedSlot.startTime),
+              endTime: new Date(unallocatedSlot.endTime),
+              price,
+              status: 'available',
+              reservationExpiry: null
+            });
+            
+            if (newSlot) {
+              results.push(newSlot);
+            }
+          } catch (error) {
+            console.error(`Error creating time slot from unallocated data:`, error);
+          }
+        }
+      }
       
-      // Filter out null results
-      const validTimeSlots = createdTimeSlots.filter(slot => slot !== null);
-      
-      res.json({ success: true, createdTimeSlots: validTimeSlots });
+      res.json({ success: true, createdTimeSlots: results });
     } catch (error) {
       console.error("Error making time slots available:", error);
       res.status(500).json({ error: "Failed to make time slots available" });
