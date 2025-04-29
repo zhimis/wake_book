@@ -354,7 +354,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     // Convert our UI slot to a schema slot before passing to context
     const schemaSlot = toSchemaTimeSlot(slot);
     
-    // If in admin mode, allow selecting any slot and pass to admin handler
+    // If in admin mode, pass to admin handler which will handle logic based on status
     if (isAdmin && onAdminSlotSelect) {
       onAdminSlotSelect(schemaSlot);
       return;

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { TimeSlot } from "@shared/schema";
 import { CSSProperties } from 'react';
+import { Eye, Edit, Lock } from 'lucide-react';
 
 interface AdminTimeSlotProps {
   slot: TimeSlot;
@@ -24,7 +25,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
       case "available":
         return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
       case "booked":
-        return "bg-amber-100 text-amber-800 hover:bg-amber-200 hover:scale-105 transition-transform";
+        return "bg-amber-100 text-amber-800 hover:bg-amber-200";  // Remove hover effect for clarity
       default:
         return "bg-gray-100 text-gray-800 hover:scale-105 transition-transform";
     }
@@ -32,7 +33,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
 
   // Get selected state style (using different approach to work around styling issues)
   const getSelectedStyle = (): CSSProperties => {
-    if (isSelected) {
+    if (isSelected && slot.status !== 'booked') {
       return {
         position: 'relative' as const,
         background: '#fee2e2', // lighter red background
@@ -52,6 +53,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'column',
   };
 
   // Combined style
@@ -60,7 +62,6 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     ...getSelectedStyle()
   };
 
-  // Use a completely different visualization approach
   return (
     <div 
       className={cn(
@@ -70,12 +71,29 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
       style={combinedStyle}
       onClick={() => onClick(slot)}
     >
-      {/* Visual indicator for selected state - removed since we handle it with the style above */}
-      
-      <div className="text-center w-full">
-        <Badge variant="outline" className="px-1 h-4 text-[10px]">
-          €{slot.price}
-        </Badge>
+      <div className="text-center w-full flex flex-col items-center justify-center">
+        {slot.status === 'booked' ? (
+          <>
+            <Badge variant="outline" className="px-1 h-4 text-[10px] mb-1">
+              €{slot.price}
+            </Badge>
+            <div className="flex justify-center items-center">
+              <Eye className="h-3 w-3 mr-1" />
+              <span className="text-[9px] font-medium">View Details</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <Badge variant="outline" className="px-1 h-4 text-[10px]">
+              €{slot.price}
+            </Badge>
+            {isSelected && (
+              <div className="absolute top-0 right-0 -mt-1 -mr-1">
+                <Badge className="w-3 h-3 flex items-center justify-center p-0 bg-primary">✓</Badge>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
