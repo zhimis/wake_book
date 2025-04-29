@@ -156,6 +156,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint to make time slots available
+  app.post("/api/timeslots/make-available", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated and is admin
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const schema = z.object({
+        timeSlotIds: z.array(z.number()).min(1),
+        price: z.number().positive()
+      });
+
+      const { timeSlotIds, price } = schema.parse(req.body);
+      
+      // Create time slots in available status
+      const createdTimeSlots = await Promise.all(
+        timeSlotIds.map(async (id) => {
+          // Get the time slot to determine start/end times
+          const timeSlot = await storage.getTimeSlot(id);
+          
+          if (!timeSlot) {
+            // If time slot doesn't exist, create a new one
+            return storage.createTimeSlot({
+              id,
+              startTime: new Date(req.body.startTime), // Use provided start time if no existing slot
+              endTime: new Date(req.body.endTime),     // Use provided end time if no existing slot
+              price,
+              status: 'available',
+              reservationExpiry: null
+            });
+          } else {
+            // Update existing time slot to be available
+            return storage.updateTimeSlot(id, {
+              status: 'available',
+              price,
+              reservationExpiry: null
+            });
+          }
+        })
+      );
+      
+      res.json({ success: true, createdTimeSlots });
+    } catch (error) {
+      console.error("Error making time slots available:", error);
+      res.status(500).json({ error: "Failed to make time slots available" });
+    }
+  });
+  
   // Regenerate all time slots - requires authentication
   app.post("/api/timeslots/regenerate", async (req: Request, res: Response) => {
     try {

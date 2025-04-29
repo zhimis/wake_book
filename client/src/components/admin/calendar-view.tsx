@@ -147,9 +147,16 @@ const blockTimeSlotSchema = z.object({
   timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot")
 });
 
+// Schema for making time slots available
+const makeAvailableSchema = z.object({
+  price: z.number().min(5, "Price must be at least €5"),
+  timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot")
+});
+
 type ManualBookingFormData = z.infer<typeof manualBookingSchema>;
 type EditBookingFormData = z.infer<typeof editBookingSchema>;
 type BlockTimeSlotFormData = z.infer<typeof blockTimeSlotSchema>;
+type MakeAvailableFormData = z.infer<typeof makeAvailableSchema>;
 
 // Component to format time slot display
 const TimeSlotDisplay = ({ timeSlot }: { timeSlot: TimeSlot }) => {
@@ -195,6 +202,7 @@ const AdminCalendarView = () => {
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const [isAdvancedBookingDialogOpen, setIsAdvancedBookingDialogOpen] = useState(false);
+  const [isMakeAvailableDialogOpen, setIsMakeAvailableDialogOpen] = useState(false);
   // Always use calendar view as requested (removing list view)
   const viewMode = 'calendar';
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -241,6 +249,15 @@ const AdminCalendarView = () => {
     resolver: zodResolver(blockTimeSlotSchema),
     defaultValues: {
       reason: "",
+      timeSlotIds: []
+    }
+  });
+  
+  // Form setup for making time slots available
+  const makeAvailableForm = useForm<MakeAvailableFormData>({
+    resolver: zodResolver(makeAvailableSchema),
+    defaultValues: {
+      price: 15,
       timeSlotIds: []
     }
   });
@@ -354,6 +371,49 @@ const AdminCalendarView = () => {
     onError: (error: Error) => {
       toast({
         title: "Blocking Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Make time slots available mutation
+  const makeAvailableSlotsMutation = useMutation({
+    mutationFn: async (data: MakeAvailableFormData) => {
+      const res = await apiRequest("POST", "/api/timeslots/make-available", data);
+      return await res.json();
+    },
+    onSuccess: async () => {
+      // Reset form and close dialog
+      makeAvailableForm.reset();
+      setSelectedTimeSlots([]);
+      setIsMakeAvailableDialogOpen(false);
+      
+      // Force immediate refetch of time slots
+      await queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+      
+      // Additional explicit refetch for the current date range to ensure UI update
+      const res = await fetch(
+        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        queryClient.setQueryData([
+          '/api/timeslots',
+          currentDateRange.start.toISOString(),
+          currentDateRange.end.toISOString()
+        ], data);
+      }
+      
+      toast({
+        title: "Time Slots Available",
+        description: "The selected time slots are now available for booking.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Operation Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -620,6 +680,14 @@ const AdminCalendarView = () => {
     setIsBlockDialogOpen(true);
   };
   
+  const handleMakeAvailable = () => {
+    // Update form with selected time slot IDs
+    makeAvailableForm.setValue("timeSlotIds", selectedTimeSlots.map(slot => slot.id));
+    
+    // Open make available dialog
+    setIsMakeAvailableDialogOpen(true);
+  };
+  
   const handleBookingDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsBookingDetailsDialogOpen(true);
@@ -847,15 +915,27 @@ const AdminCalendarView = () => {
                   Create Booking
                 </Button>
                 
-                <Button 
-                  variant="outline" 
-                  className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                  onClick={handleBlockTimeSlots}
-                  disabled={selectedTimeSlots.length === 0}
-                >
-                  <AlertTriangle className="h-4 w-4 mr-1" />
-                  Block Time Slots
-                </Button>
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <Button 
+                    variant="outline" 
+                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                    onClick={handleBlockTimeSlots}
+                    disabled={selectedTimeSlots.length === 0}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Block Slots
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+                    onClick={handleMakeAvailable}
+                    disabled={selectedTimeSlots.length === 0}
+                  >
+                    <Clock className="h-4 w-4 mr-1" />
+                    Make Available
+                  </Button>
+                </div>
                 
                 {/* We're now using the Create Booking button for both regular and advanced booking */}
               </div>
