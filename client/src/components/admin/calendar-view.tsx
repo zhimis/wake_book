@@ -9,6 +9,29 @@ declare global {
     bookingsCache: Record<string, any>;
   }
 }
+
+// Safe bookings cache helper functions
+function clearBookingsCache(): void {
+  if (typeof window !== 'undefined') {
+    window.bookingsCache = {};
+  }
+}
+
+function getFromBookingsCache(key: string): any | undefined {
+  if (typeof window !== 'undefined' && window.bookingsCache) {
+    return window.bookingsCache[key];
+  }
+  return undefined;
+}
+
+function setInBookingsCache(key: string, value: any): void {
+  if (typeof window !== 'undefined') {
+    if (!window.bookingsCache) {
+      window.bookingsCache = {};
+    }
+    window.bookingsCache[key] = value;
+  }
+}
 import { Button } from "@/components/ui/button";
 import { 
   Plus, 
