@@ -199,15 +199,30 @@ const AdminCalendarView = () => {
       const res = await apiRequest("POST", "/api/bookings", data);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Reset form and close dialog
       bookingForm.reset();
       setSelectedTimeSlots([]);
       setIsBookingDialogOpen(false);
       
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      // Force immediate refetch of time slots and bookings
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
+      ]);
+      
+      // Additional explicit refetch for the current date range to ensure UI update
+      const res = await fetch(
+        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        queryClient.setQueryData([
+          '/api/timeslots',
+          currentDateRange.start.toISOString(),
+          currentDateRange.end.toISOString()
+        ], data);
+      }
       
       toast({
         title: "Booking Created",
@@ -230,14 +245,27 @@ const AdminCalendarView = () => {
       const res = await apiRequest("POST", "/api/timeslots/block", data);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Reset form and close dialog
       blockForm.reset();
       setSelectedTimeSlots([]);
       setIsBlockDialogOpen(false);
       
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+      // Force immediate refetch of time slots
+      await queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+      
+      // Additional explicit refetch for the current date range to ensure UI update
+      const res = await fetch(
+        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        queryClient.setQueryData([
+          '/api/timeslots',
+          currentDateRange.start.toISOString(),
+          currentDateRange.end.toISOString()
+        ], data);
+      }
       
       toast({
         title: "Time Slots Blocked",
@@ -260,13 +288,28 @@ const AdminCalendarView = () => {
       const res = await apiRequest("DELETE", `/api/bookings/${id}`);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setSelectedBooking(null);
       setIsBookingDetailsDialogOpen(false);
       
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      // Force immediate refetch of time slots and bookings
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
+      ]);
+      
+      // Additional explicit refetch for the current date range to ensure UI update
+      const res = await fetch(
+        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        queryClient.setQueryData([
+          '/api/timeslots',
+          currentDateRange.start.toISOString(),
+          currentDateRange.end.toISOString()
+        ], data);
+      }
       
       toast({
         title: "Booking Deleted",
