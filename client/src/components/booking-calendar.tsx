@@ -809,7 +809,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
             </div>
             <div className="text-right">
               <p className="text-sm font-medium">Total: €{calculateTotalPrice()}</p>
-              <Link href="/booking" onClick={proceedToBooking}>
+              <Link href="/booking">
                 <Button size="sm" className="mt-2">Proceed to Booking</Button>
               </Link>
             </div>
