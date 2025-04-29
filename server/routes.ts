@@ -380,6 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Time slots for booking:", timeSlots);
       
       // Check if any time slots are already booked or unavailable
+      // No temporary reservation logic - just check if slots are available
       const alreadyBookedSlots = timeSlots.filter(
         slot => {
           if (!slot) {
@@ -387,28 +388,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return true;
           }
           
-          console.log(`Checking slot ${slot.id} with status: ${slot.status}, reservationExpiry: ${slot.reservationExpiry}`);
+          console.log(`Checking slot ${slot.id} with status: ${slot.status}`);
           
-          // If status is booked but has a reservation expiry, it's temporarily reserved
-          if (slot.status === 'booked' && slot.reservationExpiry) {
-            const now = new Date();
-            const expiryTime = new Date(slot.reservationExpiry);
-            
-            if (expiryTime > now) {
-              // This slot is temporarily reserved, but should be allowed to proceed
-              // since this is likely the same user finalizing their booking
-              console.log(`Time slot ${slot.id} is temporarily reserved with expiry at ${expiryTime}`);
-              return false;
-            } else {
-              // Reservation expired but status wasn't updated
-              console.log(`Time slot ${slot.id} has expired reservation`);
-              return false;
-            }
-          }
-          
-          // Hard booked slots (status is booked but no expiry time)
-          if (slot.status === 'booked' && !slot.reservationExpiry) {
-            console.log(`Time slot ${slot.id} is permanently booked`);
+          // Only slots with 'booked' status are considered unavailable
+          if (slot.status === 'booked') {
+            console.log(`Time slot ${slot.id} is already booked`);
             return true;
           }
           

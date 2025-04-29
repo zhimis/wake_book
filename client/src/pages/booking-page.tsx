@@ -15,7 +15,7 @@ const BookingPage = () => {
       toast({
         title: "No Time Slots Selected",
         description: "Please select time slots from the calendar first.",
-        variant: "warning",
+        variant: "destructive",
       });
       navigate("/");
       return;
