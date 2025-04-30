@@ -1,81 +1,87 @@
 # Hi Wake 2.0 Deployment Guide
 
-This document explains how to set up separate development and production databases for the Hi Wake 2.0 booking system.
+This document outlines the steps needed to deploy the Hi Wake 2.0 Wakeboarding Park Booking System, with particular focus on database configuration for development and production environments.
 
-## Environment Configuration
+## Database Environment Configuration
 
-The application is built to support different databases for development and production environments.
+The application is designed to support separate databases for development and production environments to ensure clean separation of concerns.
 
-### Development Environment
+### Environment Variables
 
-In the development environment:
-- The application runs with `NODE_ENV=development` (this is the default)
-- It uses the database specified by the `DATABASE_URL` environment variable
+The following environment variables control the database connections:
 
-### Production Environment
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | Default database connection string | Yes |
+| `DEV_DATABASE_URL` | Development-specific database connection | No |
+| `PROD_DATABASE_URL` | Production-specific database connection | No |
+| `NODE_ENV` | Environment setting (`development` or `production`) | Yes |
 
-For a production deployment:
-1. Set `NODE_ENV=production` in your deployment environment
-2. Create a separate production database (ideally on Neon or another PostgreSQL provider)
-3. Set the `DATABASE_URL` environment variable to your production database connection string
+### Connection Logic
 
-## Setting Up a Production Database
+1. If `NODE_ENV=development`:
+   - The app will attempt to use `DEV_DATABASE_URL` first
+   - If not available, it falls back to `DATABASE_URL`
 
-1. Create a new PostgreSQL database (ideally in Neon)
-2. Get the connection string for this database
-3. In your production deployment:
-   - Set `NODE_ENV=production`
-   - Set `DATABASE_URL` to the production database connection string
+2. If `NODE_ENV=production`:
+   - The app will attempt to use `PROD_DATABASE_URL` first
+   - If not available, it falls back to `DATABASE_URL`
 
-## Database Migration Steps
+## Development Setup
 
-After setting up your production database, you'll need to migrate your schema:
+For local development:
 
-```bash
-# First, ensure drizzle-kit is installed
-npm install -g drizzle-kit
+1. Set `NODE_ENV=development` in your environment
+2. Optionally, set `DEV_DATABASE_URL` to point to a development-specific database
+3. Run the application with `npm run dev`
 
-# Set the database URL to your production database
-export DATABASE_URL=your_production_database_connection_string
+## Production Deployment
 
-# Push the schema to the production database
-npx drizzle-kit push:pg
-```
+When deploying to production:
 
-## Data Migration
+1. Set `NODE_ENV=production` in your environment
+2. Set `PROD_DATABASE_URL` to point to your production database
+3. Build the application with `npm run build`
+4. Start the application with `npm run start`
 
-If you need to migrate data from development to production:
-
-1. Export data from development database:
-   ```sql
-   COPY users TO '/tmp/users.csv' WITH CSV HEADER;
-   COPY operating_hours TO '/tmp/operating_hours.csv' WITH CSV HEADER;
-   COPY pricing TO '/tmp/pricing.csv' WITH CSV HEADER;
-   COPY configuration TO '/tmp/configuration.csv' WITH CSV HEADER;
-   COPY time_slots TO '/tmp/time_slots.csv' WITH CSV HEADER;
-   COPY bookings TO '/tmp/bookings.csv' WITH CSV HEADER;
-   COPY booking_time_slots TO '/tmp/booking_time_slots.csv' WITH CSV HEADER;
-   ```
-
-2. Import data to production database:
-   ```sql
-   COPY users FROM '/tmp/users.csv' WITH CSV HEADER;
-   COPY operating_hours FROM '/tmp/operating_hours.csv' WITH CSV HEADER;
-   COPY pricing FROM '/tmp/pricing.csv' WITH CSV HEADER;
-   COPY configuration FROM '/tmp/configuration.csv' WITH CSV HEADER;
-   COPY time_slots FROM '/tmp/time_slots.csv' WITH CSV HEADER;
-   COPY bookings FROM '/tmp/bookings.csv' WITH CSV HEADER;
-   COPY booking_time_slots FROM '/tmp/booking_time_slots.csv' WITH CSV HEADER;
-   ```
-
-## Replit Deployment Configuration
-
-When deploying on Replit:
+### Deploying on Replit
 
 1. Click the "Deploy" button in your Replit project
-2. Set up your environment variables:
-   - `NODE_ENV=production`
-   - `DATABASE_URL=your_production_database_url`
+2. Configure the following environment variables:
+   - `NODE_ENV`: Set to `production`
+   - `PROD_DATABASE_URL`: Your production database URL (or leave unset to use `DATABASE_URL`)
 3. Deploy your application
 
-This will ensure your production deployment uses the separate production database.
+## Database Migration
+
+When you need to apply schema changes:
+
+```bash
+# For development database
+NODE_ENV=development npx drizzle-kit push:pg
+
+# For production database
+NODE_ENV=production npx drizzle-kit push:pg
+```
+
+## Separate Database Strategy vs. Single Database with Prefixes
+
+Two approaches were considered for separating development and production data:
+
+1. **Separate Databases (Recommended)**: 
+   - Complete isolation between environments
+   - Independent scaling and backup strategies
+   - Cleaner security boundaries
+
+2. **Single Database with Table Prefixes**:
+   - Uses table name prefixes (`dev_` or `prod_`) in the same database
+   - Requires fewer database resources
+   - More complex table management
+
+The current implementation uses the separate databases approach for cleaner separation and simpler development.
+
+## Troubleshooting
+
+- If you encounter database connection issues, verify that the appropriate environment variables are set
+- Check the console logs to confirm which database connection the application is using
+- For database schema issues, run the appropriate migration commands

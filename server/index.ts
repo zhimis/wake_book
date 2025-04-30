@@ -65,6 +65,8 @@ app.use((req, res, next) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
+    const environment = process.env.NODE_ENV || 'development';
+    log(`Server started in ${environment.toUpperCase()} mode`);
     log(`serving on port ${port}`);
   });
 })();

@@ -9,9 +9,19 @@ neonConfig.webSocketConstructor = ws;
 const isDevelopment = process.env.NODE_ENV !== 'production';
 console.log(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
 
-// For now, always use DATABASE_URL, but this allows different databases in the future
-// by setting NODE_ENV=production and PROD_DATABASE_URL for production deployments
-const databaseUrl = process.env.DATABASE_URL;
+// Use different database URLs based on environment 
+// DEV_DATABASE_URL is used for development
+// PROD_DATABASE_URL is used for production
+// If specific URLs aren't available, fall back to DATABASE_URL
+let databaseUrl;
+
+if (isDevelopment) {
+  databaseUrl = process.env.DEV_DATABASE_URL || process.env.DATABASE_URL;
+  console.log('Using development database connection');
+} else {
+  databaseUrl = process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
+  console.log('Using production database connection');
+}
 
 if (!databaseUrl) {
   throw new Error(
