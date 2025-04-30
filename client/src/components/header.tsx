@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut } from "lucide-react";
-import hiWakeLogo from "@/assets/hiwake2_0.jpg";
+import hiWakeLogo from "@/assets/logo-crop.jpg";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -35,11 +35,11 @@ const Header = () => {
   
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div className="flex items-center">
           <Link href="/">
             <div className="flex items-center cursor-pointer">
-              <img src={hiWakeLogo} alt="Hi Wake 2.0" className="h-10 w-auto" />
+              <img src={hiWakeLogo} alt="Hi Wake 2.0" className="h-16 w-auto" />
             </div>
           </Link>
         </div>
