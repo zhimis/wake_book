@@ -5,19 +5,19 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Determine which database URL to use based on environment
+// Determine which database to use based on environment
 const isDevelopment = process.env.NODE_ENV !== 'production';
-const databaseUrl = isDevelopment 
-  ? process.env.DEV_DATABASE_URL || process.env.DATABASE_URL
-  : process.env.PROD_DATABASE_URL || process.env.DATABASE_URL;
+console.log(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
+
+// For now, always use DATABASE_URL, but this allows different databases in the future
+// by setting NODE_ENV=production and PROD_DATABASE_URL for production deployments
+const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error(
-    "Database URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
-
-console.log(`Using ${isDevelopment ? 'development' : 'production'} database connection`);
 
 export const pool = new Pool({ connectionString: databaseUrl });
 export const db = drizzle(pool, { schema });
