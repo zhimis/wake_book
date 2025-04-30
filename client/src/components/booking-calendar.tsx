@@ -10,9 +10,6 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Euro,
-  Cloud,
-  CloudRain,
-  Sun,
   Loader2,
 } from "lucide-react";
 import { 
@@ -24,7 +21,6 @@ import {
   toLatviaTime,
   formatInLatviaTime
 } from "@/lib/utils";
-import { useWeather } from "@/hooks/use-weather";
 import { useBooking } from "@/context/booking-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -76,8 +72,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   
   // Use the booking context
   const { selectedTimeSlots, toggleTimeSlot, clearSelectedTimeSlots } = useBooking();
-  // Only fetch weather data if not in admin view
-  const { forecast: weatherForecast, isLoading: weatherLoading } = !isAdmin ? useWeather() : { forecast: null, isLoading: false };
+  // No longer fetching weather data per client request
   const { toast } = useToast();
   
   // Date range for the current week view
@@ -510,27 +505,6 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           {/* Day columns headers */}
           <div className="flex-1 grid grid-cols-7 gap-1">
             {days.map((day, index) => {
-              // Find weather for this day if available (only for non-admin view)
-              const dayStr = format(day.date, "yyyy-MM-dd");
-              const dayWeather = !isAdmin ? weatherForecast?.find((w: any) => w.date === dayStr) : null;
-              
-              // Determine weather icon (only for non-admin view)
-              const getWeatherIcon = () => {
-                // Don't show weather icons in admin mode
-                if (isAdmin) return null;
-                
-                if (!dayWeather) return <Cloud className="h-5 w-5 text-gray-400" />;
-                const condition = dayWeather.condition.toLowerCase();
-                
-                if (condition.includes('rain') || condition.includes('shower')) {
-                  return <CloudRain className="h-5 w-5 text-blue-500" />;
-                } else if (condition.includes('cloud')) {
-                  return <Cloud className="h-5 w-5 text-gray-400" />;
-                } else {
-                  return <Sun className="h-5 w-5 text-yellow-500" />;
-                }
-              };
-              
               // Check if this day is today
               const isCurrentDay = isToday(day.date);
               
@@ -538,14 +512,6 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                 <div key={index} className={`text-center py-2 ${isCurrentDay ? 'bg-blue-50 rounded-md' : ''}`}>
                   <div className={`font-medium text-sm ${isCurrentDay ? 'text-blue-700' : ''}`}>{day.name}</div>
                   <div className={`text-xs ${isCurrentDay ? 'text-blue-600' : 'text-muted-foreground'}`}>{day.day}</div>
-                  {!isAdmin && (
-                    <>
-                      <div className="mt-1">{getWeatherIcon()}</div>
-                      {dayWeather && (
-                        <div className={`text-xs font-medium mt-1 ${isCurrentDay ? 'text-blue-600' : ''}`}>{dayWeather.temperature}°C</div>
-                      )}
-                    </>
-                  )}
                 </div>
               );
             })}

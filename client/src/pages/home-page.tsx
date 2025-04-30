@@ -1,5 +1,4 @@
 import { Card, CardContent } from "@/components/ui/card";
-import WeatherWidget from "@/components/weather-widget";
 import BookingCalendar from "@/components/booking-calendar";
 
 const HomePage = () => {
@@ -14,9 +13,7 @@ const HomePage = () => {
           </div>
           
           <div className="w-full">
-            <WeatherWidget />
-            
-            <div className="mt-4">
+            <div>
               <Card>
                 <CardContent className="pt-2 px-2">
                   <h3 className="text-lg font-semibold mb-2">Facility Information</h3>
