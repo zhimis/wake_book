@@ -38,7 +38,9 @@ const Header = () => {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center">
           <Link href="/">
-            <span className="text-primary font-heading font-bold text-2xl cursor-pointer">Hi Wake 2.0</span>
+            <div className="flex items-center cursor-pointer">
+              <img src={hiWakeLogo} alt="Hi Wake 2.0" className="h-10 w-auto" />
+            </div>
           </Link>
         </div>
         
@@ -88,7 +90,7 @@ const Header = () => {
             </div>
           ) : (
             <Link href="/admin/login">
-              <span className="hidden md:block text-primary font-semibold cursor-pointer">Admin</span>
+              <span className="hidden md:block text-black font-semibold cursor-pointer">Admin</span>
             </Link>
           )}
           
@@ -111,7 +113,7 @@ const Header = () => {
         <nav className="flex flex-col space-y-2">
           <span 
             onClick={() => handleNavigation("/")}
-            className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
+            className="text-gray-700 hover:text-black font-medium py-1 cursor-pointer"
           >
             Home
           </span>
@@ -130,7 +132,7 @@ const Header = () => {
                   localStorage.removeItem("adminActiveTab");
                   window.location.href = "/admin";
                 }}
-                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
+                className="text-gray-700 hover:text-black font-medium py-1 cursor-pointer"
               >
                 Admin Dashboard
               </span>
@@ -141,7 +143,7 @@ const Header = () => {
                   localStorage.setItem("adminActiveTab", "bookings");
                   window.location.href = "/admin";
                 }}
-                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
+                className="text-gray-700 hover:text-black font-medium py-1 cursor-pointer pl-4"
               >
                 - Bookings
               </span>
@@ -152,7 +154,7 @@ const Header = () => {
                   localStorage.setItem("adminActiveTab", "configuration");
                   window.location.href = "/admin";
                 }}
-                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
+                className="text-gray-700 hover:text-black font-medium py-1 cursor-pointer pl-4"
               >
                 - System Configuration
               </span>
@@ -163,7 +165,7 @@ const Header = () => {
                   localStorage.setItem("adminActiveTab", "statistics");
                   window.location.href = "/admin";
                 }}
-                className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer pl-4"
+                className="text-gray-700 hover:text-black font-medium py-1 cursor-pointer pl-4"
               >
                 - Statistics
               </span>
@@ -179,7 +181,7 @@ const Header = () => {
           ) : (
             <span 
               onClick={() => handleNavigation("/admin/login")}
-              className="text-gray-700 hover:text-primary font-medium py-1 cursor-pointer"
+              className="text-black hover:text-black font-medium py-1 cursor-pointer"
             >
               Admin
             </span>

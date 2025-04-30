@@ -24,7 +24,7 @@ const AdminPage = () => {
   return (
     <main className="container mx-auto px-0.5 py-1">
       <div className="mb-2">
-        <h2 className="text-lg font-heading font-medium text-gray-800">Admin Dashboard</h2>
+        <h2 className="text-lg font-heading font-medium text-black">Admin Dashboard</h2>
       </div>
       
       <Tabs defaultValue="bookings" value={activeTab} onValueChange={handleTabChange}>
