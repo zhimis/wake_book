@@ -1,17 +1,16 @@
 import { pgTable, text, serial, integer, boolean, timestamp, time, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { tablePrefix } from "./table-prefix";
 
 // User table (admin users)
-export const users = pgTable(`${tablePrefix}users`, {
+export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
 
 // Day of week operating hours
-export const operatingHours = pgTable(`${tablePrefix}operating_hours`, {
+export const operatingHours = pgTable("operating_hours", {
   id: serial("id").primaryKey(),
   dayOfWeek: integer("day_of_week").notNull(), // 0-6 (Sunday-Saturday)
   openTime: time("open_time").notNull(),
@@ -20,7 +19,7 @@ export const operatingHours = pgTable(`${tablePrefix}operating_hours`, {
 });
 
 // Standard pricing 
-export const pricing = pgTable(`${tablePrefix}pricing`, {
+export const pricing = pgTable("pricing", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(), // e.g., "standard", "peak", "weekend"
   price: real("price").notNull(),
@@ -31,14 +30,14 @@ export const pricing = pgTable(`${tablePrefix}pricing`, {
 });
 
 // Configuration for system settings
-export const configuration = pgTable(`${tablePrefix}configuration`, {
+export const configuration = pgTable("configuration", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   value: text("value").notNull(),
 });
 
 // Time slots table
-export const timeSlots = pgTable(`${tablePrefix}time_slots`, {
+export const timeSlots = pgTable("time_slots", {
   id: serial("id").primaryKey(),
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
@@ -48,7 +47,7 @@ export const timeSlots = pgTable(`${tablePrefix}time_slots`, {
 });
 
 // Bookings table
-export const bookings = pgTable(`${tablePrefix}bookings`, {
+export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   customerName: text("customer_name").notNull(),
   phoneNumber: text("phone_number").notNull(),
@@ -61,7 +60,7 @@ export const bookings = pgTable(`${tablePrefix}bookings`, {
 });
 
 // Booking time slots join table
-export const bookingTimeSlots = pgTable(`${tablePrefix}booking_time_slots`, {
+export const bookingTimeSlots = pgTable("booking_time_slots", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").notNull(),
   timeSlotId: integer("time_slot_id").notNull(),
