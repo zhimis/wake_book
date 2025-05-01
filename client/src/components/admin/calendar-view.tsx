@@ -878,45 +878,6 @@ const AdminCalendarView = () => {
         </div>
       ) : (
         <>
-          {selectedTimeSlots.length > 0 && (
-            <Alert className="mb-4">
-              <AlertTitle>Selection Active</AlertTitle>
-              <AlertDescription>
-                <div className="mb-2">
-                  {selectedTimeSlots.length} time slot(s) selected. You can create a booking or block these slots.
-                </div>
-                <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                  <div className="font-semibold">Selected slots:</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
-                    {selectedTimeSlots.map((slot) => {
-                      // Get actual time in local timezone adjusted by -3 hours to fix display
-                      const startTime = new Date(slot.startTime);
-                      const endTime = new Date(slot.endTime);
-                      
-                      // Adjust for the 3-hour difference (subtract 3 hours)
-                      const adjustedStartTime = new Date(startTime);
-                      adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
-                      
-                      const adjustedEndTime = new Date(endTime);
-                      adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
-                      
-                      console.log(`Displaying slot: original time ${startTime.toLocaleTimeString()}, adjusted time ${adjustedStartTime.toLocaleTimeString()}`);
-                      
-                      return (
-                        <div key={slot.id} className="text-xs flex gap-1">
-                          <span>{format(adjustedStartTime, "EEE, MMM d")}</span>
-                          <span>•</span>
-                          <span>{adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
-                                {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-          
           {viewMode === 'calendar' ? (
             <>
               <BookingCalendar 
@@ -926,7 +887,47 @@ const AdminCalendarView = () => {
                 adminSelectedSlots={selectedTimeSlots}
               />
               
-              {/* Action buttons moved below calendar view */}
+              {/* Display Selection Active alert between calendar and action buttons */}
+              {selectedTimeSlots.length > 0 && (
+                <Alert className="mt-4 mb-4">
+                  <AlertTitle>Selection Active</AlertTitle>
+                  <AlertDescription>
+                    <div className="mb-2">
+                      {selectedTimeSlots.length} time slot(s) selected. You can create a booking or block these slots.
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div className="font-semibold">Selected slots:</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
+                        {selectedTimeSlots.map((slot) => {
+                          // Get actual time in local timezone adjusted by -3 hours to fix display
+                          const startTime = new Date(slot.startTime);
+                          const endTime = new Date(slot.endTime);
+                          
+                          // Adjust for the 3-hour difference (subtract 3 hours)
+                          const adjustedStartTime = new Date(startTime);
+                          adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                          
+                          const adjustedEndTime = new Date(endTime);
+                          adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
+                          
+                          console.log(`Displaying slot: original time ${startTime.toLocaleTimeString()}, adjusted time ${adjustedStartTime.toLocaleTimeString()}`);
+                          
+                          return (
+                            <div key={slot.id} className="text-xs flex gap-1">
+                              <span>{format(adjustedStartTime, "EEE, MMM d")}</span>
+                              <span>•</span>
+                              <span>{adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
+                                    {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {/* Action buttons below alert */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mt-4">
                 <Button 
                   className="bg-primary hover:bg-primary/90"
