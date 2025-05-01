@@ -331,9 +331,16 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   };
   
   // Get all time strings in format "HH:MM"
-  const allTimeStrings = Array.from(new Set(timeSlots.map(slot => 
-    `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`
-  ))).sort();
+  // For admin view, show fixed time range from 8:00 to 22:00 regardless of existing slots
+  const allTimeStrings = isAdmin 
+    ? Array.from({ length: 29 }, (_, i) => {
+        const hour = Math.floor(i / 2) + 8; // Start at 8:00
+        const minute = (i % 2) * 30; // Alternate between 0 and 30 minutes
+        return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      })
+    : Array.from(new Set(timeSlots.map(slot => 
+        `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`
+      ))).sort();
   
   // Format time from hour and minute
   const formatTime = (hour: number, minute: number) => {
