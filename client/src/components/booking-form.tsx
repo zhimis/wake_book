@@ -12,6 +12,8 @@ import {
   formatTimeSlot,
   formatPrice,
   calculateTotalPrice,
+  formatInLatviaTime,
+  toLatviaTime
 } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -132,15 +134,25 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
             Your Reserved Times
           </h3>
           <div className="space-y-2 mb-3">
-            {selectedTimeSlots.map((slot, index) => (
-              <div key={slot.id} className="flex justify-between items-center">
-                <span>
-                  {formatDate(slot.startTime)} -{" "}
-                  {formatTimeSlot(slot.startTime, slot.endTime)}
-                </span>
-                <span>{formatPrice(slot.price)}</span>
-              </div>
-            ))}
+            {selectedTimeSlots.map((slot, index) => {
+              // Get actual time in Latvia timezone
+              const startTime = new Date(slot.startTime);
+              const endTime = new Date(slot.endTime);
+              
+              // Convert to Latvia time
+              const latviaStartTime = toLatviaTime(startTime);
+              const latviaEndTime = toLatviaTime(endTime);
+              
+              return (
+                <div key={slot.id} className="flex justify-between items-center">
+                  <span>
+                    {formatDate(latviaStartTime)} -{" "}
+                    {formatTimeSlot(latviaStartTime, latviaEndTime)}
+                  </span>
+                  <span>{formatPrice(slot.price)}</span>
+                </div>
+              );
+            })}
           </div>
           <div className="flex justify-between items-center font-bold text-lg pt-2 border-t border-primary border-opacity-20">
             <span>Total:</span>

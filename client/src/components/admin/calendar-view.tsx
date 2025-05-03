@@ -884,13 +884,7 @@ const AdminCalendarView = () => {
     // Prepare the data to send to the server
     const formData = {
       ...data,
-      timeSlotIds: selectedTimeSlots.map(slot => slot.id),
-      // Include the full unallocated slot data for server-side processing
-      unallocatedSlots: unallocatedSlots.map(slot => ({
-        id: slot.id,
-        startTime: slot.startTime,
-        endTime: slot.endTime
-      }))
+      timeSlotIds: selectedTimeSlots.map(slot => slot.id)
     };
     
     console.log("Make available data:", formData);
