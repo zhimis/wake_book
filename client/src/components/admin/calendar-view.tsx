@@ -2,7 +2,15 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { toLatviaTime, formatInLatviaTime, formatPrice } from "@/lib/utils";
+import { 
+  toLatviaTime, 
+  fromLatviaTime, 
+  formatInLatviaTime, 
+  formatPrice,
+  formatDate,
+  formatTime,
+  formatTimeSlot
+} from "@/lib/utils";
 
 // Add TypeScript declaration for window.bookingsCache
 declare global {
@@ -160,19 +168,19 @@ type MakeAvailableFormData = z.infer<typeof makeAvailableSchema>;
 
 // Component to format time slot display
 const TimeSlotDisplay = ({ timeSlot }: { timeSlot: TimeSlot }) => {
-  const startTime = new Date(timeSlot.startTime);
-  const endTime = new Date(timeSlot.endTime);
+  const startTime = toLatviaTime(new Date(timeSlot.startTime));
+  const endTime = toLatviaTime(new Date(timeSlot.endTime));
   
   return (
     <div className="flex flex-col">
       <span className="font-medium">
-        {format(startTime, "EEEE, MMMM d, yyyy")}
+        {formatInLatviaTime(startTime, "EEEE, MMMM d, yyyy")}
       </span>
       <span>
-        {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
+        {formatInLatviaTime(startTime, "HH:mm")} - {formatInLatviaTime(endTime, "HH:mm")}
       </span>
       <span className="text-sm text-muted-foreground">
-        ${timeSlot.price}
+        {formatPrice(timeSlot.price)}
       </span>
     </div>
   );
@@ -193,9 +201,19 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 const AdminCalendarView = () => {
-  const [currentDateRange, setCurrentDateRange] = useState<{ start: Date, end: Date }>({
-    start: new Date(),
-    end: new Date(new Date().setDate(new Date().getDate() + 6)),
+  // Initialize date range using Latvia timezone to ensure consistent display
+  const [currentDateRange, setCurrentDateRange] = useState<{ start: Date, end: Date }>(() => {
+    // Get today in Latvia timezone
+    const latviaToday = toLatviaTime(new Date());
+    // Calculate end date (today + 6 days) in Latvia timezone
+    const latviaEndDate = new Date(latviaToday);
+    latviaEndDate.setDate(latviaToday.getDate() + 6);
+    
+    // Return dates converted back to UTC for storage and API requests
+    return {
+      start: fromLatviaTime(latviaToday),
+      end: fromLatviaTime(latviaEndDate)
+    };
   });
   
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[]>([]);
@@ -502,22 +520,45 @@ const AdminCalendarView = () => {
   
   const handleNavigateDates = (direction: 'prev' | 'next') => {
     if (direction === 'prev') {
+      // Convert Latvia time to UTC when updating date range
+      const latviaStart = toLatviaTime(currentDateRange.start);
+      const latviaEnd = toLatviaTime(currentDateRange.end);
+      
+      // Perform navigation in Latvia timezone
+      const newLatviaStart = subDays(latviaStart, 7);
+      const newLatviaEnd = subDays(latviaEnd, 7);
+      
+      // Convert back to UTC for storage and API requests
       setCurrentDateRange({
-        start: subDays(currentDateRange.start, 7),
-        end: subDays(currentDateRange.end, 7)
+        start: fromLatviaTime(newLatviaStart),
+        end: fromLatviaTime(newLatviaEnd)
       });
     } else {
+      // Convert Latvia time to UTC when updating date range
+      const latviaStart = toLatviaTime(currentDateRange.start);
+      const latviaEnd = toLatviaTime(currentDateRange.end);
+      
+      // Perform navigation in Latvia timezone
+      const newLatviaStart = addDays(latviaStart, 7);
+      const newLatviaEnd = addDays(latviaEnd, 7);
+      
+      // Convert back to UTC for storage and API requests
       setCurrentDateRange({
-        start: addDays(currentDateRange.start, 7),
-        end: addDays(currentDateRange.end, 7)
+        start: fromLatviaTime(newLatviaStart),
+        end: fromLatviaTime(newLatviaEnd)
       });
     }
   };
   
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
+    // The dates we receive might be in local timezone, so convert to Latvia timezone
+    // Then convert back to UTC for storage and API requests
+    const latviaStart = toLatviaTime(startDate);
+    const latviaEnd = toLatviaTime(endDate);
+    
     setCurrentDateRange({
-      start: startDate,
-      end: endDate
+      start: fromLatviaTime(latviaStart),
+      end: fromLatviaTime(latviaEnd)
     });
   };
   
@@ -911,7 +952,7 @@ const AdminCalendarView = () => {
                           
                           return (
                             <div key={slot.id} className="text-xs flex gap-1">
-                              <span>{format(adjustedStartTime, "EEE, MMM d")}</span>
+                              <span>{formatInLatviaTime(adjustedStartTime, "EEE, MMM d")}</span>
                               <span>•</span>
                               <span>{adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
                                     {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}</span>
@@ -985,7 +1026,7 @@ const AdminCalendarView = () => {
                             <TableCell className="font-medium">{booking.reference}</TableCell>
                             <TableCell>{booking.customerName}</TableCell>
                             <TableCell>{booking.phoneNumber}</TableCell>
-                            <TableCell>{format(new Date(booking.createdAt), "MMM d, yyyy")}</TableCell>
+                            <TableCell>{formatInLatviaTime(new Date(booking.createdAt), "MMM d, yyyy")}</TableCell>
                             <TableCell>
                               <StatusBadge status="booked" />
                             </TableCell>
@@ -1053,7 +1094,7 @@ const AdminCalendarView = () => {
                   return (
                     <div key={slot.id} className="text-sm flex justify-between items-center">
                       <span>
-                        {format(adjustedStartTime, "EEE, MMM d")} • 
+                        {formatInLatviaTime(adjustedStartTime, "EEE, MMM d")} • 
                         {adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
                         {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}
                       </span>

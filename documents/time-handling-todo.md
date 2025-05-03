@@ -11,7 +11,7 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 
 ## Phase 2: Client-Side Non-Intrusive Updates
 
-- [ ] **Task 3.2.1**: Update booking-calendar.tsx to use standard time utilities consistently
+- [x] **Task 3.2.1**: Update booking-calendar.tsx to use standard time utilities consistently ✓
 - [ ] **Task 3.2.2**: Update admin-calendar-view.tsx for consistent time handling
 - [x] **Task 3.2.3**: Ensure system-config.tsx properly handles time conversions ✓
 - [ ] **Task 3.2.4**: Update booking-form.tsx to use standard time utilities
@@ -23,6 +23,7 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 - [ ] **Task 2.1.1**: Create server-side timezone utility module in `server/utils/timezone.ts`
 - [ ] **Task 2.1.2**: Add functions for Latvia/UTC conversions on the server
 - [ ] **Task 2.1.3**: Add time validation and sanitization functions
+- [ ] **Task 2.1.4**: Evaluate migration from date-fns to Luxon for more robust timezone handling
 - [ ] **Task 2.3.1**: Update GET API endpoints to consistently format time responses
 - [ ] **Task 2.3.2**: Update the booking creation endpoint for consistent time handling
 - [ ] **Task 4.1.1**: Create basic test cases for timezone handling functions
