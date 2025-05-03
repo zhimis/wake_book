@@ -16,7 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { getLatvianDayIndex, getLatvianDayName, toLatviaTime, formatInLatviaTime } from "@/lib/utils";
+import { 
+  getLatvianDayIndex, 
+  getLatvianDayName, 
+  toLatviaTime, 
+  formatInLatviaTime, 
+  formatWithTimezone,
+  formatTime 
+} from "@/lib/utils";
 
 const AdminSystemConfig = () => {
   const { toast } = useToast();
@@ -43,16 +50,32 @@ const AdminSystemConfig = () => {
       // Transform operating hours data to include isOpen (inverse of isClosed)
       // and convert times to Latvia timezone for display
       const transformedHours = (data.operatingHours || []).map(hour => {
-        // Convert time strings to proper Latvia timezone for display
+        // Log original times (stored in UTC)
         console.log(`Original openTime: ${hour.openTime}, closeTime: ${hour.closeTime}`);
         
-        // Return the transformed hour object
+        // Create Date objects from the time strings for proper timezone conversion
+        // The date doesn't matter, we just need the time portion
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const day = today.getDate();
+        
+        // Create a proper date object with the time string
+        const openTimeStr = typeof hour.openTime === 'string' ? hour.openTime : '08:00';
+        const closeTimeStr = typeof hour.closeTime === 'string' ? hour.closeTime : '22:00';
+        
+        console.log(`Converting time to Latvia timezone for display - openTime: ${openTimeStr}, closeTime: ${closeTimeStr}`);
+        
+        // Return the transformed hour object with both UTC and Latvia-displayed times
         return {
           ...hour,
           isOpen: !hour.isClosed,
-          // Store the original times for proper display and submission
-          openTime: hour.openTime,
-          closeTime: hour.closeTime
+          // Store the original times for submission to the server (still UTC)
+          openTime: openTimeStr,
+          closeTime: closeTimeStr,
+          // Store Latvia-formatted times for display
+          openTimeFormatted: formatTime(new Date(`${year}-${month+1}-${day}T${openTimeStr}:00Z`), true),
+          closeTimeFormatted: formatTime(new Date(`${year}-${month+1}-${day}T${closeTimeStr}:00Z`), true)
         };
       });
       
@@ -140,9 +163,32 @@ const AdminSystemConfig = () => {
   // Handlers
   const handleOperatingHoursUpdate = (id: number, field: string, value: any) => {
     setOperatingHoursState(prev => 
-      prev.map(hour => 
-        hour.id === id ? { ...hour, [field]: value } : hour
-      )
+      prev.map(hour => {
+        if (hour.id !== id) return hour;
+        
+        // Handle the update
+        const updatedHour = { ...hour, [field]: value };
+        
+        // If we're updating openTime or closeTime, update the formatted versions too
+        if (field === 'openTime' || field === 'closeTime') {
+          // Create a full date object from the time value
+          const today = new Date();
+          const year = today.getFullYear();
+          const month = today.getMonth();
+          const day = today.getDate();
+          
+          // Create a proper date object with the time string
+          const timeStr = typeof value === 'string' ? value : (field === 'openTime' ? '08:00' : '22:00');
+          
+          // Add the formatted time in Latvia timezone
+          const formattedField = `${field}Formatted`;
+          updatedHour[formattedField] = formatTime(new Date(`${year}-${month+1}-${day}T${timeStr}:00Z`), true);
+          
+          console.log(`Updated ${field} to ${value}, ${formattedField} to ${updatedHour[formattedField]}`);
+        }
+        
+        return updatedHour;
+      })
     );
   };
   
@@ -349,49 +395,81 @@ const AdminSystemConfig = () => {
             <div key={hour.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
               <span className="font-medium text-gray-700 w-24">{getDayName(hour.dayOfWeek)}</span>
               <div className="flex items-center space-x-3">
-                <Select 
-                  value={typeof hour.openTime === 'string' ? hour.openTime.slice(0, 5) : '08:00'} 
-                  onValueChange={(value) => handleOperatingHoursUpdate(
-                    hour.id, 
-                    'openTime', 
-                    value
+                <div className="relative">
+                  <Select 
+                    value={typeof hour.openTime === 'string' ? hour.openTime.slice(0, 5) : '08:00'} 
+                    onValueChange={(value) => handleOperatingHoursUpdate(
+                      hour.id, 
+                      'openTime', 
+                      value
+                    )}
+                    disabled={!hour.isOpen}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue placeholder="Open" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 13 }, (_, i) => i + 8).map(h => {
+                        // Create a date at this hour in UTC
+                        const timeDate = new Date();
+                        timeDate.setUTCHours(h, 0, 0, 0);
+                        
+                        // Format the time in Latvia timezone
+                        const latviaTime = formatTime(timeDate, false);
+                        
+                        return (
+                          <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
+                            {latviaTime}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {hour.openTimeFormatted && (
+                    <div className="text-xs text-gray-500 mt-1 text-center w-full">
+                      {hour.openTimeFormatted}
+                    </div>
                   )}
-                  disabled={!hour.isOpen}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue placeholder="Open" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 13 }, (_, i) => i + 8).map(h => (
-                      <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
-                        {h.toString().padStart(2, '0')}:00
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </div>
                 
                 <span className="text-gray-500">to</span>
                 
-                <Select 
-                  value={typeof hour.closeTime === 'string' ? hour.closeTime.slice(0, 5) : '22:00'} 
-                  onValueChange={(value) => handleOperatingHoursUpdate(
-                    hour.id, 
-                    'closeTime', 
-                    value
+                <div className="relative">
+                  <Select 
+                    value={typeof hour.closeTime === 'string' ? hour.closeTime.slice(0, 5) : '22:00'} 
+                    onValueChange={(value) => handleOperatingHoursUpdate(
+                      hour.id, 
+                      'closeTime', 
+                      value
+                    )}
+                    disabled={!hour.isOpen}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue placeholder="Close" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 13 }, (_, i) => i + 13).map(h => {
+                        // Create a date at this hour in UTC
+                        const timeDate = new Date();
+                        timeDate.setUTCHours(h, 0, 0, 0);
+                        
+                        // Format the time in Latvia timezone
+                        const latviaTime = formatTime(timeDate, false);
+                        
+                        return (
+                          <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
+                            {latviaTime}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {hour.closeTimeFormatted && (
+                    <div className="text-xs text-gray-500 mt-1 text-center w-full">
+                      {hour.closeTimeFormatted}
+                    </div>
                   )}
-                  disabled={!hour.isOpen}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue placeholder="Close" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 13 }, (_, i) => i + 13).map(h => (
-                      <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
-                        {h.toString().padStart(2, '0')}:00
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </div>
                 
                 <div className="flex items-center ml-2">
                   <Switch

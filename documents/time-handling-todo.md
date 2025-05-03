@@ -4,10 +4,10 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 
 ## Phase 1: Preparation and Utility Development (No Production Impact)
 
-- [ ] **Task 3.1.1**: Audit all existing time utility functions in `client/src/lib/utils.ts`
-- [ ] **Task 3.1.2**: Add a new `fromLatviaTime` function to convert Latvia time to UTC
-- [ ] **Task 3.1.3**: Create timezone formatting utilities with explicit timezone indication
-- [ ] **Task 5.1.1**: Document the timezone conversion approach for developers
+- [x] **Task 3.1.1**: Audit all existing time utility functions in `client/src/lib/utils.ts` ✓
+- [x] **Task 3.1.2**: Add a new `fromLatviaTime` function to convert Latvia time to UTC ✓
+- [x] **Task 3.1.3**: Create timezone formatting utilities with explicit timezone indication ✓
+- [x] **Task 5.1.1**: Document the timezone conversion approach for developers ✓
 
 ## Phase 2: Client-Side Non-Intrusive Updates
 
