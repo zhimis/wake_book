@@ -41,10 +41,20 @@ const AdminSystemConfig = () => {
   useEffect(() => {
     if (data) {
       // Transform operating hours data to include isOpen (inverse of isClosed)
-      const transformedHours = (data.operatingHours || []).map(hour => ({
-        ...hour,
-        isOpen: !hour.isClosed
-      }));
+      // and convert times to Latvia timezone for display
+      const transformedHours = (data.operatingHours || []).map(hour => {
+        // Convert time strings to proper Latvia timezone for display
+        console.log(`Original openTime: ${hour.openTime}, closeTime: ${hour.closeTime}`);
+        
+        // Return the transformed hour object
+        return {
+          ...hour,
+          isOpen: !hour.isClosed,
+          // Store the original times for proper display and submission
+          openTime: hour.openTime,
+          closeTime: hour.closeTime
+        };
+      });
       
       // Sort days to follow Monday-first order (1, 2, 3, 4, 5, 6, 0)
       const sortedHours = [...transformedHours].sort((a, b) => {
@@ -352,7 +362,7 @@ const AdminSystemConfig = () => {
                     <SelectValue placeholder="Open" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: 13 }, (_, i) => i + 6).map(h => (
+                    {Array.from({ length: 13 }, (_, i) => i + 8).map(h => (
                       <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
                         {h.toString().padStart(2, '0')}:00
                       </SelectItem>
@@ -375,7 +385,7 @@ const AdminSystemConfig = () => {
                     <SelectValue placeholder="Close" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.from({ length: 13 }, (_, i) => i + 12).map(h => (
+                    {Array.from({ length: 13 }, (_, i) => i + 13).map(h => (
                       <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
                         {h.toString().padStart(2, '0')}:00
                       </SelectItem>
@@ -451,7 +461,7 @@ const AdminSystemConfig = () => {
                     <div className="mt-2 text-sm text-gray-500">
                       <p>Peak hours pricing applies during:</p>
                       <ul className="list-disc pl-5 mt-1">
-                        <li>Monday to Friday: 17:00-22:00</li>
+                        <li>Monday to Friday: 17:00-22:00 (Latvia time)</li>
                         <li>Saturday and Sunday: All day</li>
                       </ul>
                     </div>
@@ -503,7 +513,7 @@ const AdminSystemConfig = () => {
               <div className="p-3 border border-yellow-200 bg-yellow-50 rounded text-sm mb-4">
                 <p className="font-medium text-amber-800">Peak hours are now applied based on the following fixed rules:</p>
                 <ul className="list-disc pl-5 mt-1 text-amber-700">
-                  <li>Monday to Friday: 17:00-22:00</li>
+                  <li>Monday to Friday: 17:00-22:00 (Latvia time)</li>
                   <li>Saturday and Sunday: All day</li>
                 </ul>
               </div>
