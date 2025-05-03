@@ -1421,7 +1421,7 @@ const AdminCalendarView = () => {
                                     const startTime = new Date(booking.firstSlotTime);
                                     return (
                                       <p><strong>{booking.slotCount}</strong> time slots booked, starting at{" "}
-                                      <strong>{formatInLatviaTime(startTime, "EEEE, MMMM d")}, {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}</strong></p>
+                                      <strong>{formatInLatviaTime(startTime, "EEEE, MMMM d")}, {formatInLatviaTime(startTime, "HH:mm")}</strong></p>
                                     );
                                   })()}
                                 </div>
