@@ -90,9 +90,35 @@ function runAllTests() {
     assertEqualDates(manualAdjust, utcNoon, "Manual conversion preserves time");
   }
   
-  // Try using our library function
-  const backToUtc = fromLatviaTime(latviaTime);
-  console.log(`\nBack to UTC (lib): ${backToUtc.toISOString()}`);
+  // In real-world scenarios, we'd convert a UTC time to Latvia time for display,
+  // then when the user submits a form with that Latvia time, we'd convert it back to UTC
+  
+  // Simulate a user seeing the Latvia time and submitting it
+  const userInputLatviaTime = formatInLatviaTime(utcNoon, 'yyyy-MM-dd HH:mm:ss.SSS');
+  console.log(`\nUser sees Latvia time: ${userInputLatviaTime}`);
+  
+  // Then we'd convert that user input back to UTC
+  // First, create a date object (as if parsing a form submission)
+  const [datePart, timePart] = userInputLatviaTime.split(' ');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, secondAndMs] = timePart.split(':');
+  const [second, ms] = secondAndMs ? secondAndMs.split('.').map(Number) : [0, 0];
+  
+  // Create a date using local timezone (which represents the Latvia time)
+  const latviaTimeForConversion = new Date(
+    year, 
+    month - 1, 
+    day, 
+    parseInt(hour), 
+    parseInt(minute), 
+    second || 0, 
+    ms || 0
+  );
+  console.log(`Date object created from user input: ${latviaTimeForConversion.toISOString()}`);
+  
+  // Now convert this back to UTC using our function
+  const backToUtc = fromLatviaTime(latviaTimeForConversion);
+  console.log(`Back to UTC (lib): ${backToUtc.toISOString()}`);
   
   // Verify round-trip conversion
   assertEqualDates(backToUtc, utcNoon, "Round-trip Latvia conversion preserves time");
