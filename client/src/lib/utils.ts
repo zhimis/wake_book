@@ -253,7 +253,9 @@ export function getTimeSlotClass(status: string, isSelected: boolean = false): s
 
 export function generateBookingReference(): string {
   const prefix = "WB";
-  const date = format(new Date(), "yyMM");
+  // Use Latvia time for the reference date part
+  const latviaDate = toLatviaTime(new Date());
+  const date = formatInLatviaTime(latviaDate, "yyMM");
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
   return `${prefix}-${date}-${random}`;
 }
@@ -278,7 +280,9 @@ export function groupTimeSlotsByDay(timeSlots: any[]) {
   
   for (const slot of timeSlots) {
     const date = new Date(slot.startTime);
-    const day = format(date, "yyyy-MM-dd");
+    // Convert to Latvia time for grouping
+    const latviaDate = toLatviaTime(date);
+    const day = formatInLatviaTime(latviaDate, "yyyy-MM-dd");
     
     if (!grouped[day]) {
       grouped[day] = [];
@@ -289,11 +293,13 @@ export function groupTimeSlotsByDay(timeSlots: any[]) {
   
   return Object.entries(grouped).map(([dateStr, slots]) => {
     const date = new Date(dateStr);
+    // Convert to Latvia time for display
+    const latviaDate = toLatviaTime(date);
     return {
       date,
-      dayName: format(date, "EEEE"),
-      dayShort: format(date, "EEE"),
-      dateFormatted: format(date, "MMM d"),
+      dayName: formatInLatviaTime(latviaDate, "EEEE"),
+      dayShort: formatInLatviaTime(latviaDate, "EEE"),
+      dateFormatted: formatInLatviaTime(latviaDate, "MMM d"),
       slots: slots.sort((a, b) => {
         return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
       }),
