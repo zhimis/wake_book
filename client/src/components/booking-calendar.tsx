@@ -19,7 +19,12 @@ import {
   getLatvianDayName, 
   getLatvianDayIndexFromDate,
   toLatviaTime,
-  formatInLatviaTime
+  fromLatviaTime,
+  formatInLatviaTime,
+  formatTime,
+  formatTimeSlot,
+  formatWithTimezone,
+  LATVIA_TIMEZONE
 } from "@/lib/utils";
 import { useBooking } from "@/context/booking-context";
 import { useToast } from "@/hooks/use-toast";
@@ -443,11 +448,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     
     if (!firstSlot.startTime || !lastSlot.endTime) return null;
     
-    // Format using the date-fns format
-    const startTimeStr = format(firstSlot.startTime, 'HH:mm');
-    const endTimeStr = format(lastSlot.endTime, 'HH:mm');
-    
-    return `${startTimeStr} - ${endTimeStr}`;
+    // Use our utility function to format the time slot with Latvia timezone
+    return formatTimeSlot(firstSlot.startTime, lastSlot.endTime, true);
   };
 
   // Show loading state while time slots are being fetched
