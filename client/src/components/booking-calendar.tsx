@@ -132,15 +132,21 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   const goToToday = () => {
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
-    setCurrentDate(new Date());
+    // Use current date but ensure it's consistent with our timezone handling
+    const todayInLatvia = toLatviaTime(new Date());
+    setCurrentDate(todayInLatvia);
   };
   
   // Fetch time slots from the server with their actual statuses
   const { data: dbTimeSlots, isLoading: timeSlotsLoading } = useQuery({
-    queryKey: ['/api/timeslots', format(startDate, 'yyyy-MM-dd'), format(endDate, 'yyyy-MM-dd')],
+    queryKey: ['/api/timeslots', formatInLatviaTime(startDate, 'yyyy-MM-dd'), formatInLatviaTime(endDate, 'yyyy-MM-dd')],
     queryFn: async () => {
+      // Format dates in Latvia timezone to ensure consistent data across timezones
+      const formattedStartDate = formatInLatviaTime(startDate, 'yyyy-MM-dd');
+      const formattedEndDate = formatInLatviaTime(endDate, 'yyyy-MM-dd');
+      
       const response = await fetch(
-        `/api/timeslots?startDate=${format(startDate, 'yyyy-MM-dd')}&endDate=${format(endDate, 'yyyy-MM-dd')}`
+        `/api/timeslots?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
       );
       
       if (!response.ok) {
@@ -165,8 +171,13 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     
     // If we have data but no time slots, this could be a future week beyond visibility
     // A simple check: current date is more than 3 weeks in the future (typical visibility setting)
-    const threeWeeksFromNow = addDays(new Date(), 21);
-    return currentDate > threeWeeksFromNow;
+    // Use Latvia timezone for both dates to ensure proper comparison
+    const todayInLatvia = toLatviaTime(new Date());
+    const threeWeeksFromNow = addDays(todayInLatvia, 21);
+    // Convert current date to Latvia time for comparison
+    const currentDateInLatvia = toLatviaTime(currentDate);
+    
+    return currentDateInLatvia > threeWeeksFromNow;
   }, [dbTimeSlots, timeSlotsLoading, currentDate]);
   
   // Function to check if a UI slot is selected 
@@ -265,17 +276,16 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       const latvianDayIndex = getLatvianDayIndexFromDate(startTime);
       
       // Calculate days difference with current date for UI display
-      const slotYear = startTime.getFullYear();
-      const slotMonth = startTime.getMonth();
-      const slotDay = startTime.getDate();
-      
-      const curYear = currentDate.getFullYear();
-      const curMonth = currentDate.getMonth();
-      const curDay = currentDate.getDate();
+      // Both dates are already in Latvia timezone so comparison will be accurate
       
       // Create date objects with time set to midnight for accurate day comparison
-      const slotDateMidnight = new Date(slotYear, slotMonth, slotDay);
-      const curDateMidnight = new Date(curYear, curMonth, curDay);
+      const slotDateMidnight = new Date(startTime);
+      slotDateMidnight.setHours(0, 0, 0, 0);
+      
+      // Make sure currentDate is also in Latvia timezone before comparison
+      const curDateInLatvia = toLatviaTime(currentDate);
+      const curDateMidnight = new Date(curDateInLatvia);
+      curDateMidnight.setHours(0, 0, 0, 0);
       
       // Calculate difference in days
       const daysDiff = Math.floor((slotDateMidnight.getTime() - curDateMidnight.getTime()) / (1000 * 60 * 60 * 24));
@@ -523,8 +533,14 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           {/* Day columns headers */}
           <div className="flex-1 grid grid-cols-7 gap-1">
             {days.map((day, index) => {
-              // Check if this day is today
-              const isCurrentDay = isToday(day.date);
+              // Check if this day is today using Latvia timezone
+              const latviaToday = toLatviaTime(new Date());
+              const dayInLatvia = toLatviaTime(day.date);
+              // Compare year, month, and day
+              const isCurrentDay = 
+                dayInLatvia.getFullYear() === latviaToday.getFullYear() &&
+                dayInLatvia.getMonth() === latviaToday.getMonth() &&
+                dayInLatvia.getDate() === latviaToday.getDate();
               
               return (
                 <div key={index} className={`text-center py-2 ${isCurrentDay ? 'bg-blue-50 rounded-md' : ''}`}>
@@ -583,9 +599,18 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                       {Array.from({ length: 7 }).map((_, idx) => {
                         const slot = slots[idx];
                         
-                        // Find the corresponding day to check if it's today
+                        // Find the corresponding day to check if it's today using Latvia timezone
                         const day = days.find(d => d.latvianDayIndex === idx);
-                        const isCurrentDay = day ? isToday(day.date) : false;
+                        const isCurrentDay = day ? (
+                          // Compare year, month and day in Latvia timezone
+                          (() => {
+                            const latviaToday = toLatviaTime(new Date());
+                            const dayInLatvia = toLatviaTime(day.date);
+                            return dayInLatvia.getFullYear() === latviaToday.getFullYear() &&
+                                  dayInLatvia.getMonth() === latviaToday.getMonth() &&
+                                  dayInLatvia.getDate() === latviaToday.getDate();
+                          })()
+                        ) : false;
                         
                         // If slot is undefined, render an empty placeholder
                         if (!slot) {
@@ -685,9 +710,18 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                     {Array.from({ length: 7 }).map((_, idx) => {
                       const slot = slots[idx];
                       
-                      // Find the corresponding day to check if it's today
+                      // Find the corresponding day to check if it's today using Latvia timezone
                       const day = days.find(d => d.latvianDayIndex === idx);
-                      const isCurrentDay = day ? isToday(day.date) : false;
+                      const isCurrentDay = day ? (
+                        // Compare year, month and day in Latvia timezone
+                        (() => {
+                          const latviaToday = toLatviaTime(new Date());
+                          const dayInLatvia = toLatviaTime(day.date);
+                          return dayInLatvia.getFullYear() === latviaToday.getFullYear() &&
+                                dayInLatvia.getMonth() === latviaToday.getMonth() &&
+                                dayInLatvia.getDate() === latviaToday.getDate();
+                        })()
+                      ) : false;
                       
                       // If slot is undefined, render an empty placeholder
                       if (!slot) {
