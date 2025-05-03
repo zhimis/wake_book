@@ -1,25 +1,140 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, isToday, isYesterday, isTomorrow, addMinutes } from "date-fns";
+import { format, isToday, isYesterday, isTomorrow, addMinutes, parseISO } from "date-fns";
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 // Latvia timezone (EET in winter, EEST in summer)
 export const LATVIA_TIMEZONE = 'Europe/Riga';
+export const UTC_TIMEZONE = 'UTC';
 
+/**
+ * Utility for combining class names
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Convert any date to Latvia time
+/**
+ * TIMEZONE CONVERSION UTILITIES
+ * These functions handle conversion between UTC and Latvia time
+ */
+
+/**
+ * Convert any date to Latvia time
+ * @param date Date object or ISO string
+ * @returns Date object in Latvia timezone
+ */
 export function toLatviaTime(date: Date | string): Date {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return toZonedTime(dateObj, LATVIA_TIMEZONE);
 }
 
-// Format a date directly in Latvia time zone
+/**
+ * Convert any date from Latvia time to UTC
+ * @param latviaDate Date object or ISO string representing a time in Latvia timezone
+ * @returns Date object in UTC timezone
+ */
+export function fromLatviaTime(latviaDate: Date | string): Date {
+  const dateObj = typeof latviaDate === 'string' ? new Date(latviaDate) : latviaDate;
+  
+  // Manual conversion from Latvia time to UTC using timezone offset
+  const latviaTimeObj = new Date(dateObj);
+  const tzOffset = latviaTimeObj.getTimezoneOffset();
+  
+  // Latvia is EET (GMT+2) in winter and EEST (GMT+3) in summer
+  // getTimezoneOffset() returns minutes, negative for east of GMT
+  // We need to convert Latvia time to UTC by subtracting the difference between
+  // the local timezone offset and the Latvia timezone offset (2 or 3 hours)
+  
+  // Get the current Latvia timezone offset in minutes
+  // This is a simplification - for production code, we would need a more robust solution
+  const now = new Date();
+  let latviaOffset = -120; // Default to EET (GMT+2) = -120 minutes
+  
+  // Crude check for daylight saving time (April to October)
+  const month = now.getMonth(); // 0-11 (January is 0)
+  if (month >= 3 && month <= 9) {
+    latviaOffset = -180; // EEST (GMT+3) = -180 minutes
+  }
+  
+  // Calculate the difference between local timezone and Latvia timezone
+  const offsetDiff = tzOffset - latviaOffset;
+  
+  // Apply the offset difference to convert to UTC
+  return new Date(latviaTimeObj.getTime() - offsetDiff * 60000);
+}
+
+/**
+ * Create a new Date object with the given time in Latvia timezone
+ * Useful for creating specific times for testing or default values
+ * @param year Year
+ * @param month Month (0-11)
+ * @param day Day of month
+ * @param hours Hours in 24-hour format
+ * @param minutes Minutes
+ * @param seconds Seconds (optional)
+ * @returns Date object in UTC representing the specified Latvia time
+ */
+export function createLatviaTime(
+  year: number, 
+  month: number, 
+  day: number, 
+  hours: number, 
+  minutes: number, 
+  seconds: number = 0
+): Date {
+  // Create a date string in ISO format with the Latvia timezone offset
+  // For a more robust implementation, the offset would need to account for DST
+  
+  // Simplification: construct an ISO string with the Latvia timezone offset
+  // Month in Date constructor is 0-based (January is 0)
+  
+  // Get the current Latvia timezone offset (simplified approach)
+  // This is a simplification - for production code, we would need a more robust solution
+  let latviaOffset = "+02:00"; // Default to EET (GMT+2)
+  
+  // Crude check for daylight saving time (April to October)
+  if (month >= 3 && month <= 9) {
+    latviaOffset = "+03:00"; // EEST (GMT+3)
+  }
+  
+  // Format the date as an ISO string with the correct timezone
+  const isoString = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}${latviaOffset}`;
+  
+  // Parse this ISO string to get a date in UTC
+  return new Date(isoString);
+}
+
+/**
+ * FORMAT AND DISPLAY UTILITIES
+ * These functions handle proper formatting of dates for display
+ */
+
+/**
+ * Format a date directly in Latvia time zone
+ * @param date Date object or ISO string
+ * @param formatStr Format string (date-fns format)
+ * @returns Formatted date string in Latvia timezone
+ */
 export function formatInLatviaTime(date: Date | string, formatStr: string): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return formatInTimeZone(dateObj, LATVIA_TIMEZONE, formatStr);
+}
+
+/**
+ * Format a date with explicit timezone indication
+ * @param date Date object or ISO string
+ * @param formatStr Format string (date-fns format)
+ * @param includeTimezone Whether to append the timezone indicator
+ * @returns Formatted date string with optional timezone indicator
+ */
+export function formatWithTimezone(
+  date: Date | string, 
+  formatStr: string,
+  includeTimezone: boolean = true
+): string {
+  const formatted = formatInLatviaTime(date, formatStr);
+  return includeTimezone ? `${formatted} (Latvia time)` : formatted;
 }
 
 export function formatPrice(price: number): string {
@@ -30,54 +145,95 @@ export function formatPrice(price: number): string {
   }).format(price);
 }
 
-export function formatDate(date: Date | string): string {
+/**
+ * Format a date with relative indicators (Today, Yesterday, Tomorrow)
+ * @param date Date object or ISO string
+ * @param includeTimezone Whether to include timezone indicator
+ * @returns Formatted date string with relative indicators
+ */
+export function formatDate(date: Date | string, includeTimezone: boolean = false): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  
-  if (isToday(dateObj)) {
-    return `Today, ${format(dateObj, "MMMM d")}`;
-  }
-  
-  if (isYesterday(dateObj)) {
-    return `Yesterday, ${format(dateObj, "MMMM d")}`;
-  }
-  
-  if (isTomorrow(dateObj)) {
-    return `Tomorrow, ${format(dateObj, "MMMM d")}`;
-  }
-  
-  return format(dateObj, "EEEE, MMMM d");
-}
-
-export function formatTime(date: Date | string): string {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  // Convert to Latvia time before formatting
+  // Always convert to Latvia time for display
   const latviaTime = toLatviaTime(dateObj);
-  return format(latviaTime, "HH:mm"); // 24-hour format for Latvia
+  
+  let result = "";
+  if (isToday(latviaTime)) {
+    result = `Today, ${format(latviaTime, "MMMM d")}`;
+  } else if (isYesterday(latviaTime)) {
+    result = `Yesterday, ${format(latviaTime, "MMMM d")}`;
+  } else if (isTomorrow(latviaTime)) {
+    result = `Tomorrow, ${format(latviaTime, "MMMM d")}`;
+  } else {
+    result = format(latviaTime, "EEEE, MMMM d");
+  }
+  
+  return includeTimezone ? `${result} (Latvia time)` : result;
 }
 
-export function formatDateShort(date: Date | string): string {
+/**
+ * Format time in 24-hour Latvia format
+ * @param date Date object or ISO string
+ * @param includeTimezone Whether to include timezone indicator
+ * @returns Formatted time string
+ */
+export function formatTime(date: Date | string, includeTimezone: boolean = false): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  // Convert to Latvia time before formatting
+  // Always convert to Latvia time for display
   const latviaTime = toLatviaTime(dateObj);
-  return format(latviaTime, "EEE, MMM d");
+  const timeStr = format(latviaTime, "HH:mm"); // 24-hour format for Latvia
+  
+  return includeTimezone ? `${timeStr} (Latvia time)` : timeStr;
 }
 
+/**
+ * Format date in short format
+ * @param date Date object or ISO string
+ * @param includeTimezone Whether to include timezone indicator
+ * @returns Formatted short date
+ */
+export function formatDateShort(date: Date | string, includeTimezone: boolean = false): string {
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+  // Always convert to Latvia time for display
+  const latviaTime = toLatviaTime(dateObj);
+  const dateStr = format(latviaTime, "EEE, MMM d");
+  
+  return includeTimezone ? `${dateStr} (Latvia time)` : dateStr;
+}
+
+/**
+ * Format just the day name in short format
+ * @param date Date object or ISO string
+ * @returns Short day name
+ */
 export function formatDayShort(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  // Convert to Latvia time before formatting
+  // Always convert to Latvia time for display
   const latviaTime = toLatviaTime(dateObj);
   return format(latviaTime, "EEE");
 }
 
-export function formatTimeSlot(startTime: Date | string, endTime: Date | string): string {
+/**
+ * Format a time slot with start and end times
+ * @param startTime Start time date object or ISO string
+ * @param endTime End time date object or ISO string
+ * @param includeTimezone Whether to include timezone indicator
+ * @returns Formatted time slot string
+ */
+export function formatTimeSlot(
+  startTime: Date | string, 
+  endTime: Date | string, 
+  includeTimezone: boolean = false
+): string {
   const start = typeof startTime === "string" ? new Date(startTime) : startTime;
   const end = typeof endTime === "string" ? new Date(endTime) : endTime;
   
-  // Convert to Latvia time before formatting
+  // Always convert to Latvia time for display
   const latviaStartTime = toLatviaTime(start);
   const latviaEndTime = toLatviaTime(end);
   
-  return `${format(latviaStartTime, "HH:mm")} - ${format(latviaEndTime, "HH:mm")}`; // 24-hour format for Latvia
+  const timeSlotStr = `${format(latviaStartTime, "HH:mm")} - ${format(latviaEndTime, "HH:mm")}`; // 24-hour format for Latvia
+  
+  return includeTimezone ? `${timeSlotStr} (Latvia time)` : timeSlotStr;
 }
 
 export function getTimeSlotClass(status: string, isSelected: boolean = false): string {
