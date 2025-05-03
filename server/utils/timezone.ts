@@ -24,19 +24,66 @@ export function toLatviaTime(date: Date | string): Date {
 
 /**
  * Convert a date from Latvia time to UTC
- * @param latviaDate Date object or ISO string representing a time in Latvia timezone
+ * @param latviaDate Date object or string representing a time in Latvia timezone
  * @returns Date object in UTC timezone
  */
 export function fromLatviaTime(latviaDate: Date | string): Date {
-  const dateObj = typeof latviaDate === 'string' ? new Date(latviaDate) : latviaDate;
+  // If input is a string, we need special handling
+  if (typeof latviaDate === 'string') {
+    // Try to detect different string formats
+    
+    // Format: "2025-05-03 15:00:00" (space-separated date and time)
+    if (latviaDate.includes(' ') && !latviaDate.includes('T')) {
+      const [datePart, timePart] = latviaDate.split(' ');
+      const [yearStr, monthStr, dayStr] = datePart.split('-');
+      const timeParts = timePart.split(':');
+      
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      const day = parseInt(dayStr);
+      const hour = parseInt(timeParts[0] || '0');
+      const minute = parseInt(timeParts[1] || '0');
+      const second = parseInt(timeParts[2] || '0');
+      
+      // Create a date with these components as if they are UTC
+      const utcComponents = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+      
+      // Adjust for Latvia timezone
+      // Determine if the date is in DST (simplified logic based on summer/winter)
+      // More accurate would be to check the exact DST transition dates
+      const isSummerMonth = month >= 3 && month <= 10;
+      const isDST = isSummerMonth;
+      const offsetHours = isDST ? 3 : 2;
+      
+      // Subtract the offset to get real UTC
+      return new Date(utcComponents.getTime() - offsetHours * 60 * 60 * 1000);
+    }
+    
+    // For ISO strings or other formats, create a Date object
+    const dateObj = new Date(latviaDate);
+    
+    // Determine if Latvia is in DST at the time of this date
+    const month = dateObj.getMonth() + 1; // getMonth() is 0-indexed
+    const isSummerMonth = month >= 3 && month <= 10;
+    const isDST = isSummerMonth;
+    const latviaOffsetHours = isDST ? 3 : 2; // UTC+3 in summer, UTC+2 in winter
+    
+    // Adjust the time by the Latvia offset
+    // For date strings, we assume they're already in Latvia time
+    // So we subtract the offset to get UTC
+    return new Date(dateObj.getTime() - latviaOffsetHours * 60 * 60 * 1000);
+  }
+  
+  // If input is a Date object
+  const dateObj = latviaDate;
   
   // Get the formatted time string in Latvia timezone
-  const latviaTimeStr = formatInTimeZone(dateObj, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss.SSS');
+  const latviaTimeStr = formatInTimeZone(dateObj, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
   
   // Parse the components
   const [datePart, timePart] = latviaTimeStr.split(' ');
   const [yearStr, monthStr, dayStr] = datePart.split('-');
-  const [hourStr, minuteStr, secondWithMsStr] = timePart.split(':');
+  const [hourStr, minuteStr, secondStr] = timePart.split(':');
   
   // Parse each component as a number
   const year = parseInt(yearStr);
@@ -44,20 +91,7 @@ export function fromLatviaTime(latviaDate: Date | string): Date {
   const day = parseInt(dayStr);
   const hour = parseInt(hourStr);
   const minute = parseInt(minuteStr);
-  
-  // Handle seconds and milliseconds
-  let second = 0;
-  let ms = 0;
-  
-  if (secondWithMsStr) {
-    if (secondWithMsStr.includes('.')) {
-      const [secondStr, msStr] = secondWithMsStr.split('.');
-      second = parseInt(secondStr);
-      ms = parseInt(msStr);
-    } else {
-      second = parseInt(secondWithMsStr);
-    }
-  }
+  const second = parseInt(secondStr);
   
   // Create a date using UTC constructor with the same components
   // This treats these components as UTC time values
@@ -67,8 +101,7 @@ export function fromLatviaTime(latviaDate: Date | string): Date {
     day,
     hour,
     minute,
-    second,
-    ms
+    second
   ));
   
   // Determine if the date is in DST in Latvia

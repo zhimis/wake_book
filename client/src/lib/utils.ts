@@ -134,7 +134,12 @@ export function formatWithTimezone(
   includeTimezone: boolean = true
 ): string {
   const formatted = formatInLatviaTime(date, formatStr);
-  return includeTimezone ? `${formatted} (Latvia time)` : formatted;
+  
+  // Check if we should show the timezone indicator
+  // Will show if explicitly requested or if user is not in Latvia timezone
+  const shouldShow = includeTimezone && shouldShowTimezoneIndicator();
+  
+  return shouldShow ? `${formatted} (Latvia time)` : formatted;
 }
 
 export function formatPrice(price: number): string {
@@ -167,7 +172,10 @@ export function formatDate(date: Date | string, includeTimezone: boolean = false
     result = formatInLatviaTime(latviaTime, "EEEE, MMMM d");
   }
   
-  return includeTimezone ? `${result} (Latvia time)` : result;
+  // Check if we should show the timezone indicator
+  const shouldShow = includeTimezone && shouldShowTimezoneIndicator();
+  
+  return shouldShow ? `${result} (Latvia time)` : result;
 }
 
 /**
@@ -182,7 +190,10 @@ export function formatTime(date: Date | string, includeTimezone: boolean = false
   const latviaTime = toLatviaTime(dateObj);
   const timeStr = formatInLatviaTime(latviaTime, "HH:mm"); // 24-hour format for Latvia
   
-  return includeTimezone ? `${timeStr} (Latvia time)` : timeStr;
+  // Check if we should show the timezone indicator
+  const shouldShow = includeTimezone && shouldShowTimezoneIndicator();
+  
+  return shouldShow ? `${timeStr} (Latvia time)` : timeStr;
 }
 
 /**
@@ -197,7 +208,10 @@ export function formatDateShort(date: Date | string, includeTimezone: boolean = 
   const latviaTime = toLatviaTime(dateObj);
   const dateStr = formatInLatviaTime(latviaTime, "EEE, MMM d");
   
-  return includeTimezone ? `${dateStr} (Latvia time)` : dateStr;
+  // Check if we should show the timezone indicator
+  const shouldShow = includeTimezone && shouldShowTimezoneIndicator();
+  
+  return shouldShow ? `${dateStr} (Latvia time)` : dateStr;
 }
 
 /**
@@ -233,7 +247,10 @@ export function formatTimeSlot(
   
   const timeSlotStr = `${formatInLatviaTime(latviaStartTime, "HH:mm")} - ${formatInLatviaTime(latviaEndTime, "HH:mm")}`; // 24-hour format for Latvia
   
-  return includeTimezone ? `${timeSlotStr} (Latvia time)` : timeSlotStr;
+  // Check if we should show the timezone indicator
+  const shouldShow = includeTimezone && shouldShowTimezoneIndicator();
+  
+  return shouldShow ? `${timeSlotStr} (Latvia time)` : timeSlotStr;
 }
 
 export function getTimeSlotClass(status: string, isSelected: boolean = false): string {
@@ -356,4 +373,44 @@ export function getLatvianDayIndexFromDate(date: Date): number {
 // Get standard day index from a Date object (this is just date.getDay() but included for completeness)
 export function getStandardDayIndexFromDate(date: Date): number {
   return date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+}
+
+/**
+ * TIMEZONE DETECTION UTILITIES
+ * These functions help detect the user's timezone and decide when to show timezone indicators
+ */
+
+/**
+ * Detects the user's current timezone
+ * @returns The user's current timezone name (e.g., "Europe/Riga", "America/New_York")
+ */
+export function getUserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    // Fallback if Intl API is not supported
+    return 'UTC';
+  }
+}
+
+/**
+ * Checks if the user is in the Latvia timezone
+ * @returns True if the user is in the Europe/Riga timezone, false otherwise
+ */
+export function isUserInLatviaTimezone(): boolean {
+  const userTimezone = getUserTimezone();
+  return userTimezone === LATVIA_TIMEZONE;
+}
+
+/**
+ * Determines if timezone indicators should be shown based on user's location
+ * @param forceShow Force showing the indicator regardless of user's timezone
+ * @returns True if timezone indicators should be shown
+ */
+export function shouldShowTimezoneIndicator(forceShow = false): boolean {
+  // Always show if explicitly requested
+  if (forceShow) return true;
+  
+  // Otherwise, show only if user is not in Latvia timezone
+  return !isUserInLatviaTimezone();
 }

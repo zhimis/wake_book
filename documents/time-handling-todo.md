@@ -26,7 +26,7 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 - [x] **Task 2.1.4**: Evaluate migration from date-fns to Luxon for more robust timezone handling ✓
 - [x] **Task 2.3.1**: Update GET API endpoints to consistently format time responses ✓
 - [x] **Task 2.3.2**: Update the booking creation endpoint for consistent time handling ✓
-- [ ] **Task 4.1.1**: Create basic test cases for timezone handling functions
+- [x] **Task 4.1.1**: Create basic test cases for timezone handling functions ✓
 
 ## Phase 4: Enhanced Validation & UI Improvements (Low Impact)
 

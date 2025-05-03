@@ -9,6 +9,7 @@ import {
   formatInTimeZone,
   toZonedTime 
 } from 'date-fns-tz';
+import { formatInLatviaTime, fromLatviaTime } from '../server/utils/timezone';
 
 const LATVIA_TIMEZONE = 'Europe/Riga';
 
@@ -82,8 +83,26 @@ const afterFallDST = new Date(Date.UTC(2025, 9, 26, 1, 0, 0)); // October 26, 20
 console.log(`After Fall DST (UTC): ${afterFallDST.toISOString()}`);
 console.log(`After Fall DST (Latvia): ${formatInTimeZone(afterFallDST, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}`);
 
+// Now let's test our library functions from server/utils/timezone.ts
+
+console.log("\nTESTING OUR LIBRARY FUNCTIONS");
+console.log("============================");
+
+// Display original time in Latvia timezone
+const displayedTime = formatInLatviaTime(timeslotUTC, 'yyyy-MM-dd HH:mm:ss');
+console.log(`Original time (UTC): ${timeslotUTC.toISOString()}`);
+console.log(`Displayed in Latvia time: ${displayedTime}`);
+
+// Convert back using our fromLatviaTime function
+const convertedBackUTC = fromLatviaTime(displayedTime);
+console.log(`Converted back to UTC: ${convertedBackUTC.toISOString()}`);
+
+// Verify it matches the original
+const isSuccessful = convertedBackUTC.getTime() === timeslotUTC.getTime();
+console.log(`Library round-trip conversion: ${isSuccessful ? 'SUCCESSFUL' : 'FAILED'}`);
+
 console.log("\nRECOMMENDATION:");
 console.log("For booking systems, always store dates in UTC in the database");
-console.log("Display times using formatInTimeZone with Latvia timezone");
-console.log("When converting user input back to UTC, use the approach demonstrated in Option A");
+console.log("Display times using formatInLatviaTime from our utilities");
+console.log("When converting user input back to UTC, use the fromLatviaTime function");
 console.log("This works because the timezone offset is known for Latvia at a given time");
