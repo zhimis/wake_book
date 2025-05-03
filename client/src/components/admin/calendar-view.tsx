@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { toLatviaTime, formatInLatviaTime } from "@/lib/utils";
 
 // Add TypeScript declaration for window.bookingsCache
 declare global {
@@ -115,7 +116,6 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Booking, TimeSlot } from "@shared/schema";
-import { formatPrice } from "@/lib/utils";
 
 // Schema for manual booking form
 const manualBookingSchema = z.object({
@@ -1042,16 +1042,13 @@ const AdminCalendarView = () => {
               <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
               <div className="space-y-2">
                 {selectedTimeSlots.map((slot) => {
-                  // Get actual time in local timezone
+                  // Get actual time in Latvia timezone using our utility function
                   const startTime = new Date(slot.startTime);
                   const endTime = new Date(slot.endTime);
                   
-                  // Adjust for the 3-hour difference (subtract 3 hours)
-                  const adjustedStartTime = new Date(startTime);
-                  adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
-                  
-                  const adjustedEndTime = new Date(endTime);
-                  adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
+                  // Use the proper Latvia timezone conversion instead of manual adjustment
+                  const adjustedStartTime = toLatviaTime(startTime);
+                  const adjustedEndTime = toLatviaTime(endTime);
                   
                   return (
                     <div key={slot.id} className="text-sm flex justify-between items-center">
