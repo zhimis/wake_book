@@ -954,8 +954,8 @@ const AdminCalendarView = () => {
                             <div key={slot.id} className="text-xs flex gap-1">
                               <span>{formatInLatviaTime(adjustedStartTime, "EEE, MMM d")}</span>
                               <span>•</span>
-                              <span>{adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
-                                    {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}</span>
+                              <span>{formatInLatviaTime(adjustedStartTime, "HH:mm")}-
+                                    {formatInLatviaTime(adjustedEndTime, "HH:mm")}</span>
                             </div>
                           );
                         })}
@@ -1095,8 +1095,8 @@ const AdminCalendarView = () => {
                     <div key={slot.id} className="text-sm flex justify-between items-center">
                       <span>
                         {formatInLatviaTime(adjustedStartTime, "EEE, MMM d")} • 
-                        {adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
-                        {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}
+                        {formatInLatviaTime(adjustedStartTime, "HH:mm")}-
+                        {formatInLatviaTime(adjustedEndTime, "HH:mm")}
                       </span>
                       <span>{formatPrice(slot.price)}</span>
                     </div>
@@ -1288,7 +1288,7 @@ const AdminCalendarView = () => {
                   
                   return (
                     <div key={slot.id} className="text-sm">
-                      {format(adjustedStartTime, "EEEE, MMM d")} • 
+                      {formatInLatviaTime(adjustedStartTime, "EEEE, MMM d")} • 
                       {adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
                       {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}
                     </div>
@@ -1388,7 +1388,7 @@ const AdminCalendarView = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Booking Date</h4>
-                  <p>{format(new Date(selectedBooking.createdAt), "PPP")}</p>
+                  <p>{formatInLatviaTime(new Date(selectedBooking.createdAt), "PPP")}</p>
                 </div>
               </div>
               
@@ -1421,7 +1421,7 @@ const AdminCalendarView = () => {
                                     const startTime = new Date(booking.firstSlotTime);
                                     return (
                                       <p><strong>{booking.slotCount}</strong> time slots booked, starting at{" "}
-                                      <strong>{format(startTime, "EEEE, MMMM d")}, {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}</strong></p>
+                                      <strong>{formatInLatviaTime(startTime, "EEEE, MMMM d")}, {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, '0')}</strong></p>
                                     );
                                   })()}
                                 </div>
