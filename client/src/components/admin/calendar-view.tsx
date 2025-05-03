@@ -1164,7 +1164,6 @@ const AdminCalendarView = () => {
                   const adjustedStartTime = toLatviaTime(startTime);
                   
                   const adjustedEndTime = toLatviaTime(endTime);
-                  adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
                   
                   return (
                     <div key={slot.id} className="text-sm">
@@ -1245,7 +1244,6 @@ const AdminCalendarView = () => {
                   const adjustedStartTime = toLatviaTime(startTime);
                   
                   const adjustedEndTime = toLatviaTime(endTime);
-                  adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
                   
                   return (
                     <div key={slot.id} className="text-sm">
