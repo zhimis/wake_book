@@ -23,9 +23,9 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 - [x] **Task 2.1.1**: Create server-side timezone utility module in `server/utils/timezone.ts` ✓
 - [x] **Task 2.1.2**: Add functions for Latvia/UTC conversions on the server ✓
 - [x] **Task 2.1.3**: Add time validation and sanitization functions ✓
-- [ ] **Task 2.1.4**: Evaluate migration from date-fns to Luxon for more robust timezone handling
-- [ ] **Task 2.3.1**: Update GET API endpoints to consistently format time responses
-- [ ] **Task 2.3.2**: Update the booking creation endpoint for consistent time handling
+- [x] **Task 2.1.4**: Evaluate migration from date-fns to Luxon for more robust timezone handling ✓
+- [x] **Task 2.3.1**: Update GET API endpoints to consistently format time responses ✓
+- [x] **Task 2.3.2**: Update the booking creation endpoint for consistent time handling ✓
 - [ ] **Task 4.1.1**: Create basic test cases for timezone handling functions
 
 ## Phase 4: Enhanced Validation & UI Improvements (Low Impact)

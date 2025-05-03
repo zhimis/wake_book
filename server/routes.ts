@@ -340,9 +340,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...rest,
           fullName: rest.customerName,
           experienceLevel: "intermediate", // Default for admin bookings
-          // Convert to proper timezone if dates are provided directly
-          startTime: rest.startTime ? toLatviaTime(rest.startTime) : undefined,
-          endTime: rest.endTime ? toLatviaTime(rest.endTime) : undefined
         };
       } else {
         // Regular user booking
@@ -350,12 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData = schema.parse(req.body);
         const { timeSlotIds: ids, ...rest } = validatedData;
         timeSlotIds = ids;
-        bookingData = {
-          ...rest,
-          // Convert to proper timezone if dates are provided directly
-          startTime: rest.startTime ? toLatviaTime(rest.startTime) : undefined,
-          endTime: rest.endTime ? toLatviaTime(rest.endTime) : undefined
-        };
+        bookingData = rest;
       }
       
       console.log("Time slot IDs received:", timeSlotIds);
@@ -369,7 +361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             // This is a placeholder/unallocated slot, we need to create a real one
             // Extract time info from the client-side data
-            const timeInfo = req.body.unallocatedSlots?.find(slot => slot.id === id);
+            const timeInfo = req.body.unallocatedSlots?.find((slot: { id: number; startTime: string | Date; endTime: string | Date }) => slot.id === id);
             
             if (!timeInfo) {
               // If we don't have time information, we can't create the slot
@@ -532,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check for conflicts with existing time slots
       const conflicts = [];
       
-      for (const slot of timeSlots) {
+      for (const slot of timeSlots as Array<{ startTime: string | Date; endTime: string | Date; price?: number }>) {
         // Check for overlapping time slots that are already booked
         const startTime = new Date(slot.startTime);
         const endTime = new Date(slot.endTime);
@@ -580,7 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create time slots one by one and associate them with the booking
       const createdTimeSlots = [];
       
-      for (const slot of timeSlots) {
+      for (const slot of timeSlots as Array<{ startTime: string | Date; endTime: string | Date; price?: number }>) {
         // Log the incoming times for debugging
         console.log(`Processing time slot from client:`, {
           rawStartTime: slot.startTime,
