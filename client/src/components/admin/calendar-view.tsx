@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { toLatviaTime, formatInLatviaTime } from "@/lib/utils";
+import { toLatviaTime, formatInLatviaTime, formatPrice } from "@/lib/utils";
 
 // Add TypeScript declaration for window.bookingsCache
 declare global {
