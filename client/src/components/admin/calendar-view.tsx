@@ -1208,7 +1208,7 @@ const AdminCalendarView = () => {
                   
                   return (
                     <div key={slot.id} className="text-sm">
-                      {format(adjustedStartTime, "EEEE, MMM d")} • 
+                      {formatInLatviaTime(adjustedStartTime, "EEEE, MMM d")} • 
                       {adjustedStartTime.getHours()}:{adjustedStartTime.getMinutes().toString().padStart(2, '0')}-
                       {adjustedEndTime.getHours()}:{adjustedEndTime.getMinutes().toString().padStart(2, '0')}
                     </div>
