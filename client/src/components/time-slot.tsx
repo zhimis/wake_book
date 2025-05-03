@@ -1,6 +1,5 @@
-import { formatPrice, getTimeSlotClass } from "@/lib/utils";
+import { formatPrice, getTimeSlotClass, formatInLatviaTime, toLatviaTime } from "@/lib/utils";
 import { TimeSlot } from "@shared/schema";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface TimeSlotProps {
@@ -41,7 +40,7 @@ const TimeSlotComponent = ({
         onClick={handleClick}
       >
         <span className="font-medium">
-          {format(new Date(timeSlot.startTime), "HH:mm")} - {format(new Date(timeSlot.endTime), "HH:mm")}
+          {formatInLatviaTime(toLatviaTime(new Date(timeSlot.startTime)), "HH:mm")} - {formatInLatviaTime(toLatviaTime(new Date(timeSlot.endTime)), "HH:mm")}
         </span>
         <span className="text-xs text-gray-500">
           {formatPrice(timeSlot.price)} • {timeSlot.status === "booked" ? "Booked" : "Available"}
