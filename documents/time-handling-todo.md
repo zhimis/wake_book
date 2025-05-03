@@ -12,10 +12,10 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 ## Phase 2: Client-Side Non-Intrusive Updates
 
 - [x] **Task 3.2.1**: Update booking-calendar.tsx to use standard time utilities consistently ✓
-- [ ] **Task 3.2.2**: Update admin-calendar-view.tsx for consistent time handling
+- [x] **Task 3.2.2**: Update admin-calendar-view.tsx for consistent time handling ✓
 - [x] **Task 3.2.3**: Ensure system-config.tsx properly handles time conversions ✓
-- [ ] **Task 3.2.4**: Update booking-form.tsx to use standard time utilities
-- [ ] **Task 3.2.5**: Update booking-detail.tsx to use standard time utilities
+- [x] **Task 3.2.4**: Update booking-form.tsx to use standard time utilities ✓
+- [x] **Task 3.2.5**: Update confirmation-page.tsx to use standard time utilities ✓
 - [ ] **Task 4.2.1**: Manually test the updated components across all views
 
 ## Phase 3: Server-Side Non-Intrusive Improvements

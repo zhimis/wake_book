@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { formatDate, formatTimeSlot, formatPrice } from "@/lib/utils";
+import { formatDate, formatTimeSlot, formatPrice, toLatviaTime, formatInLatviaTime } from "@/lib/utils";
 import { CheckCircle, Calendar, Map, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,8 +36,9 @@ const ConfirmationPage = () => {
     const firstSlot = sortedSlots[0];
     const lastSlot = sortedSlots[sortedSlots.length - 1];
     
-    const startTime = new Date(firstSlot.startTime);
-    const endTime = new Date(lastSlot.endTime);
+    // Convert to Latvia time for display in calendar
+    const startTime = toLatviaTime(new Date(firstSlot.startTime));
+    const endTime = toLatviaTime(new Date(lastSlot.endTime));
     
     // Create Google Calendar URL
     const title = `Wakeboarding Session`;
@@ -103,10 +104,13 @@ const ConfirmationPage = () => {
     new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
   
-  // Format times for display
-  const bookingDate = sortedTimeSlots.length > 0 ? formatDate(sortedTimeSlots[0].startTime) : '';
+  // Format times for display - using Latvia timezone
+  const bookingDate = sortedTimeSlots.length > 0 ? formatDate(toLatviaTime(sortedTimeSlots[0].startTime)) : '';
   const bookingTime = sortedTimeSlots.length > 0 ? 
-    `${formatTimeSlot(sortedTimeSlots[0].startTime, sortedTimeSlots[sortedTimeSlots.length - 1].endTime)}` : '';
+    formatTimeSlot(
+      toLatviaTime(sortedTimeSlots[0].startTime), 
+      toLatviaTime(sortedTimeSlots[sortedTimeSlots.length - 1].endTime)
+    ) : '';
   
   return (
     <main className="container mx-auto px-0.5 py-2">
