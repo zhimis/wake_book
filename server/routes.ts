@@ -5,12 +5,19 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import { bookingFormSchema, manualBookingSchema, blockTimeSlotSchema, timeSlots, operatingHours } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
 import { db } from "./db";
 import { gte, eq, sql } from "drizzle-orm";
 
-// Latvia timezone (EET in winter, EEST in summer)
-const LATVIA_TIMEZONE = 'Europe/Riga';
+// Import server-side timezone utilities
+import { 
+  LATVIA_TIMEZONE,
+  toLatviaTime, 
+  fromLatviaTime, 
+  formatInLatviaTime,
+  validateDate,
+  getLatviaDayStart,
+  getLatviaDayEnd
+} from "./utils/timezone";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -23,21 +30,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startDateStr = req.query.startDate as string;
       const endDateStr = req.query.endDate as string;
 
-      const startDate = startDateStr ? new Date(startDateStr) : new Date();
-      // Set to beginning of day
-      startDate.setHours(0, 0, 0, 0);
+      // Validate date inputs if provided
+      if (startDateStr && !validateDate(startDateStr)) {
+        return res.status(400).json({ error: "Invalid start date format" });
+      }
+      
+      if (endDateStr && !validateDate(endDateStr)) {
+        return res.status(400).json({ error: "Invalid end date format" });
+      }
+
+      // Use provided date or default to today, converted to Latvia timezone
+      let startDate;
+      if (startDateStr) {
+        // Parse the date and set to start of day in Latvia timezone
+        startDate = getLatviaDayStart(new Date(startDateStr));
+      } else {
+        // If no date provided, use today in Latvia timezone
+        startDate = getLatviaDayStart(new Date());
+      }
 
       let endDate;
       if (endDateStr) {
-        endDate = new Date(endDateStr);
+        // Parse the date and set to end of day in Latvia timezone
+        endDate = getLatviaDayEnd(new Date(endDateStr));
       } else {
         // Default to 7 days from start date
         endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + 7);
+        endDate = getLatviaDayEnd(endDate);
       }
-      // Set to end of day
-      endDate.setHours(23, 59, 59, 999);
 
+      console.log(`Fetching time slots from ${formatInLatviaTime(startDate, 'yyyy-MM-dd HH:mm:ss')} to ${formatInLatviaTime(endDate, 'yyyy-MM-dd HH:mm:ss')} (Latvia time)`);
+      
       const timeSlots = await storage.getTimeSlotsByDateRange(startDate, endDate);
       
       res.json({
@@ -297,7 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a booking
   app.post("/api/bookings", async (req: Request, res: Response) => {
     try {
-      console.log("Received booking request:", req.body);
+      console.log(`Received booking request at ${formatInLatviaTime(new Date(), 'yyyy-MM-dd HH:mm:ss')} (Latvia time):`, req.body);
       
       // Check if this is an admin booking (e.g., has 'customerName' instead of 'fullName')
       let validatedData;
@@ -315,7 +339,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingData = {
           ...rest,
           fullName: rest.customerName,
-          experienceLevel: "intermediate" // Default for admin bookings
+          experienceLevel: "intermediate", // Default for admin bookings
+          // Convert to proper timezone if dates are provided directly
+          startTime: rest.startTime ? toLatviaTime(rest.startTime) : undefined,
+          endTime: rest.endTime ? toLatviaTime(rest.endTime) : undefined
         };
       } else {
         // Regular user booking
@@ -323,7 +350,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validatedData = schema.parse(req.body);
         const { timeSlotIds: ids, ...rest } = validatedData;
         timeSlotIds = ids;
-        bookingData = rest;
+        bookingData = {
+          ...rest,
+          // Convert to proper timezone if dates are provided directly
+          startTime: rest.startTime ? toLatviaTime(rest.startTime) : undefined,
+          endTime: rest.endTime ? toLatviaTime(rest.endTime) : undefined
+        };
       }
       
       console.log("Time slot IDs received:", timeSlotIds);
@@ -553,8 +585,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Processing time slot from client:`, {
           rawStartTime: slot.startTime,
           rawEndTime: slot.endTime,
-          localStart: formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss"),
-          localEnd: formatInTimeZone(new Date(slot.endTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss")
+          localStart: formatInLatviaTime(new Date(slot.startTime), "yyyy-MM-dd HH:mm:ss"),
+          localEnd: formatInLatviaTime(new Date(slot.endTime), "yyyy-MM-dd HH:mm:ss")
         });
         
         // Create a new time slot in the database with status "booked"
@@ -572,8 +604,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: timeSlot.id,
           rawStartTime: timeSlot.startTime,
           rawEndTime: timeSlot.endTime,
-          localStart: formatInTimeZone(new Date(timeSlot.startTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss"),
-          localEnd: formatInTimeZone(new Date(timeSlot.endTime), LATVIA_TIMEZONE, "yyyy-MM-dd HH:mm:ss")
+          localStart: formatInLatviaTime(new Date(timeSlot.startTime), "yyyy-MM-dd HH:mm:ss"),
+          localEnd: formatInLatviaTime(new Date(timeSlot.endTime), "yyyy-MM-dd HH:mm:ss")
         });
         
         // Associate it with the booking
