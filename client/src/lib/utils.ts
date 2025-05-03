@@ -158,13 +158,13 @@ export function formatDate(date: Date | string, includeTimezone: boolean = false
   
   let result = "";
   if (isToday(latviaTime)) {
-    result = `Today, ${format(latviaTime, "MMMM d")}`;
+    result = `Today, ${formatInLatviaTime(latviaTime, "MMMM d")}`;
   } else if (isYesterday(latviaTime)) {
-    result = `Yesterday, ${format(latviaTime, "MMMM d")}`;
+    result = `Yesterday, ${formatInLatviaTime(latviaTime, "MMMM d")}`;
   } else if (isTomorrow(latviaTime)) {
-    result = `Tomorrow, ${format(latviaTime, "MMMM d")}`;
+    result = `Tomorrow, ${formatInLatviaTime(latviaTime, "MMMM d")}`;
   } else {
-    result = format(latviaTime, "EEEE, MMMM d");
+    result = formatInLatviaTime(latviaTime, "EEEE, MMMM d");
   }
   
   return includeTimezone ? `${result} (Latvia time)` : result;
@@ -180,7 +180,7 @@ export function formatTime(date: Date | string, includeTimezone: boolean = false
   const dateObj = typeof date === "string" ? new Date(date) : date;
   // Always convert to Latvia time for display
   const latviaTime = toLatviaTime(dateObj);
-  const timeStr = format(latviaTime, "HH:mm"); // 24-hour format for Latvia
+  const timeStr = formatInLatviaTime(latviaTime, "HH:mm"); // 24-hour format for Latvia
   
   return includeTimezone ? `${timeStr} (Latvia time)` : timeStr;
 }
@@ -195,7 +195,7 @@ export function formatDateShort(date: Date | string, includeTimezone: boolean = 
   const dateObj = typeof date === "string" ? new Date(date) : date;
   // Always convert to Latvia time for display
   const latviaTime = toLatviaTime(dateObj);
-  const dateStr = format(latviaTime, "EEE, MMM d");
+  const dateStr = formatInLatviaTime(latviaTime, "EEE, MMM d");
   
   return includeTimezone ? `${dateStr} (Latvia time)` : dateStr;
 }
@@ -209,7 +209,7 @@ export function formatDayShort(date: Date | string): string {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   // Always convert to Latvia time for display
   const latviaTime = toLatviaTime(dateObj);
-  return format(latviaTime, "EEE");
+  return formatInLatviaTime(latviaTime, "EEE");
 }
 
 /**
@@ -231,7 +231,7 @@ export function formatTimeSlot(
   const latviaStartTime = toLatviaTime(start);
   const latviaEndTime = toLatviaTime(end);
   
-  const timeSlotStr = `${format(latviaStartTime, "HH:mm")} - ${format(latviaEndTime, "HH:mm")}`; // 24-hour format for Latvia
+  const timeSlotStr = `${formatInLatviaTime(latviaStartTime, "HH:mm")} - ${formatInLatviaTime(latviaEndTime, "HH:mm")}`; // 24-hour format for Latvia
   
   return includeTimezone ? `${timeSlotStr} (Latvia time)` : timeSlotStr;
 }
