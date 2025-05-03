@@ -30,23 +30,36 @@ export function toLatviaTime(date: Date | string): Date {
 export function fromLatviaTime(latviaDate: Date | string): Date {
   const dateObj = typeof latviaDate === 'string' ? new Date(latviaDate) : latviaDate;
   
-  // Extract the Latvia date components
-  const year = dateObj.getFullYear();
-  const month = dateObj.getMonth();
-  const day = dateObj.getDate();
-  const hours = dateObj.getHours();
-  const minutes = dateObj.getMinutes();
-  const seconds = dateObj.getSeconds();
+  // Get the Latvia time components using date-fns-tz to handle DST properly
+  const latviaTime = formatInTimeZone(dateObj, LATVIA_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSS"); 
   
-  // Create a Latvia time representation
-  const latviaTimeString = formatInTimeZone(
-    new Date(year, month, day, hours, minutes, seconds),
-    LATVIA_TIMEZONE,
-    'yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''
-  );
+  // To convert from Latvia time to UTC:
+  // 1. Parse the time components
+  const [datePart, timePart] = latviaTime.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, secondWithMs] = timePart.split(':');
+  const [second, ms] = secondWithMs.split('.').map(Number);
   
-  // Parse as UTC
-  return new Date(latviaTimeString);
+  // 2. Create a Date in UTC with those components
+  const utcDate = new Date(Date.UTC(
+    year,
+    month - 1, // Month is 0-indexed in JavaScript
+    day,
+    parseInt(hour),
+    parseInt(minute),
+    second || 0,
+    ms || 0
+  ));
+  
+  // 3. Now we need to adjust for the Latvia timezone offset
+  // Summer time (EEST): UTC+3, Winter time (EET): UTC+2
+  
+  // Determine if the date is in DST by comparing formatted times
+  const isDST = formatInTimeZone(dateObj, LATVIA_TIMEZONE, 'z').includes('+3');
+  const offsetHours = isDST ? 3 : 2;
+  
+  // Subtract the Latvia offset to get back to UTC
+  return new Date(utcDate.getTime() - offsetHours * 60 * 60 * 1000);
 }
 
 /**

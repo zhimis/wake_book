@@ -55,9 +55,44 @@ function runAllTests() {
   console.log(`Latvia Time:         ${latviaTime.toISOString()}`);
   console.log(`Latvia Hour:         ${latviaTime.getHours()}`);
   
-  // Convert Latvia time back to UTC
+  // Use formatInLatviaTime directly on the UTC time (this is normally how it would be used)
+  console.log(`Formatted Latvia:    ${formatInLatviaTime(utcNoon, 'yyyy-MM-dd HH:mm:ss.SSS')}`);
+  
+  // Let's try a direct conversion approach
+  console.log("\nTrying direct approach:");
+  // When we have a Latvia time (15:00), we want to get back to UTC (12:00)
+  // We know Latvia is UTC+3 in summer, so we need to extract the time components
+  // and create a new UTC date
+  const latviaFormatted = formatInLatviaTime(latviaTime, 'yyyy-MM-dd HH:mm:ss.SSS');
+  console.log(`Latvia time formatted: ${latviaFormatted}`);
+  
+  // Parse the formatted time
+  const parts = latviaFormatted.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})/);
+  
+  if (parts) {
+    // Create a UTC date with the same time components
+    const utcFromParts = new Date(Date.UTC(
+      parseInt(parts[1]),
+      parseInt(parts[2]) - 1,
+      parseInt(parts[3]),
+      parseInt(parts[4]),
+      parseInt(parts[5]),
+      parseInt(parts[6]),
+      parseInt(parts[7])
+    ));
+    console.log(`UTC from parts:    ${utcFromParts.toISOString()}`);
+    
+    // For debugging: subtract 3 hours (Latvia offset in summer)
+    const manualAdjust = new Date(utcFromParts.getTime() - 3 * 60 * 60 * 1000);
+    console.log(`Manual adjust:     ${manualAdjust.toISOString()}`);
+    
+    // Compare with original
+    assertEqualDates(manualAdjust, utcNoon, "Manual conversion preserves time");
+  }
+  
+  // Try using our library function
   const backToUtc = fromLatviaTime(latviaTime);
-  console.log(`Back to UTC:         ${backToUtc.toISOString()}`);
+  console.log(`\nBack to UTC (lib): ${backToUtc.toISOString()}`);
   
   // Verify round-trip conversion
   assertEqualDates(backToUtc, utcNoon, "Round-trip Latvia conversion preserves time");
