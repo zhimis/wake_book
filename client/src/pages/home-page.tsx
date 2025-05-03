@@ -5,36 +5,43 @@ const HomePage = () => {
   return (
     <main className="container mx-auto px-0.5 py-0">
       <div className="max-w-6xl mx-auto">
-        
-        
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-4">
             <BookingCalendar />
           </div>
-          
+
           <div className="w-full">
             <div>
               <Card>
                 <CardContent className="pt-2 px-2">
-                  <h3 className="text-lg font-semibold mb-2">Facility Information</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Kontaktinformācija
+                  </h3>
                   <div className="space-y-3">
                     <div>
-                      <h4 className="font-medium text-sm">Opening Hours</h4>
-                      <p className="text-gray-600 text-xs">Monday-Friday: 8am - 10pm</p>
-                      <p className="text-gray-600 text-xs">Saturday-Sunday: 8am - 10pm</p>
+                      <h4 className="font-medium text-sm">Darba laiks</h4>
+                      <p className="text-gray-600 text-xs">
+                        Skatīties kalendārā. Pirmssezonas neregulārs.{" "}
+                      </p>
+                      <p className="text-gray-600 text-xs">
+                        Strādājam maija brīvdienās!
+                      </p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-sm">Contact</h4>
-                      <p className="text-gray-600 text-xs">Phone: +371 26 123 456</p>
-                      <p className="text-gray-600 text-xs">Email: info@hiwake.lv</p>
+                      <h4 className="font-medium text-sm">Kontakti</h4>
+                      <p className="text-gray-600 text-xs">
+                        Telefons: +371 25 422 219
+                      </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
-            
+
             <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
-              <h4 className="text-blue-800 font-medium text-sm mb-1">Booking Instructions</h4>
+              <h4 className="text-blue-800 font-medium text-sm mb-1">
+                Booking Instructions
+              </h4>
               <ul className="text-blue-700 text-xs space-y-1">
                 <li>• Select consecutive time slots</li>
                 <li>• Prices vary by time and weekends</li>

@@ -899,18 +899,15 @@ const AdminCalendarView = () => {
                       <div className="font-semibold">Selected slots:</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
                         {selectedTimeSlots.map((slot) => {
-                          // Get actual time in local timezone adjusted by -3 hours to fix display
+                          // Get actual time in Latvia timezone using our utility function
                           const startTime = new Date(slot.startTime);
                           const endTime = new Date(slot.endTime);
                           
-                          // Adjust for the 3-hour difference (subtract 3 hours)
-                          const adjustedStartTime = new Date(startTime);
-                          adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                          // Use the proper Latvia timezone conversion instead of manual adjustment
+                          const adjustedStartTime = toLatviaTime(startTime);
+                          const adjustedEndTime = toLatviaTime(endTime);
                           
-                          const adjustedEndTime = new Date(endTime);
-                          adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
-                          
-                          console.log(`Displaying slot: original time ${startTime.toLocaleTimeString()}, adjusted time ${adjustedStartTime.toLocaleTimeString()}`);
+                          console.log(`Displaying slot: original time ${startTime.toLocaleTimeString()}, Latvia time ${formatInLatviaTime(startTime, "HH:mm:ss")}`);
                           
                           return (
                             <div key={slot.id} className="text-xs flex gap-1">
