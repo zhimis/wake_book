@@ -1156,15 +1156,14 @@ const AdminCalendarView = () => {
               <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
               <div className="space-y-2">
                 {selectedTimeSlots.map((slot) => {
-                  // Get actual time in local timezone
+                  // Get actual time in Latvia timezone using our utility function
                   const startTime = new Date(slot.startTime);
                   const endTime = new Date(slot.endTime);
                   
-                  // Adjust for the 3-hour difference (subtract 3 hours)
-                  const adjustedStartTime = new Date(startTime);
-                  adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                  // Use the proper Latvia timezone conversion instead of manual adjustment
+                  const adjustedStartTime = toLatviaTime(startTime);
                   
-                  const adjustedEndTime = new Date(endTime);
+                  const adjustedEndTime = toLatviaTime(endTime);
                   adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
                   
                   return (
@@ -1238,15 +1237,14 @@ const AdminCalendarView = () => {
               <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
               <div className="space-y-2">
                 {selectedTimeSlots.map((slot) => {
-                  // Get actual time in local timezone
+                  // Get actual time in Latvia timezone using our utility function
                   const startTime = new Date(slot.startTime);
                   const endTime = new Date(slot.endTime);
                   
-                  // Adjust for the 3-hour difference (subtract 3 hours)
-                  const adjustedStartTime = new Date(startTime);
-                  adjustedStartTime.setHours(adjustedStartTime.getHours() - 3);
+                  // Use the proper Latvia timezone conversion instead of manual adjustment
+                  const adjustedStartTime = toLatviaTime(startTime);
                   
-                  const adjustedEndTime = new Date(endTime);
+                  const adjustedEndTime = toLatviaTime(endTime);
                   adjustedEndTime.setHours(adjustedEndTime.getHours() - 3);
                   
                   return (
