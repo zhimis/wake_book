@@ -88,10 +88,12 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   const goToPreviousWeek = () => {
     // For public calendar, prevent going to past weeks
     if (!isAdmin) {
-      const today = new Date();
+      // Get today's date in Latvia timezone, reset to start of day
+      const today = toLatviaTime(new Date());
       today.setHours(0, 0, 0, 0);
       
-      const prevWeekDate = subDays(currentDate, 7);
+      // Calculate previous week date in Latvia timezone
+      const prevWeekDate = toLatviaTime(subDays(currentDate, 7));
       prevWeekDate.setHours(0, 0, 0, 0);
       
       // If previous week would be before today, don't allow navigation
@@ -108,8 +110,9 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   const goToNextWeek = () => {
     // Check if next week would be beyond visibility limit for regular users
     if (!isAdmin) {
-      const threeWeeksFromToday = addDays(new Date(), 21); // Typical visibility window
-      const nextWeekDate = addDays(currentDate, 7);
+      // Use Latvia timezone to ensure consistent visibility limits
+      const threeWeeksFromToday = toLatviaTime(addDays(new Date(), 21)); // Typical visibility window
+      const nextWeekDate = toLatviaTime(addDays(currentDate, 7));
       
       // If already viewing a week that's far in the future, show a toast notification
       if (nextWeekDate > threeWeeksFromToday) {
@@ -204,8 +207,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       // Latvian day index is simply i (0=Monday, 1=Tuesday, etc)
       return {
         date,
-        name: format(date, "EEE"),
-        day: format(date, "d"),
+        name: formatInLatviaTime(date, "EEE"),
+        day: formatInLatviaTime(date, "d"),
         latvianDayIndex: i
       };
     });
@@ -347,9 +350,14 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`
       ))).sort();
   
-  // Format time from hour and minute
-  const formatTime = (hour: number, minute: number) => {
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  // Format time from hour and minute, using the Latvia timezone
+  const formatTimeFromComponents = (hour: number, minute: number) => {
+    // Create a date object with the given hour and minute
+    const date = new Date();
+    date.setHours(hour, minute, 0, 0);
+    
+    // Format it using our utility function that handles Latvia timezone
+    return formatTime(date, false);
   };
   
   // Toggle slot selection
@@ -473,7 +481,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       <CardHeader className="pb-1 pt-2 px-2">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            {format(days[0].date, "MMMM d")} - {format(days[6].date, "MMMM d, yyyy")}
+            {formatInLatviaTime(days[0].date, "MMMM d")} - {formatInLatviaTime(days[6].date, "MMMM d, yyyy")} 
+            <span className="text-xs text-muted-foreground ml-1">({LATVIA_TIMEZONE})</span>
           </p>
           <div className="flex space-x-2">
             <Button 
@@ -779,7 +788,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
             <div>
               <h4 className="font-medium text-sm">Selected Slots: {selectedTimeSlots.length}</h4>
               <p className="text-xs text-muted-foreground">
-                {format(currentDate, "EEE, MMM d")} {getSelectedTimeRange()}
+                {formatInLatviaTime(currentDate, "EEE, MMM d")} {getSelectedTimeRange()}
               </p>
             </div>
             <div className="text-right">
