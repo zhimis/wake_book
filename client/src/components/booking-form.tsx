@@ -13,10 +13,12 @@ import {
   formatPrice,
   calculateTotalPrice,
   formatInLatviaTime,
-  toLatviaTime
+  toLatviaTime,
+  isUserInLatviaTimezone,
+  getUserTimezone
 } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Clock, HelpCircle } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -35,6 +37,12 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface BookingFormProps {
   onCancel: () => void;
@@ -130,9 +138,30 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
 
         {/* Reserved Slots Summary */}
         <div className="mb-2 bg-primary-light bg-opacity-20 rounded-lg p-2">
-          <h3 className="font-heading font-medium text-lg mb-3">
-            Your Reserved Times
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-heading font-medium text-lg">
+              Your Reserved Times
+            </h3>
+            
+            {/* Timezone tooltip - only show if user is not in Latvia timezone */}
+            {!isUserInLatviaTimezone() && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center text-primary cursor-help text-sm">
+                      <Clock className="h-4 w-4 mr-1" />
+                      <span>Latvia Time</span>
+                      <HelpCircle className="h-3 w-3 ml-1" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>All times are shown in Latvia time (Europe/Riga timezone). Your local timezone is {getUserTimezone()}.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+          
           <div className="space-y-2 mb-3">
             {selectedTimeSlots.map((slot, index) => {
               // Get actual time in Latvia timezone
@@ -146,8 +175,8 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
               return (
                 <div key={slot.id} className="flex justify-between items-center">
                   <span>
-                    {formatDate(latviaStartTime)} -{" "}
-                    {formatTimeSlot(latviaStartTime, latviaEndTime)}
+                    {formatDate(latviaStartTime, true)} -{" "}
+                    {formatTimeSlot(latviaStartTime, latviaEndTime, true)}
                   </span>
                   <span>{formatPrice(slot.price)}</span>
                 </div>

@@ -414,3 +414,110 @@ export function shouldShowTimezoneIndicator(forceShow = false): boolean {
   // Otherwise, show only if user is not in Latvia timezone
   return !isUserInLatviaTimezone();
 }
+
+/**
+ * TIME INPUT VALIDATION UTILITIES
+ * These functions help validate time inputs to ensure they are within the correct range
+ */
+
+/**
+ * Validate a time string in 24-hour format
+ * @param timeStr Time string in HH:MM format
+ * @returns True if valid, false otherwise
+ */
+export function isValidTimeFormat(timeStr: string): boolean {
+  // Check that the format is correct (HH:MM)
+  const pattern = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  return pattern.test(timeStr);
+}
+
+/**
+ * Validate a date string in YYYY-MM-DD format
+ * @param dateStr Date string in YYYY-MM-DD format
+ * @returns True if valid, false otherwise
+ */
+export function isValidDateFormat(dateStr: string): boolean {
+  // Check that the format is correct (YYYY-MM-DD)
+  const pattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!pattern.test(dateStr)) return false;
+  
+  // Create a date object and verify it's valid
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
+}
+
+/**
+ * Check if a time is within Latvia operating hours (8:00-22:00)
+ * @param timeStr Time string in HH:MM format
+ * @returns True if within operating hours, false otherwise
+ */
+export function isWithinOperatingHours(timeStr: string): boolean {
+  if (!isValidTimeFormat(timeStr)) return false;
+  
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return (hours >= 8 && hours < 22) || (hours === 22 && minutes === 0);
+}
+
+/**
+ * Validate a date is within a given range
+ * @param dateStr Date string in YYYY-MM-DD format
+ * @param minDate Minimum valid date
+ * @param maxDate Maximum valid date
+ * @returns True if within range, false otherwise
+ */
+export function isDateInRange(dateStr: string, minDate?: Date, maxDate?: Date): boolean {
+  if (!isValidDateFormat(dateStr)) return false;
+  
+  const date = new Date(dateStr);
+  
+  // Check min date if provided
+  if (minDate && date < minDate) return false;
+  
+  // Check max date if provided
+  if (maxDate && date > maxDate) return false;
+  
+  return true;
+}
+
+/**
+ * Validate a complete date-time string in Latvia timezone context
+ * @param dateTimeStr DateTime string (e.g., "2025-05-03 15:00")
+ * @param minDate Minimum valid date
+ * @param maxDate Maximum valid date
+ * @returns True if valid and within range, false otherwise
+ */
+export function isValidLatviaDateTime(dateTimeStr: string, minDate?: Date, maxDate?: Date): boolean {
+  // Split into date and time parts
+  const parts = dateTimeStr.split(' ');
+  if (parts.length !== 2) return false;
+  
+  const [dateStr, timeStr] = parts;
+  
+  // Validate format of both parts
+  if (!isValidDateFormat(dateStr) || !isValidTimeFormat(timeStr)) return false;
+  
+  // Validate the operating hours
+  if (!isWithinOperatingHours(timeStr)) return false;
+  
+  // If a range is provided, validate that too
+  if (minDate || maxDate) {
+    // Convert to a date object in Latvia timezone
+    // We need to handle the timezone correctly
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const latviaDate = createLatviaTime(
+      parseInt(dateStr.split('-')[0]), 
+      parseInt(dateStr.split('-')[1]) - 1, 
+      parseInt(dateStr.split('-')[2]),
+      hours,
+      minutes
+    );
+    
+    // Check min date if provided
+    if (minDate && latviaDate < minDate) return false;
+    
+    // Check max date if provided
+    if (maxDate && latviaDate > maxDate) return false;
+  }
+  
+  return true;
+}
