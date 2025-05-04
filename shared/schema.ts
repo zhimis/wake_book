@@ -9,7 +9,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
-// Day of week operating hours with timezone support
+// Day of week operating hours
 export const operatingHours = pgTable("operating_hours", {
   id: serial("id").primaryKey(),
   dayOfWeek: integer("day_of_week").notNull(), // 0-6 (Sunday-Saturday)
@@ -67,16 +67,6 @@ export const bookingTimeSlots = pgTable("booking_time_slots", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").notNull(),
   timeSlotId: integer("time_slot_id").notNull(),
-});
-
-// New table for time format preferences
-export const timeFormatPreferences = pgTable("time_format_preferences", {
-  id: serial("id").primaryKey(),
-  use24HourFormat: boolean("use_24_hour_format").default(true).notNull(),
-  showTimezoneIndicator: boolean("show_timezone_indicator").default(true).notNull(),
-  dateFormat: text("date_format").default("dd.MM.yyyy").notNull(), // EU format by default
-  timeFormat: text("time_format").default("HH:mm").notNull(), // 24hr format by default
-  defaultTimezone: text("default_timezone").default("Europe/Riga").notNull(),
 });
 
 // Insert schemas
