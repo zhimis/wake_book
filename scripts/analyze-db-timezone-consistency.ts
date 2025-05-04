@@ -48,19 +48,27 @@ async function analyzeTimeSlotData() {
   const bookingIssues: BookingIssue[] = [];
   
   try {
-    // 1. Fetch all records
-    const allTimeSlots = await db.select().from(timeSlots);
-    const allBookingRecords = await db.select().from(bookings);
-    const allOperatingHours = await db.select().from(operatingHours);
+    console.log('Fetching data from database...');
     
-    console.log(`Found ${allTimeSlots.length} time slots`);
-    console.log(`Found ${allBookingRecords.length} bookings`);
-    console.log(`Found ${allOperatingHours.length} operating hours records\n`);
+    // 1. Get record counts
+    const timeSlotRows = await db.select().from(timeSlots);
+    const bookingRows = await db.select().from(bookings);
+    const operatingHoursRows = await db.select().from(operatingHours);
+    
+    console.log(`Found ${timeSlotRows.length} time slots`);
+    console.log(`Found ${bookingRows.length} bookings`);
+    console.log(`Found ${operatingHoursRows.length} operating hours records\n`);
+    
+    if (timeSlotRows.length === 0) {
+      console.log('No time slots found in database. Skipping analysis.');
+      await pool.end();
+      return;
+    }
     
     // 2. Analyze time slots
     console.log('Analyzing time slots for timezone issues...');
     
-    for (const slot of allTimeSlots) {
+    for (const slot of timeSlotRows) {
       // Check if dates are valid
       if (!isValid(new Date(slot.startTime)) || !isValid(new Date(slot.endTime))) {
         timeSlotIssues.push({
@@ -94,39 +102,9 @@ async function analyzeTimeSlotData() {
       const hourInLatvia = startInLatvia.getHours();
       const minuteInLatvia = startInLatvia.getMinutes();
       
-      // Get operating hours for this day
-      const [dayOperatingHours] = await db.select()
-        .from(operatingHours)
-        .where(eq(operatingHours.dayOfWeek, dayOfWeek));
-      
-      if (dayOperatingHours) {
-        if (dayOperatingHours.isClosed) {
-          timeSlotIssues.push({
-            id: slot.id,
-            startTime: new Date(slot.startTime),
-            endTime: new Date(slot.endTime),
-            issue: "Slot on closed day",
-            details: `Day ${dayOfWeek} (${getDayName(dayOfWeek)}) is marked as closed`
-          });
-        } else {
-          // Check if slot is within operating hours
-          const [openHour, openMinute] = dayOperatingHours.openTime.split(':').map(Number);
-          const [closeHour, closeMinute] = dayOperatingHours.closeTime.split(':').map(Number);
-          
-          const isBeforeOpening = hourInLatvia < openHour || (hourInLatvia === openHour && minuteInLatvia < openMinute);
-          const isAfterClosing = hourInLatvia >= closeHour;
-          
-          if (isBeforeOpening || isAfterClosing) {
-            timeSlotIssues.push({
-              id: slot.id,
-              startTime: new Date(slot.startTime),
-              endTime: new Date(slot.endTime),
-              issue: "Outside operating hours",
-              details: `Time ${formatInTimeZone(startInLatvia, LATVIA_TIMEZONE, 'HH:mm')} is outside operating hours (${dayOperatingHours.openTime}-${dayOperatingHours.closeTime})`
-            });
-          }
-        }
-      } else {
+      // Look up operating hours for this day
+      const matchingHours = operatingHoursRows.filter(oh => oh.dayOfWeek === dayOfWeek);
+      if (matchingHours.length === 0) {
         timeSlotIssues.push({
           id: slot.id,
           startTime: new Date(slot.startTime),
@@ -134,6 +112,35 @@ async function analyzeTimeSlotData() {
           issue: "No operating hours",
           details: `No operating hours defined for day ${dayOfWeek} (${getDayName(dayOfWeek)})`
         });
+        continue;
+      }
+      
+      const dayOperatingHours = matchingHours[0];
+      if (dayOperatingHours.isClosed) {
+        timeSlotIssues.push({
+          id: slot.id,
+          startTime: new Date(slot.startTime),
+          endTime: new Date(slot.endTime),
+          issue: "Slot on closed day",
+          details: `Day ${dayOfWeek} (${getDayName(dayOfWeek)}) is marked as closed`
+        });
+      } else {
+        // Check if slot is within operating hours
+        const [openHour, openMinute] = dayOperatingHours.openTime.split(':').map(Number);
+        const [closeHour, closeMinute] = dayOperatingHours.closeTime.split(':').map(Number);
+        
+        const isBeforeOpening = hourInLatvia < openHour || (hourInLatvia === openHour && minuteInLatvia < openMinute);
+        const isAfterClosing = hourInLatvia >= closeHour;
+        
+        if (isBeforeOpening || isAfterClosing) {
+          timeSlotIssues.push({
+            id: slot.id,
+            startTime: new Date(slot.startTime),
+            endTime: new Date(slot.endTime),
+            issue: "Outside operating hours",
+            details: `Time ${formatInTimeZone(startInLatvia, LATVIA_TIMEZONE, 'HH:mm')} is outside operating hours (${dayOperatingHours.openTime}-${dayOperatingHours.closeTime})`
+          });
+        }
       }
     }
     
@@ -142,7 +149,7 @@ async function analyzeTimeSlotData() {
     
     // Check for duplicate days
     const daysCovered = new Set<number>();
-    for (const oh of allOperatingHours) {
+    for (const oh of operatingHoursRows) {
       if (daysCovered.has(oh.dayOfWeek)) {
         operatingHoursIssues.push({
           id: oh.id,
@@ -152,18 +159,6 @@ async function analyzeTimeSlotData() {
         });
       }
       daysCovered.add(oh.dayOfWeek);
-      
-      // Check for missing days (should have 0-6)
-      for (let day = 0; day <= 6; day++) {
-        if (!daysCovered.has(day)) {
-          operatingHoursIssues.push({
-            id: 0, // No ID as it's missing
-            dayOfWeek: day,
-            issue: "Missing day",
-            details: `No operating hours defined for day ${day} (${getDayName(day)})`
-          });
-        }
-      }
       
       // Check time format validity
       if (!oh.openTime.match(/^\d{1,2}:\d{2}$/) || !oh.closeTime.match(/^\d{1,2}:\d{2}$/)) {
@@ -176,19 +171,31 @@ async function analyzeTimeSlotData() {
       }
     }
     
+    // Check for missing days (should have 0-6)
+    for (let day = 0; day <= 6; day++) {
+      if (!daysCovered.has(day)) {
+        operatingHoursIssues.push({
+          id: 0, // No ID as it's missing
+          dayOfWeek: day,
+          issue: "Missing day",
+          details: `No operating hours defined for day ${day} (${getDayName(day)})`
+        });
+      }
+    }
+    
     // 4. Analyze bookings and their time slots
     console.log('Analyzing bookings and their associated time slots...');
     
-    for (const booking of allBookingRecords) {
+    // Fetch all booking time slots once to avoid repeated queries
+    const allBookingTimeSlots = await db.select().from(bookingTimeSlots);
+    
+    for (const booking of bookingRows) {
       // Get this booking's time slots
-      const bookingSlots = await db.select({
-          timeSlot: timeSlots
-        })
-        .from(bookingTimeSlots)
-        .innerJoin(timeSlots, eq(bookingTimeSlots.timeSlotId, timeSlots.id))
-        .where(eq(bookingTimeSlots.bookingId, booking.id));
+      const bookingSlotIds = allBookingTimeSlots
+        .filter(bts => bts.bookingId === booking.id)
+        .map(bts => bts.timeSlotId);
       
-      if (bookingSlots.length === 0) {
+      if (bookingSlotIds.length === 0) {
         bookingIssues.push({
           id: booking.id,
           reference: booking.reference,
@@ -199,23 +206,26 @@ async function analyzeTimeSlotData() {
         continue;
       }
       
+      // Find the actual time slots
+      const bookedSlots = timeSlotRows.filter(ts => bookingSlotIds.includes(ts.id));
+      
       // Check if all slots have status "booked"
-      for (const { timeSlot } of bookingSlots) {
-        if (timeSlot.status !== "booked") {
+      for (const slot of bookedSlots) {
+        if (slot.status !== "booked") {
           bookingIssues.push({
             id: booking.id,
             reference: booking.reference,
             createdAt: new Date(booking.createdAt),
             issue: "Incorrect slot status",
-            details: `Time slot ${timeSlot.id} has status "${timeSlot.status}" instead of "booked"`
+            details: `Time slot ${slot.id} has status "${slot.status}" instead of "booked"`
           });
         }
       }
       
       // Check if slots are contiguous (no gaps)
-      const sortedSlots = bookingSlots
-        .map(bs => bs.timeSlot)
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+      const sortedSlots = [...bookedSlots].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
       
       for (let i = 0; i < sortedSlots.length - 1; i++) {
         const currentEnd = new Date(sortedSlots[i].endTime).getTime();
