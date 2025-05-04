@@ -124,7 +124,8 @@ export async function generateTimeSlotsWithTimezone(
         endTime: utcEndTime,
         price: Math.round(price), // Round to nearest whole number
         status: 'available',
-        reservationExpiry: null
+        reservationExpiry: null,
+        storageTimezone: 'UTC' // Explicitly set the timezone to UTC
       });
       
       // Debug log
