@@ -47,6 +47,7 @@ interface CalendarTimeSlot {
   startTime: Date;
   endTime: Date;
   reservationExpiry: Date | null;
+  isPast?: boolean; // Flag to identify if this slot is in the past
 }
 
 interface BookingCalendarProps {
@@ -306,6 +307,14 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         const status = dbSlot.status as TimeSlotStatus;
         const reservationExpiry = dbSlot.reservationExpiry ? new Date(dbSlot.reservationExpiry) : null;
         
+        // Check if the slot is in the past (end time is earlier than current time)
+        const now = new Date();
+        const isPast = endTime < now;
+        
+        if (isPast) {
+          console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(startTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(endTime, "HH:mm")}`);
+        }
+        
         slots.push({
           id: dbSlot.id.toString(),
           day: daysDiff, // For backward compatibility
@@ -316,7 +325,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           status,
           startTime,
           endTime,
-          reservationExpiry
+          reservationExpiry,
+          isPast // Add the past flag
         });
       }
     });
@@ -376,6 +386,13 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     const slot = timeSlots.find(s => s.id === slotId);
     if (!slot) return;
     
+    // Check if the slot is in the past
+    if (slot.isPast && !isAdmin) {
+      // Regular users cannot interact with past slots
+      console.log(`Cannot select past slot ${slotId}`);
+      return;
+    }
+    
     // Convert our UI slot to a schema slot before passing to context
     const schemaSlot = toSchemaTimeSlot(slot);
     
@@ -406,15 +423,28 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     // Navigate to booking page right away without showing a toast
   };
   
-  // Get CSS class for time slot based on status
-  const getSlotClass = (status: TimeSlotStatus, isSelected: boolean) => {
+  // Get CSS class for time slot based on status and whether it's in the past
+  const getSlotClass = (status: TimeSlotStatus, isSelected: boolean, isPast: boolean = false) => {
     // If admin mode and selected, force use of our special CSS class
     if (isAdmin && isSelected) {
       // Return the global admin-selected-slot class to override everything else with more subtle styling
       return "admin-selected-slot border-2 border-red-400 bg-red-100 text-red-900 font-semibold transform scale-105 z-50 shadow-md";
     }
     
-    // For regular user view
+    // Handle past slots differently
+    if (isPast) {
+      // For both admin and user views, show past slots with different styling
+      switch (status) {
+        case "available":
+          return "bg-gray-300 text-gray-700 border-gray-400 cursor-not-allowed opacity-60";
+        case "booked":
+          return "bg-amber-700 bg-opacity-20 text-amber-900 border-amber-700 cursor-not-allowed opacity-60";
+        default:
+          return "bg-gray-400 text-gray-800 border-gray-500 cursor-not-allowed opacity-60";
+      }
+    }
+    
+    // For regular user view (future slots)
     if (!isAdmin) {
       // Regular user selected slots styling
       if (isSelected) {
@@ -432,7 +462,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       }
     }
     
-    // Admin slot status styling (not selected)
+    // Admin slot status styling (not selected, future slots)
     switch (status) {
       case "available":
         return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
@@ -680,7 +710,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                             size="sm"
                             className={cn(
                               "h-14 py-0 px-1 justify-center items-center text-center text-xs",
-                              getSlotClass(slot.status, isSelected)
+                              getSlotClass(slot.status, isSelected, slot.isPast || false)
                             )}
                             disabled={slot.status !== "available" && !isAdmin}
                             onClick={() => handleSlotToggle(slot.id, slot.status)}
@@ -792,7 +822,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                           size="sm"
                           className={cn(
                             "h-14 py-0 px-1 justify-center items-center text-center text-xs",
-                            getSlotClass(slot.status, isSelected),
+                            getSlotClass(slot.status, isSelected, slot.isPast || false),
                             isCurrentDay && !isSelected && slot.status === "available" ? "border-blue-300" : ""
                           )}
                           disabled={slot.status !== "available" && !isAdmin}
