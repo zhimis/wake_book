@@ -226,69 +226,77 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   };
   
   // Create a Latvian week (Monday-Sunday) from current date
-  // For admin view, include Sunday (yesterday) as well
+  // For admin view, we show yesterday + the current week (8 columns total)
   const days = useMemo(() => {
-    // Get the Latvian day index for the current date (0=Monday, 1=Tuesday, etc)
-    const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
+    const today = toLatviaTime(new Date());
     
-    // Calculate the date for Monday (start of Latvian week)
-    // If today is Monday (index 0), then monday is today
-    // If today is Tuesday (index 1), then monday is yesterday, etc.
-    const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
+    // For admin view, we want to show yesterday + current week (Mon-Sun)
+    // For regular view, we show the current week (Mon-Sun) based on currentDate
+    let daysArray = [];
     
-    // For admin view, we'll start with Sunday (the day before Monday)
-    let startDate = mondayDate;
     if (isAdmin) {
-      startDate = addDays(mondayDate, -1); // Sunday before Monday
-    }
-    
-    console.log(`Calculating week with:
-      Current date: ${currentDate.toISOString()}
-      Latvia day index: ${latvianDayIndexForToday}
-      Start date: ${startDate.toISOString()} (${isAdmin ? 'Sunday' : 'Monday'})
-    `);
-    
-    // Enhanced debugging for admin view: Get the current real date to check past days
-    if (isAdmin) {
-      const realToday = new Date();
-      console.log(`ADMIN VIEW - Current real date: ${realToday.toISOString()}`);
-    }
-    
-    // Create an array of days (7 for regular view, 8 for admin to include Sunday)
-    const daysArray = [];
-    const daysToShow = isAdmin ? 8 : 7;
-    
-    for (let i = 0; i < daysToShow; i++) {
-      const date = addDays(startDate, i);
+      // Admin view shows yesterday + current week
       
-      // Calculate proper Latvian day index
-      let latvianDayIndex;
-      if (isAdmin && i === 0) {
-        latvianDayIndex = 6; // Sunday is index 6 in Latvian system (0=Monday,6=Sunday)
-      } else if (isAdmin) {
-        latvianDayIndex = i - 1; // Adjust indices for admin view (i=1 → latvianDayIndex=0)
-      } else {
-        latvianDayIndex = i; // Standard view: i matches Latvian day index
-      }
+      // Get yesterday's date for the first column
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
       
-      const formattedDate = formatInLatviaTime(date, "yyyy-MM-dd");
+      // Get the current week's Monday (for consistent week view)
+      const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
+      const mondayDate = addDays(today, -latvianDayIndexForToday);
       
-      if (isAdmin) {
-        // Enhanced debugging to show if day is in the past
-        const now = new Date();
-        const dateToBefore = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const isPastDay = dayDate < dateToBefore;
-        
-        console.log(`Day ${i} (${formatInLatviaTime(date, "EEE")}): ${formattedDate}, Latvian index: ${latvianDayIndex}, Is Past: ${isPastDay}`);
-      }
+      console.log(`Admin view - Week calculation:
+        Today: ${formatInLatviaTime(today, "EEE, MMM d")}
+        Yesterday: ${formatInLatviaTime(yesterday, "EEE, MMM d")}
+        Monday of this week: ${formatInLatviaTime(mondayDate, "EEE, MMM d")}
+      `);
       
+      // First column: yesterday
       daysArray.push({
-        date,
-        name: formatInLatviaTime(date, "EEE"),
-        day: formatInLatviaTime(date, "d"),
-        latvianDayIndex
+        date: yesterday,
+        name: formatInLatviaTime(yesterday, "EEE"),
+        day: formatInLatviaTime(yesterday, "d"),
+        latvianDayIndex: getLatvianDayIndexFromDate(yesterday) // Will be a consistent day index
       });
+      
+      // Next 7 columns: current week (Mon-Sun)
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(mondayDate, i);
+        daysArray.push({
+          date,
+          name: formatInLatviaTime(date, "EEE"),
+          day: formatInLatviaTime(date, "d"),
+          latvianDayIndex: i // Monday=0, Sunday=6 in Latvian system
+        });
+      }
+      
+      // Log the final days array for debugging
+      daysArray.forEach((day, idx) => {
+        console.log(`Admin day ${idx}: ${formatInLatviaTime(day.date, "EEE, MMM d")}, Latvian index: ${day.latvianDayIndex}`);
+      });
+    } else {
+      // Regular user view just shows the current week based on currentDate
+      // Get the Latvian day index for the current date (0=Monday, 1=Tuesday, etc)
+      const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
+      
+      // Calculate the date for Monday (start of Latvian week)
+      const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
+      
+      console.log(`Regular view - Week calculation:
+        Current date: ${formatInLatviaTime(currentDate, "EEE, MMM d")}
+        Monday of week: ${formatInLatviaTime(mondayDate, "EEE, MMM d")}
+      `);
+      
+      // Create array of 7 days (Monday-Sunday)
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(mondayDate, i);
+        daysArray.push({
+          date,
+          name: formatInLatviaTime(date, "EEE"),
+          day: formatInLatviaTime(date, "d"),
+          latvianDayIndex: i // Monday=0, Sunday=6 in Latvian system
+        });
+      }
     }
     
     return daysArray;
