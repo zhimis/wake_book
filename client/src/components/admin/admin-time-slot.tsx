@@ -19,18 +19,38 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
 }) => {
   // Check if the time slot is in the past
   // We need more rigorous date comparison to properly detect past slots
-  const now = new Date();
+  
+  // TEMPORARY TEST MODE for seeing the effect on past slots
+  // In a real environment, this would be determined by the current date
+  // For testing, we're using an artificial date of May 5th, 2025
+  const TEST_MODE = true;
+  const now = TEST_MODE ? new Date(2025, 4, 5, 12, 0, 0) : new Date();
   
   // Get the slot's date (either from original or mapped date)
   const slotDate = slot.originalStartTime || slot.startTime;
   
-  // A slot is in the past if its full date+time is before current date+time
-  const isPast = slotDate < now;
+  // For date comparison, we need to handle both full past days and past hours of today
+  // First, get just the date portions for comparison
+  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const slotOnlyDate = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
+  
+  // If the slot date is from a previous day, it's definitely past
+  const isPastDay = slotOnlyDate < todayDate;
+  
+  // If the slot is from today, check if its time has already passed
+  const isToday = slotOnlyDate.getTime() === todayDate.getTime();
+  const isPastTime = isToday && slotDate < now;
+  
+  // Combine both conditions
+  const isPast = isPastDay || isPastTime;
   
   // Debug for troubleshooting past slots
   console.log(`Slot ${slot.id} isPast check:`, {
     slotDate: slotDate.toISOString(),
     now: now.toISOString(),
+    isPastDay,
+    isToday,
+    isPastTime,
     isPast
   });
   
