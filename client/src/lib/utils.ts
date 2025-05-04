@@ -253,9 +253,23 @@ export function formatTimeSlot(
   return shouldShow ? `${timeSlotStr} (Latvia time)` : timeSlotStr;
 }
 
-export function getTimeSlotClass(status: string, isSelected: boolean = false): string {
+export function getTimeSlotClass(status: string, isSelected: boolean = false, isPast: boolean = false): string {
   if (isSelected) {
     return "slot-selected bg-primary-light bg-opacity-20 border-2 border-primary";
+  }
+
+  if (isPast) {
+    switch (status) {
+      case "available":
+        // Darker gray for past available slots
+        return "slot-past-available bg-gray-400 bg-opacity-20 border border-gray-400 cursor-not-allowed";
+      case "booked":
+        // Darker amber/gray for past booked slots
+        return "slot-past-booked bg-amber-700 bg-opacity-20 border border-amber-700 cursor-not-allowed";
+      default:
+        // Default past appearance
+        return "slot-past bg-gray-400 bg-opacity-20 border border-gray-400 cursor-not-allowed";
+    }
   }
   
   switch (status) {

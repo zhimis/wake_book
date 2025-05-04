@@ -15,9 +15,14 @@ const TimeSlotComponent = ({
   isSelected,
   isAdmin = false
 }: TimeSlotProps) => {
-  // For regular users, only available slots are interactive
-  // For admin, all slots are interactive regardless of status
-  const isInteractive = isAdmin ? true : (timeSlot.status === "available" || isSelected);
+  // Check if the time slot is in the past
+  const isPast = new Date(timeSlot.endTime) < new Date();
+  
+  // For regular users, only available future slots are interactive
+  // For admin, all slots are interactive regardless of status, even past ones
+  const isInteractive = isPast 
+    ? isAdmin // Only admin can interact with past slots
+    : (isAdmin || timeSlot.status === "available" || isSelected);
   
   const handleClick = () => {
     // For regular users, only allow interaction with available slots
@@ -29,11 +34,14 @@ const TimeSlotComponent = ({
   
   // For admin view, show more details
   if (isAdmin) {
+    const statusText = timeSlot.status === "booked" ? "Booked" : "Available";
+    const displayStatus = isPast ? `Past ${statusText}` : statusText;
+    
     return (
       <div 
         className={cn(
           "h-16 m-0.5 rounded-md flex flex-col items-start justify-center text-sm p-2",
-          getTimeSlotClass(timeSlot.status, isSelected),
+          getTimeSlotClass(timeSlot.status, isSelected, isPast),
           // Admin can select any slot
           "cursor-pointer"
         )}
@@ -43,7 +51,7 @@ const TimeSlotComponent = ({
           {formatInLatviaTime(toLatviaTime(new Date(timeSlot.startTime)), "HH:mm")} - {formatInLatviaTime(toLatviaTime(new Date(timeSlot.endTime)), "HH:mm")}
         </span>
         <span className="text-xs text-gray-500">
-          {formatPrice(timeSlot.price)} • {timeSlot.status === "booked" ? "Booked" : "Available"}
+          {formatPrice(timeSlot.price)} • {displayStatus}
         </span>
       </div>
     );
@@ -54,7 +62,7 @@ const TimeSlotComponent = ({
     <button 
       className={cn(
         "h-12 m-0.5 rounded-md flex flex-col items-center justify-center text-sm border-t border-gray-200",
-        getTimeSlotClass(timeSlot.status, isSelected),
+        getTimeSlotClass(timeSlot.status, isSelected, isPast),
         isInteractive ? "" : "cursor-not-allowed opacity-60"
       )}
       onClick={handleClick}

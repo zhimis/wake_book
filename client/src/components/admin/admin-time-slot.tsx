@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { TimeSlot } from "@shared/schema";
 import { CSSProperties } from 'react';
-import { Eye, Edit, Lock } from 'lucide-react';
+import { Eye, Edit, Lock, Clock } from 'lucide-react';
 
 interface AdminTimeSlotProps {
   slot: TimeSlot;
@@ -17,15 +17,30 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   isSelected, 
   onClick 
 }) => {
-  console.log(`AdminTimeSlot rendering with id: ${slot.id}, selected: ${isSelected}, status: ${slot.status}`);
+  // Check if the time slot is in the past
+  const isPast = new Date(slot.endTime) < new Date();
   
-  // Get CSS class for time slot based on status
+  // Get CSS class for time slot based on status and whether it's in the past
   const getSlotClass = (status: string) => {
+    // Past slots get a different styling
+    if (isPast) {
+      switch (status) {
+        case "available":
+          return "bg-gray-300 text-gray-700 border-gray-400"; // Darker gray for past available
+        case "booked":
+          return "bg-amber-700 bg-opacity-20 text-amber-900 border-amber-700"; // Darker amber for past booked
+        case "unallocated":
+        default:
+          return "bg-gray-400 text-gray-800 border-gray-500"; // Darker gray for past unallocated
+      }
+    }
+    
+    // Regular styling for future slots
     switch (status) {
       case "available":
         return "bg-green-100 text-green-800 hover:bg-green-200 hover:scale-105 transition-transform";
       case "booked":
-        return "bg-amber-100 text-amber-800 hover:bg-amber-200";  // Remove hover effect for clarity
+        return "bg-amber-100 text-amber-800 hover:bg-amber-200";
       case "unallocated":
         // Special handling for unallocated slots - light gray with hover effect
         return "bg-gray-100 text-gray-800 hover:bg-gray-200 hover:scale-105 transition-transform";
@@ -76,16 +91,29 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     >
       <div className="text-center w-full flex flex-col items-center justify-center">
         {slot.status === 'booked' ? (
-          // Booked slots only show price (no selection indicator)
+          // Booked slots styling
           <>
-            <Badge variant="outline" className="px-1 h-4 text-[10px]">
+            <Badge variant="outline" className={cn(
+              "px-1 h-4 text-[10px]",
+              isPast && "bg-amber-50 border-amber-700"
+            )}>
               €{slot.price}
             </Badge>
+            {isPast && (
+              <div className="absolute top-0 left-0 -mt-1 -ml-1">
+                <Badge className="w-4 h-4 flex items-center justify-center p-0 bg-amber-700 text-white">
+                  <Clock className="h-2 w-2" />
+                </Badge>
+              </div>
+            )}
           </>
         ) : slot.status === 'unallocated' ? (
-          // Unallocated slots have special styling
+          // Unallocated slots styling
           <>
-            <Badge variant="outline" className="px-1 h-4 text-[10px] bg-gray-50">
+            <Badge variant="outline" className={cn(
+              "px-1 h-4 text-[10px]",
+              isPast ? "bg-gray-200" : "bg-gray-50"
+            )}>
               {slot.id < 0 ? 'Empty' : `€${slot.price}`}
             </Badge>
             {isSelected && (
@@ -93,16 +121,33 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
                 <Badge className="w-3 h-3 flex items-center justify-center p-0 bg-primary">✓</Badge>
               </div>
             )}
+            {isPast && (
+              <div className="absolute top-0 left-0 -mt-1 -ml-1">
+                <Badge className="w-4 h-4 flex items-center justify-center p-0 bg-gray-500 text-white">
+                  <Clock className="h-2 w-2" />
+                </Badge>
+              </div>
+            )}
           </>
         ) : (
-          // Default for available slots
+          // Available slots styling
           <>
-            <Badge variant="outline" className="px-1 h-4 text-[10px]">
+            <Badge variant="outline" className={cn(
+              "px-1 h-4 text-[10px]",
+              isPast && "bg-gray-200 border-gray-400"
+            )}>
               €{slot.price}
             </Badge>
             {isSelected && (
               <div className="absolute top-0 right-0 -mt-1 -mr-1">
                 <Badge className="w-3 h-3 flex items-center justify-center p-0 bg-primary">✓</Badge>
+              </div>
+            )}
+            {isPast && (
+              <div className="absolute top-0 left-0 -mt-1 -ml-1">
+                <Badge className="w-4 h-4 flex items-center justify-center p-0 bg-gray-500 text-white">
+                  <Clock className="h-2 w-2" />
+                </Badge>
               </div>
             )}
           </>
