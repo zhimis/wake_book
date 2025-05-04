@@ -19,12 +19,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
 }) => {
   // Check if the time slot is in the past
   // We need more rigorous date comparison to properly detect past slots
-  
-  // TEMPORARY TEST MODE for seeing the effect on past slots
-  // In a real environment, this would be determined by the current date
-  // For testing, we're using an artificial date of May 5th, 2025
-  const TEST_MODE = true;
-  const now = TEST_MODE ? new Date(2025, 4, 5, 12, 0, 0) : new Date();
+  const now = new Date();
   
   // Get the slot's date (either from original or mapped date)
   const slotDate = slot.originalStartTime || slot.startTime;
