@@ -761,6 +761,18 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                             const dummyEndDate = new Date(dummyDate);
                             dummyEndDate.setMinutes(dummyEndDate.getMinutes() + 30);
                             
+                            // Check if this slot is in the past (for correct styling)
+                            const now = new Date();
+                            // First check if it's a past day
+                            const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            const slotOnlyDate = new Date(dummyDate.getFullYear(), dummyDate.getMonth(), dummyDate.getDate());
+                            const isPastDay = slotOnlyDate < todayDate;
+                            // Then check if it's today but in the past
+                            const isToday = slotOnlyDate.getTime() === todayDate.getTime();
+                            const isPastTime = isToday && dummyDate < now;
+                            // Combined condition
+                            const isPast = isPastDay || isPastTime;
+                            
                             // Create a dummy slot with "unallocated" status and unique ID
                             const dummySlot: SchemaTimeSlot = {
                               id: -1 * (Date.now() + idx + dummyHour + dummyMinute), // Negative ID to ensure uniqueness
@@ -768,7 +780,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                               endTime: dummyEndDate,
                               price: 25, // Default price
                               status: "unallocated",
-                              reservationExpiry: null
+                              reservationExpiry: null,
+                              isPast: isPast // Important: pass the isPast flag
                             };
                             
                             const isSelected = adminSelectedSlots?.some(s => 
@@ -879,6 +892,18 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                           const dummyEndDate = new Date(dummyDate);
                           dummyEndDate.setMinutes(dummyEndDate.getMinutes() + 30);
                           
+                          // Check if this slot is in the past (for correct styling)
+                          const now = new Date();
+                          // First check if it's a past day
+                          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                          const slotOnlyDate = new Date(dummyDate.getFullYear(), dummyDate.getMonth(), dummyDate.getDate());
+                          const isPastDay = slotOnlyDate < todayDate;
+                          // Then check if it's today but in the past
+                          const isToday = slotOnlyDate.getTime() === todayDate.getTime();
+                          const isPastTime = isToday && dummyDate < now;
+                          // Combined condition
+                          const isPast = isPastDay || isPastTime;
+                          
                           // Create a dummy slot with "unallocated" status and unique ID
                           const dummySlot: SchemaTimeSlot = {
                             id: -1 * (Date.now() + idx + dummyHour + dummyMinute), // Negative ID to ensure uniqueness
@@ -886,7 +911,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                             endTime: dummyEndDate,
                             price: 25, // Default price
                             status: "unallocated",
-                            reservationExpiry: null
+                            reservationExpiry: null,
+                            isPast: isPast // Important: pass the isPast flag
                           };
                           
                           const isSelected = adminSelectedSlots?.some(s => 
