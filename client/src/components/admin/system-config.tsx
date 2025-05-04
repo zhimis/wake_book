@@ -426,16 +426,13 @@ const AdminSystemConfig = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 15 }, (_, i) => i + 8).map(h => {
-                        // Use direct Latvia time values (8:00-22:00 Latvia time)
-                        const timeDate = new Date();
-                        timeDate.setUTCHours(h, 0, 0, 0);
-                        
-                        // Format the time in Latvia timezone
-                        const latviaTime = formatTime(timeDate, false);
+                        // Use direct Latvia time values (8:00-22:00)
+                        // Display the hours directly without timezone conversion
+                        const formattedHour = `${h.toString().padStart(2, '0')}:00`;
                         
                         return (
-                          <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
-                            {latviaTime}
+                          <SelectItem key={h} value={formattedHour}>
+                            {formattedHour}
                           </SelectItem>
                         );
                       })}
@@ -465,16 +462,13 @@ const AdminSystemConfig = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 15 }, (_, i) => i + 8).map(h => {
-                        // Create a date at this hour in UTC
-                        const timeDate = new Date();
-                        timeDate.setUTCHours(h, 0, 0, 0);
-                        
-                        // Format the time in Latvia timezone
-                        const latviaTime = formatTime(timeDate, false);
+                        // Use direct Latvia time values (8:00-22:00)
+                        // Display the hours directly without timezone conversion
+                        const formattedHour = `${h.toString().padStart(2, '0')}:00`;
                         
                         return (
-                          <SelectItem key={h} value={`${h.toString().padStart(2, '0')}:00`}>
-                            {latviaTime}
+                          <SelectItem key={h} value={formattedHour}>
+                            {formattedHour}
                           </SelectItem>
                         );
                       })}
