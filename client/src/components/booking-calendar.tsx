@@ -508,12 +508,27 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     
     if (selected.length === 0) return null;
     
-    // Group slots by date for clearer display
+    // Ensure we're using the correct days from our days array for display consistency
+    // This fixes mismatches between calendar header dates and selection summary
+
+    // First, create a map of Latvia day indices to dates from our days array
+    const dayMap = new Map();
+    days.forEach(day => {
+      dayMap.set(day.latvianDayIndex, day.date);
+    });
+    
+    // Group slots by date for clearer display, using the consistent day map
     const slotsByDate = selected.reduce((acc, slot) => {
       if (!slot.startTime) return acc;
       
+      // Get the Latvian day index for this slot
+      const latvianDayIndex = getLatvianDayIndexFromDate(slot.startTime);
+      
+      // Use the matching date from our days array if available
+      const displayDate = dayMap.get(latvianDayIndex) || slot.startTime;
+      
       // Format the date part only (e.g. "Mon, May 5")
-      const dateKey = formatInLatviaTime(slot.startTime, "EEE, MMM d");
+      const dateKey = formatInLatviaTime(displayDate, "EEE, MMM d");
       
       if (!acc[dateKey]) {
         acc[dateKey] = [];
