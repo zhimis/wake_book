@@ -420,7 +420,7 @@ const AdminSystemConfig = () => {
               <div className="flex items-center space-x-3">
                 <div className="relative">
                   <Select 
-                    value={typeof hour.openTime === 'string' ? hour.openTime.slice(0, 5) : '08:00'} 
+                    value={hour.openTimeFormatted || '08:00'} 
                     onValueChange={(value) => handleOperatingHoursUpdate(
                       hour.id, 
                       'openTime', 
@@ -445,18 +445,13 @@ const AdminSystemConfig = () => {
                       })}
                     </SelectContent>
                   </Select>
-                  {hour.openTimeFormatted && (
-                    <div className="text-xs text-gray-500 mt-1 text-center w-full">
-                      {hour.openTimeFormatted}
-                    </div>
-                  )}
                 </div>
                 
                 <span className="text-gray-500">to</span>
                 
                 <div className="relative">
                   <Select 
-                    value={typeof hour.closeTime === 'string' ? hour.closeTime.slice(0, 5) : '22:00'} 
+                    value={hour.closeTimeFormatted || '22:00'} 
                     onValueChange={(value) => handleOperatingHoursUpdate(
                       hour.id, 
                       'closeTime', 
@@ -481,11 +476,6 @@ const AdminSystemConfig = () => {
                       })}
                     </SelectContent>
                   </Select>
-                  {hour.closeTimeFormatted && (
-                    <div className="text-xs text-gray-500 mt-1 text-center w-full">
-                      {hour.closeTimeFormatted}
-                    </div>
-                  )}
                 </div>
                 
                 <div className="flex items-center ml-2">
