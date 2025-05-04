@@ -385,15 +385,33 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       const status = dbSlot.status as TimeSlotStatus;
       const reservationExpiry = dbSlot.reservationExpiry ? new Date(dbSlot.reservationExpiry) : null;
       
-      // Check if the slot is in the past (end time is earlier than current time)
+      // Check if the slot is in the past
       const now = new Date();
-      const isPast = correctedEndTime < now;
       
-      // For past slots with status "booked", we need to preserve their "booked" status
-      // This is crucial for the admin view to see past bookings
-      if (isPast) {
-        // Log detailed information about past slots for debugging
-        console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(correctedStartTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(correctedEndTime, "HH:mm")}, Status: ${dbSlot.status}, Original date: ${formatInLatviaTime(startTime, "yyyy-MM-dd")}`);
+      // First check if the date is in the past (before today)
+      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const slotDate = new Date(correctedStartTime.getFullYear(), correctedStartTime.getMonth(), correctedStartTime.getDate());
+      const isPastDay = slotDate < todayDate;
+      
+      // Then check if it's today but the time has already passed
+      const isToday = slotDate.getTime() === todayDate.getTime();
+      const isPastTime = isToday && correctedEndTime < now;
+      
+      // IMPORTANT: For admin view, we want to show today's bookings even if they're in the past
+      // So we'll only mark slots as "past" if they're from a previous day
+      const isPast = isPastDay; // Do not include isPastTime for admin view
+      
+      // For slots during important hours, log detailed information
+      if (hour >= 13 && hour <= 16) {
+        console.log(`Slot ${dbSlot.id} timing:`, {
+          date: formatInLatviaTime(correctedStartTime, "yyyy-MM-dd"),
+          time: formatInLatviaTime(correctedStartTime, "HH:mm"),
+          status: dbSlot.status,
+          isPastDay,
+          isToday,
+          isPastTime,
+          isPast
+        });
       }
       
       slots.push({
@@ -427,23 +445,45 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     // Create an array of slots (7 for regular view, 8 for admin) - all initially undefined
     const slotsForWeek = Array(isAdmin ? 8 : 7).fill(undefined);
     
+    // Log to debug for important hours
+    if ((hour === 13 || hour === 14 || hour === 15 || hour === 16) && minute === 0) {
+      console.log(`Matching slots for ${hour}:${minute} - ${matchingSlots.length} slots found`);
+      matchingSlots.forEach((slot, idx) => {
+        console.log(`Slot ${idx}: day=${slot.latvianDayIndex}, hour=${slot.hour}, minute=${slot.minute}, status=${slot.status}`);
+      });
+    }
+    
     // Place slots in the correct day position based on latvianDayIndex
     matchingSlots.forEach(slot => {
-      // Get the proper latvianDayIndex (may need adjustment for admin view with Sunday)
+      if (slot.latvianDayIndex === undefined) {
+        console.error("Slot is missing latvianDayIndex:", slot);
+        return;
+      }
+      
+      // Default display index is the same as Latvian index
       let displayIndex = slot.latvianDayIndex;
       
-      // For admin view, we need to map the Latvian day indices to our display indices
-      // Our display has Sunday (latvianDayIndex 6) as the first column (index 0)
+      // For admin view with 8 columns (yesterday + this week)
       if (isAdmin) {
-        if (slot.latvianDayIndex === 6) { // Sunday in Latvian week (last day)
-          displayIndex = 0; // First column in admin view
+        // Get current date in Latvia time to identify yesterday
+        const latviaToday = toLatviaTime(new Date());
+        const yesterday = new Date(latviaToday);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        // For slots from yesterday (shown in column 0) and today's week
+        const slotDate = new Date(slot.startTime);
+        
+        // If slot is from yesterday, put it in column 0
+        if (isDateYesterday(slotDate, latviaToday)) {
+          displayIndex = 0;
         } else {
-          displayIndex = slot.latvianDayIndex + 1; // Shift Monday-Saturday one column to the right
+          // For current week slots (shift by 1 to make room for yesterday)
+          displayIndex = slot.latvianDayIndex + 1;
         }
       }
       
       // Make sure the index is valid for our array
-      if (typeof displayIndex === 'number' && displayIndex >= 0 && displayIndex < slotsForWeek.length) {
+      if (displayIndex >= 0 && displayIndex < slotsForWeek.length) {
         slotsForWeek[displayIndex] = slot;
       } else {
         console.error(`Invalid display index: ${displayIndex} for slot with latvianDayIndex: ${slot.latvianDayIndex}`, slot);
@@ -451,6 +491,22 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     });
     
     return slotsForWeek;
+  };
+  
+  // Helper to check if a date is yesterday
+  const isDateYesterday = (date: Date, today: Date): boolean => {
+    const dateObj = new Date(date);
+    const todayObj = new Date(today);
+    
+    // Reset time parts to compare only the dates
+    dateObj.setHours(0, 0, 0, 0);
+    todayObj.setHours(0, 0, 0, 0);
+    
+    // Yesterday is today - 1 day
+    const yesterdayObj = new Date(todayObj);
+    yesterdayObj.setDate(todayObj.getDate() - 1);
+    
+    return dateObj.getTime() === yesterdayObj.getTime();
   };
   
   // Get all time strings in format "HH:MM"
@@ -739,7 +795,6 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                 <div key={index} className={containerClass}>
                   <div className={dayNameClass}>
                     {day.name}
-                    {isPastDay && isAdmin && <span className="ml-1 text-xs opacity-70">(Past)</span>}
                   </div>
                   <div className={dayNumberClass}>{day.day}</div>
                 </div>
