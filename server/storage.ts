@@ -865,7 +865,13 @@ export class MemStorage implements IStorage {
   
   async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
     const id = this.currentTimeSlotId++;
-    const newTimeSlot: TimeSlot = { ...timeSlot, id };
+    // Ensure storageTimezone is always set, defaulting to UTC if not provided
+    const newTimeSlot: TimeSlot = { 
+      ...timeSlot, 
+      id,
+      status: timeSlot.status || 'available', // Ensure status is set
+      storageTimezone: timeSlot.storageTimezone || 'UTC' // Ensure storageTimezone is set
+    };
     this.timeSlots.set(id, newTimeSlot);
     return newTimeSlot;
   }
@@ -1035,7 +1041,8 @@ export class MemStorage implements IStorage {
               endTime,
               price: Math.round(price), // Round to nearest whole number
               status: 'available',
-              reservationExpiry: null
+              reservationExpiry: null,
+              storageTimezone: 'UTC' // Add the required storageTimezone field
             });
           }
         }

@@ -47,6 +47,7 @@ interface CalendarTimeSlot {
   startTime: Date;
   endTime: Date;
   reservationExpiry: Date | null;
+  storageTimezone: string; // Added storage timezone field
   isPast?: boolean; // Flag to identify if this slot is in the past
   originalStartTime?: Date; // Original database date before week mapping
   originalEndTime?: Date; // Original database date before week mapping
@@ -82,6 +83,7 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
     price: slot.price,
     status: slot.status,
     reservationExpiry: slot.reservationExpiry,
+    storageTimezone: 'UTC', // Add required storageTimezone field
     isPast: slot.isPast // Pass the isPast flag to AdminTimeSlot
   };
 }
