@@ -9,13 +9,15 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
-// Day of week operating hours
+// Day of week operating hours with timezone support
 export const operatingHours = pgTable("operating_hours", {
   id: serial("id").primaryKey(),
   dayOfWeek: integer("day_of_week").notNull(), // 0-6 (Sunday-Saturday)
   openTime: time("open_time").notNull(),
   closeTime: time("close_time").notNull(),
   isClosed: boolean("is_closed").notNull().default(false),
+  timezone: text("timezone").default("Europe/Riga").notNull(), // Add timezone field
+  useLocalTime: boolean("use_local_time").default(false).notNull(), // For special events with non-Latvia time
 });
 
 // Standard pricing 
@@ -36,14 +38,15 @@ export const configuration = pgTable("configuration", {
   value: text("value").notNull(),
 });
 
-// Time slots table
+// Time slots table with timezone support
 export const timeSlots = pgTable("time_slots", {
   id: serial("id").primaryKey(),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
+  startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { withTimezone: true }).notNull(),
   price: real("price").notNull(),
   status: text("status").notNull().default("available"), // available, booked
-  reservationExpiry: timestamp("reservation_expiry"), // When reservation expires
+  reservationExpiry: timestamp("reservation_expiry", { withTimezone: true }), // When reservation expires
+  storageTimezone: text("storage_timezone").default("UTC").notNull(), // Explicit timezone field
 });
 
 // Bookings table
@@ -64,6 +67,16 @@ export const bookingTimeSlots = pgTable("booking_time_slots", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").notNull(),
   timeSlotId: integer("time_slot_id").notNull(),
+});
+
+// New table for time format preferences
+export const timeFormatPreferences = pgTable("time_format_preferences", {
+  id: serial("id").primaryKey(),
+  use24HourFormat: boolean("use_24_hour_format").default(true).notNull(),
+  showTimezoneIndicator: boolean("show_timezone_indicator").default(true).notNull(),
+  dateFormat: text("date_format").default("dd.MM.yyyy").notNull(), // EU format by default
+  timeFormat: text("time_format").default("HH:mm").notNull(), // 24hr format by default
+  defaultTimezone: text("default_timezone").default("Europe/Riga").notNull(),
 });
 
 // Insert schemas
