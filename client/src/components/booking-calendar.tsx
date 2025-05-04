@@ -235,51 +235,45 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     let daysArray = [];
     
     if (isAdmin) {
-      // Admin view shows yesterday + current week
+      // Calculate the date for Monday of this week in Latvia time
+      const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
+      const mondayOfThisWeek = addDays(today, -latvianDayIndexForToday);
       
-      // Get yesterday's date for the first column
+      // Create a fixed 8-column layout:
+      // Column 1: Yesterday
+      // Columns 2-8: Monday through Sunday of the current week
+      
+      // First, yesterday (the day before today)
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       
-      // Get the current week's Monday (for consistent week view)
-      const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
-      const mondayDate = addDays(today, -latvianDayIndexForToday);
-      
-      console.log(`Admin view - Week calculation:
+      console.log(`Admin view - Column dates calculation:
         Today: ${formatInLatviaTime(today, "EEE, MMM d")}
         Yesterday: ${formatInLatviaTime(yesterday, "EEE, MMM d")}
-        Monday of this week: ${formatInLatviaTime(mondayDate, "EEE, MMM d")}
+        Monday of this week: ${formatInLatviaTime(mondayOfThisWeek, "EEE, MMM d")}
       `);
       
-      // First column: yesterday
+      // Add yesterday as the first column
       daysArray.push({
         date: yesterday,
         name: formatInLatviaTime(yesterday, "EEE"),
         day: formatInLatviaTime(yesterday, "d"),
-        latvianDayIndex: getLatvianDayIndexFromDate(yesterday) // Will be a consistent day index
+        latvianDayIndex: getLatvianDayIndexFromDate(yesterday)
       });
       
-      // Next 7 columns: current week (Mon-Sun)
+      // Add the 7 days of the current week (Mon-Sun)
       for (let i = 0; i < 7; i++) {
-        const date = addDays(mondayDate, i);
+        const weekdayDate = addDays(mondayOfThisWeek, i);
         daysArray.push({
-          date,
-          name: formatInLatviaTime(date, "EEE"),
-          day: formatInLatviaTime(date, "d"),
-          latvianDayIndex: i // Monday=0, Sunday=6 in Latvian system
+          date: weekdayDate,
+          name: formatInLatviaTime(weekdayDate, "EEE"),
+          day: formatInLatviaTime(weekdayDate, "d"),
+          latvianDayIndex: i // In Latvia: Monday=0, Sunday=6
         });
       }
-      
-      // Log the final days array for debugging
-      daysArray.forEach((day, idx) => {
-        console.log(`Admin day ${idx}: ${formatInLatviaTime(day.date, "EEE, MMM d")}, Latvian index: ${day.latvianDayIndex}`);
-      });
     } else {
-      // Regular user view just shows the current week based on currentDate
-      // Get the Latvian day index for the current date (0=Monday, 1=Tuesday, etc)
+      // Regular user view just shows the current week (Mon-Sun)
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
-      
-      // Calculate the date for Monday (start of Latvian week)
       const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
       
       console.log(`Regular view - Week calculation:
@@ -445,56 +439,58 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   // Get time slots for a specific time (e.g. "8:00")
   const getTimeSlotsForTime = (hour: number, minute: number) => {
     // Get all slots matching this time
-    // Adjust the hour to account for timezone difference (convert to local time for display)
     const matchingSlots = timeSlots.filter(slot => 
-      // Check if the hour and minute match after timezone adjustment
       slot.hour === hour && slot.minute === minute);
     
     // Create an array of slots (7 for regular view, 8 for admin) - all initially undefined
     const slotsForWeek = Array(isAdmin ? 8 : 7).fill(undefined);
     
-    // Log to debug for important hours
+    // For important hours, log detailed information
     if ((hour === 13 || hour === 14 || hour === 15 || hour === 16) && minute === 0) {
       console.log(`Matching slots for ${hour}:${minute} - ${matchingSlots.length} slots found`);
       matchingSlots.forEach((slot, idx) => {
-        console.log(`Slot ${idx}: day=${slot.latvianDayIndex}, hour=${slot.hour}, minute=${slot.minute}, status=${slot.status}`);
+        console.log(`Slot ${idx}: day=${slot.latvianDayIndex}, hour=${slot.hour}, minute=${slot.minute}, status=${slot.status}, date=${formatInLatviaTime(slot.startTime, "EEE, MMM d")}`);
       });
     }
     
-    // Place slots in the correct day position based on latvianDayIndex
+    // Place slots in the correct position
     matchingSlots.forEach(slot => {
-      if (slot.latvianDayIndex === undefined) {
-        console.error("Slot is missing latvianDayIndex:", slot);
-        return;
-      }
-      
-      // Default display index is the same as Latvian index
-      let displayIndex = slot.latvianDayIndex;
-      
-      // For admin view with 8 columns (yesterday + this week)
       if (isAdmin) {
-        // Get current date in Latvia time to identify yesterday
-        const latviaToday = toLatviaTime(new Date());
-        const yesterday = new Date(latviaToday);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
-        // For slots from yesterday (shown in column 0) and today's week
+        // For admin view (8 columns)
+        // Get the actual date of the slot
         const slotDate = new Date(slot.startTime);
         
-        // If slot is from yesterday, put it in column 0
-        if (isDateYesterday(slotDate, latviaToday)) {
-          displayIndex = 0;
+        // Find index of the column this slot belongs to by comparing dates
+        const columnIndex = days.findIndex(day => {
+          const dayDate = new Date(day.date);
+          return dayDate.getFullYear() === slotDate.getFullYear() &&
+                 dayDate.getMonth() === slotDate.getMonth() &&
+                 dayDate.getDate() === slotDate.getDate();
+        });
+        
+        if (columnIndex !== -1) {
+          slotsForWeek[columnIndex] = slot;
+          
+          // For today's bookings, add detailed log to help debug
+          const now = new Date();
+          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const slotOnlyDate = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
+          const isToday = slotOnlyDate.getTime() === todayDate.getTime();
+          
+          if (isToday && slot.status === "booked" && (hour === 13 || hour === 14 || hour === 15 || hour === 16)) {
+            console.log(`TODAY'S BOOKING: ${formatInLatviaTime(slot.startTime, "HH:mm")} placed in column ${columnIndex}, status: ${slot.status}`);
+          }
         } else {
-          // For current week slots (shift by 1 to make room for yesterday)
-          displayIndex = slot.latvianDayIndex + 1;
+          // Log error if we can't find a matching day
+          console.error(`Could not find column for slot date: ${formatInLatviaTime(slotDate, "EEE, MMM d")}`);
         }
-      }
-      
-      // Make sure the index is valid for our array
-      if (displayIndex >= 0 && displayIndex < slotsForWeek.length) {
-        slotsForWeek[displayIndex] = slot;
       } else {
-        console.error(`Invalid display index: ${displayIndex} for slot with latvianDayIndex: ${slot.latvianDayIndex}`, slot);
+        // For regular view (7 columns, Monday-Sunday), use latvianDayIndex directly (0-6)
+        if (slot.latvianDayIndex >= 0 && slot.latvianDayIndex < 7) {
+          slotsForWeek[slot.latvianDayIndex] = slot;
+        } else {
+          console.error(`Invalid latvianDayIndex: ${slot.latvianDayIndex} for slot`);
+        }
       }
     });
     
