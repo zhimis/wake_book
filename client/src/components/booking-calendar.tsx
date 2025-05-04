@@ -83,7 +83,7 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
     price: slot.price,
     status: slot.status,
     reservationExpiry: slot.reservationExpiry,
-    storageTimezone: 'UTC', // Add required storageTimezone field
+    storageTimezone: slot.storageTimezone || 'UTC', // Use the slot's timezone if available
     isPast: slot.isPast // Pass the isPast flag to AdminTimeSlot
   };
 }
@@ -440,6 +440,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         startTime: correctedStartTime, // Use the corrected time that's mapped to the current week
         endTime: correctedEndTime,     // Use the corrected time that's mapped to the current week
         reservationExpiry,
+        storageTimezone: dbSlot.storageTimezone || 'UTC', // Use database timezone or default to UTC
         isPast,
         originalStartTime: startTime, // Keep original for reference
         originalEndTime: endTime      // Keep original for reference
