@@ -205,13 +205,24 @@ const AdminCalendarView = () => {
   const [currentDateRange, setCurrentDateRange] = useState<{ start: Date, end: Date }>(() => {
     // Get today in Latvia timezone
     const latviaToday = toLatviaTime(new Date());
+    
+    // Set start date to yesterday for admin view to see recent past bookings
+    const latviaStartDate = new Date(latviaToday);
+    latviaStartDate.setDate(latviaToday.getDate() - 1); // Start from yesterday
+    
     // Calculate end date (today + 6 days) in Latvia timezone
     const latviaEndDate = new Date(latviaToday);
     latviaEndDate.setDate(latviaToday.getDate() + 6);
     
+    console.log("Admin calendar initial date range:",
+      formatInLatviaTime(latviaStartDate, "yyyy-MM-dd"),
+      "to", 
+      formatInLatviaTime(latviaEndDate, "yyyy-MM-dd")
+    );
+    
     // Return dates converted back to UTC for storage and API requests
     return {
-      start: fromLatviaTime(latviaToday),
+      start: fromLatviaTime(latviaStartDate), 
       end: fromLatviaTime(latviaEndDate)
     };
   });
