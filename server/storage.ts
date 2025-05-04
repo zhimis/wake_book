@@ -1047,7 +1047,44 @@ export class MemStorage implements IStorage {
     
     console.log("Time slots regenerated successfully in MemStorage.");
     
-    // Restore the booked time slots
+    // Check for overlaps between new available slots and existing booked slots
+    const conflicts = [];
+    
+    // Create a map of times that are already booked
+    const bookedTimesMap = new Map();
+    for (const bookedSlot of bookedTimeSlots) {
+      // Use the rounded hour/minute as key to detect overlapping slots
+      const start = new Date(bookedSlot.startTime);
+      const key = `${start.getFullYear()}-${start.getMonth()}-${start.getDate()}-${start.getHours()}-${start.getMinutes()}`;
+      bookedTimesMap.set(key, bookedSlot);
+    }
+    
+    console.log(`Checking ${this.timeSlots.size} newly generated slots against ${bookedTimesMap.size} booked slots`);
+    
+    // Check if any newly created available slots overlap with booked slots
+    const overlappingSlots = [];
+    for (const [newId, newSlot] of this.timeSlots.entries()) {
+      if (newSlot.status === 'available') {
+        const newStart = new Date(newSlot.startTime);
+        const key = `${newStart.getFullYear()}-${newStart.getMonth()}-${newStart.getDate()}-${newStart.getHours()}-${newStart.getMinutes()}`;
+        
+        // If this time is already booked, delete the new available slot to avoid conflict
+        if (bookedTimesMap.has(key)) {
+          console.log(`Removing conflicting new available slot ${newId} that overlaps with booked slot`);
+          this.timeSlots.delete(newId);
+          overlappingSlots.push(newId);
+          conflicts.push({
+            newSlotId: newId,
+            bookedSlotId: bookedTimesMap.get(key).id,
+            time: newStart.toISOString()
+          });
+        }
+      }
+    }
+    
+    console.log(`Removed ${overlappingSlots.length} overlapping available slots`);
+    
+    // Restore the booked time slots after removing conflicts
     for (const bookedSlot of bookedTimeSlots) {
       this.timeSlots.set(bookedSlot.id, bookedSlot);
     }
@@ -1055,7 +1092,7 @@ export class MemStorage implements IStorage {
     return {
       success: true,
       preservedBookings: bookedTimeSlots.length,
-      conflicts: []
+      conflicts: conflicts
     };
   }
   
