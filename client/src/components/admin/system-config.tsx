@@ -426,7 +426,7 @@ const AdminSystemConfig = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from({ length: 15 }, (_, i) => i + 8).map(h => {
-                        // Create a date at this hour in UTC
+                        // Use direct Latvia time values (8:00-22:00 Latvia time)
                         const timeDate = new Date();
                         timeDate.setUTCHours(h, 0, 0, 0);
                         
