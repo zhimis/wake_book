@@ -261,7 +261,16 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
-    const [newTimeSlot] = await db.insert(timeSlots).values(timeSlot).returning();
+    // Import timezone utilities
+    const { UTC_TIMEZONE } = await import('./utils/timezone');
+    
+    // Ensure the storageTimezone field is set to UTC by default
+    const timeSlotWithTimezone = {
+      ...timeSlot,
+      storageTimezone: timeSlot.storageTimezone || UTC_TIMEZONE
+    };
+    
+    const [newTimeSlot] = await db.insert(timeSlots).values(timeSlotWithTimezone).returning();
     return newTimeSlot;
   }
   

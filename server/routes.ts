@@ -816,7 +816,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schema = z.object({
         openTime: z.string().optional(),
         closeTime: z.string().optional(),
-        isClosed: z.boolean().optional()
+        isClosed: z.boolean().optional(),
+        timezone: z.string().optional(),
+        useLocalTime: z.boolean().optional()
       });
       
       const data = schema.parse(req.body);
@@ -935,6 +937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import necessary modules
       const { db } = await import('./db');
+      const { eq } = await import('drizzle-orm');
       const { timeFormatPreferences, insertTimeFormatPreferencesSchema } = await import('../shared/schema');
       
       // Validate request body against schema
