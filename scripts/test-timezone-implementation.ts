@@ -10,6 +10,7 @@
 import { db } from "../server/db";
 import { timeSlots } from "../shared/schema";
 import { analyzeTimeSlotTimezone, UTC_TIMEZONE, LATVIA_TIMEZONE } from "../server/utils/timezone";
+import { eq } from "drizzle-orm";
 
 async function testTimezoneImplementation() {
   console.log("🔍 Testing Timezone Implementation");
@@ -20,7 +21,7 @@ async function testTimezoneImplementation() {
     console.log("1. Fetching recent time slots...");
     const recentTimeSlots = await db.select()
       .from(timeSlots)
-      .orderBy(timeSlots.id, "desc")
+      .orderBy(timeSlots.id)
       .limit(5);
       
     console.log(`   Found ${recentTimeSlots.length} time slots`);
@@ -82,7 +83,7 @@ async function testTimezoneImplementation() {
     // Step 4: Clean up - delete the test time slot
     console.log("\n4. Cleaning up - removing test time slot...");
     await db.delete(timeSlots)
-      .where(timeSlots.id.equals(newSlot.id));
+      .where(eq(timeSlots.id, newSlot.id));
       
     console.log("✅ Test time slot removed");
     
@@ -91,8 +92,8 @@ async function testTimezoneImplementation() {
   } catch (error) {
     console.error("❌ Error testing timezone implementation:", error);
   } finally {
-    // Close the database connection
-    await db.pool.end();
+    // Note: In a production environment, you would close the database connection
+    // but in this case we'll let the Node.js process terminate naturally
   }
 }
 
