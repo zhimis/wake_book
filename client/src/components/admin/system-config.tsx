@@ -47,44 +47,43 @@ const AdminSystemConfig = () => {
   // This should be useEffect, not useState!
   useEffect(() => {
     if (data) {
-      // Transform operating hours data to include isOpen (inverse of isClosed)
-      // and convert times to Latvia timezone for display
+      // Transform operating hours data:
+      // 1. Include isOpen (inverse of isClosed)
+      // 2. Convert UTC times from database to Latvia timezone for display
       const transformedHours = (data.operatingHours || []).map(hour => {
         // Log original times (stored in UTC)
-        console.log(`Original openTime: ${hour.openTime}, closeTime: ${hour.closeTime}`);
+        console.log(`Original stored times in UTC - openTime: ${hour.openTime}, closeTime: ${hour.closeTime}`);
         
-        // Create Date objects from the time strings for proper timezone conversion
-        // The date doesn't matter, we just need the time portion
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const day = today.getDate();
-        
-        // Create a proper date object with the time string
+        // Convert from UTC to Latvia time for display
+        // Extract hours and minutes from the UTC time strings
         const openTimeStr = typeof hour.openTime === 'string' ? hour.openTime : '08:00';
         const closeTimeStr = typeof hour.closeTime === 'string' ? hour.closeTime : '22:00';
         
-        console.log(`Converting time to Latvia timezone for display - openTime: ${openTimeStr}, closeTime: ${closeTimeStr}`);
+        // Parse hours and minutes from the UTC time strings
+        const [openUTCHours, openUTCMinutes] = openTimeStr.split(':').map(Number);
+        const [closeUTCHours, closeUTCMinutes] = closeTimeStr.split(':').map(Number);
         
-        // Create proper date objects for the time strings
-        // Make sure to pad month and day with leading zeros if needed
-        const paddedMonth = (month + 1).toString().padStart(2, '0');
-        const paddedDay = day.toString().padStart(2, '0');
+        // Convert UTC to Latvia time (add 3 hours for Latvia summer time)
+        const offset = 3; // Latvia summer time (EEST) is UTC+3
+        const openLatviaHours = (openUTCHours + offset) % 24;
+        const closeLatviaHours = (closeUTCHours + offset) % 24;
         
-        // Create proper ISO date strings 
-        const openDateStr = `${year}-${paddedMonth}-${paddedDay}T${openTimeStr}:00Z`;
-        const closeDateStr = `${year}-${paddedMonth}-${paddedDay}T${closeTimeStr}:00Z`;
+        // Format Latvia time as strings (HH:MM)
+        const openLatviaTimeStr = `${openLatviaHours.toString().padStart(2, '0')}:${openUTCMinutes.toString().padStart(2, '0')}`;
+        const closeLatviaTimeStr = `${closeLatviaHours.toString().padStart(2, '0')}:${closeUTCMinutes.toString().padStart(2, '0')}`;
         
-        // Return the transformed hour object with both UTC and Latvia-displayed times
+        console.log(`Converted to Latvia time - openTime: ${openLatviaTimeStr}, closeTime: ${closeLatviaTimeStr}`);
+        
+        // Return the transformed hour object
         return {
           ...hour,
           isOpen: !hour.isClosed,
-          // Store the original times for submission to the server (still UTC)
+          // Keep the original UTC times for submission to the server
           openTime: openTimeStr,
           closeTime: closeTimeStr,
-          // Store Latvia-formatted times for display
-          openTimeFormatted: formatTime(new Date(openDateStr), true),
-          closeTimeFormatted: formatTime(new Date(closeDateStr), true)
+          // Store Latvia-formatted times for display in the dropdowns
+          openTimeFormatted: openLatviaTimeStr,
+          closeTimeFormatted: closeLatviaTimeStr
         };
       });
       
@@ -175,33 +174,41 @@ const AdminSystemConfig = () => {
       prev.map(hour => {
         if (hour.id !== id) return hour;
         
-        // Handle the update
-        const updatedHour = { ...hour, [field]: value };
-        
-        // If we're updating openTime or closeTime, update the formatted versions too
-        if (field === 'openTime' || field === 'closeTime') {
-          // Create a full date object from the time value
-          const today = new Date();
-          const year = today.getFullYear();
-          const month = today.getMonth();
-          const day = today.getDate();
-          
-          // Create a proper date object with the time string
-          const timeStr = typeof value === 'string' ? value : (field === 'openTime' ? '08:00' : '22:00');
-          
-          // Format month and day with leading zeros
-          const paddedMonth = (month + 1).toString().padStart(2, '0');
-          const paddedDay = day.toString().padStart(2, '0');
-          
-          // Create proper ISO date string
-          const dateStr = `${year}-${paddedMonth}-${paddedDay}T${timeStr}:00Z`;
-          
-          // Add the formatted time in Latvia timezone
-          const formattedField = `${field}Formatted`;
-          updatedHour[formattedField] = formatTime(new Date(dateStr), true);
-          
-          console.log(`Updated ${field} to ${value}, ${formattedField} to ${updatedHour[formattedField]}`);
+        // For non-time fields, just update directly
+        if (field !== 'openTime' && field !== 'closeTime') {
+          return { ...hour, [field]: value };
         }
+        
+        // For time fields (openTime/closeTime), handle Latvia time to UTC conversion
+        // The value from UI is Latvia time (e.g., "12:00")
+        const latviaTimeStr = typeof value === 'string' ? value : (field === 'openTime' ? '08:00' : '22:00');
+        
+        // Convert Latvia time to UTC time
+        // Split the time string into hours and minutes
+        const [latviaHours, latviaMinutes] = latviaTimeStr.split(':').map(Number);
+        
+        // Calculate UTC time (Latvia is UTC+3 in summer, UTC+2 in winter)
+        // For this implementation, we'll use a fixed offset of 3 hours (summer time)
+        const offset = 3; // Latvia summer time (EEST) is UTC+3
+        let utcHours = latviaHours - offset;
+        
+        // Handle day wrapping for negative hours
+        if (utcHours < 0) {
+          utcHours += 24;
+        }
+        
+        // Format the UTC time as a string (HH:MM)
+        const utcTimeStr = `${utcHours.toString().padStart(2, '0')}:${latviaMinutes.toString().padStart(2, '0')}`;
+        
+        // Store the Latvia time as formatted display value and UTC time as the actual value
+        const formattedField = `${field}Formatted`;
+        const updatedHour = { 
+          ...hour, 
+          [field]: utcTimeStr, // Store UTC time in the database field
+          [formattedField]: latviaTimeStr // Store Latvia time for display
+        };
+        
+        console.log(`Updated ${field} - Latvia time (display): ${latviaTimeStr}, UTC time (stored): ${utcTimeStr}`);
         
         return updatedHour;
       })
