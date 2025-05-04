@@ -668,9 +668,19 @@ const AdminCalendarView = () => {
           setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
         }
       } else {
-        // Add to selection
+        // Add to selection but preserve the original date information for API calls
         console.log(`Adding slot ${timeSlot.id} to selection (status: ${timeSlot.status})`);
-        setSelectedTimeSlots(prev => [...prev, timeSlot]);
+        
+        // Create a copy of the time slot with added original date information
+        // This ensures the UI shows the date from the current week's display
+        // but backend API operations use the actual database date
+        const slotWithOriginalDates = {
+          ...timeSlot,
+          originalStartTime: timeSlot.startTime,
+          originalEndTime: timeSlot.endTime
+        };
+        
+        setSelectedTimeSlots(prev => [...prev, slotWithOriginalDates]);
         
         // If this is the first slot selected, show the action buttons
         if (selectedTimeSlots.length === 0) {
@@ -693,12 +703,13 @@ const AdminCalendarView = () => {
       
       // Also set the unallocated slots information as a separate field
       // Filter out unallocated slots (those with negative IDs) and include their time information
+      // Use originalStartTime and originalEndTime if available to prevent timezone display issues
       const unallocatedSlots = selectedTimeSlots
         .filter(slot => slot.id < 0)
         .map(slot => ({
           id: slot.id,
-          startTime: slot.startTime,
-          endTime: slot.endTime
+          startTime: slot.originalStartTime || slot.startTime,
+          endTime: slot.originalEndTime || slot.endTime
         }));
       
       if (unallocatedSlots.length > 0) {
