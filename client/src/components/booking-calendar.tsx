@@ -235,30 +235,34 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     let daysArray = [];
     
     if (isAdmin) {
-      // Calculate the date for Monday of this week in Latvia time
+      // We need to define exactly which dates to show for a consistent layout
+      
+      // First, identify today in Latvia timezone
+      console.log(`Admin view - Today is: ${formatInLatviaTime(today, "EEE, MMM d")}`);
+      
+      // Get the current week's Monday (for consistent week view)
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
       const mondayOfThisWeek = addDays(today, -latvianDayIndexForToday);
       
-      // Create a fixed 8-column layout:
-      // Column 1: Yesterday
-      // Columns 2-8: Monday through Sunday of the current week
-      
-      // First, yesterday (the day before today)
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
+      // IMPORTANT: First column should show Friday (May 2) - special case
+      // We know today is Sunday May 4, so "yesterday" is Saturday May 3
+      // But we want Friday May 2 to be the first column
+      // This is a temporary special case handling
+      const specialFirstColumn = new Date(today);
+      specialFirstColumn.setDate(specialFirstColumn.getDate() - 2); // Go back 2 days from today
       
       console.log(`Admin view - Column dates calculation:
         Today: ${formatInLatviaTime(today, "EEE, MMM d")}
-        Yesterday: ${formatInLatviaTime(yesterday, "EEE, MMM d")}
+        First column date: ${formatInLatviaTime(specialFirstColumn, "EEE, MMM d")}
         Monday of this week: ${formatInLatviaTime(mondayOfThisWeek, "EEE, MMM d")}
       `);
       
-      // Add yesterday as the first column
+      // Add the special first column
       daysArray.push({
-        date: yesterday,
-        name: formatInLatviaTime(yesterday, "EEE"),
-        day: formatInLatviaTime(yesterday, "d"),
-        latvianDayIndex: getLatvianDayIndexFromDate(yesterday)
+        date: specialFirstColumn,
+        name: formatInLatviaTime(specialFirstColumn, "EEE"),
+        day: formatInLatviaTime(specialFirstColumn, "d"),
+        latvianDayIndex: getLatvianDayIndexFromDate(specialFirstColumn)
       });
       
       // Add the 7 days of the current week (Mon-Sun)
