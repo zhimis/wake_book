@@ -74,7 +74,14 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
 
 // Simplified booking calendar with mock data
 const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlots = [] }: BookingCalendarProps) => {
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  // Initialize currentDate to be the ACTUAL current date in Latvia timezone
+  // This ensures the calendar shows the correct week
+  const [currentDate, setCurrentDate] = useState<Date>(() => {
+    // Use Latvia timezone for initial state to ensure proper week calculation
+    const todayInLatvia = toLatviaTime(new Date());
+    console.log(`Initializing calendar with date: ${todayInLatvia.toISOString()} (Latvia time)`);
+    return todayInLatvia;
+  });
   
   // Use the booking context
   const { selectedTimeSlots, toggleTimeSlot, clearSelectedTimeSlots } = useBooking();
@@ -491,13 +498,40 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     
     if (selected.length === 0) return null;
     
-    const firstSlot = selected[0];
-    const lastSlot = selected[selected.length - 1];
+    // Group slots by date for clearer display
+    const slotsByDate = selected.reduce((acc, slot) => {
+      if (!slot.startTime) return acc;
+      
+      // Format the date part only (e.g. "Mon, May 5")
+      const dateKey = formatInLatviaTime(slot.startTime, "EEE, MMM d");
+      
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      
+      acc[dateKey].push(slot);
+      return acc;
+    }, {} as Record<string, typeof selected>);
     
-    if (!firstSlot.startTime || !lastSlot.endTime) return null;
-    
-    // Use our utility function to format the time slot with Latvia timezone
-    return formatTimeSlot(firstSlot.startTime, lastSlot.endTime, true);
+    // Create a formatted list of dates and their time ranges
+    return Object.entries(slotsByDate).map(([date, slots]) => {
+      // Sort slots by start time
+      slots.sort((a, b) => 
+        a.startTime && b.startTime
+          ? a.startTime.getTime() - b.startTime.getTime()
+          : 0
+      );
+      
+      const firstSlot = slots[0];
+      const lastSlot = slots[slots.length - 1];
+      
+      if (!firstSlot.startTime || !lastSlot.endTime) return null;
+      
+      // Format time only (e.g. "14:00-15:30")
+      const timeRange = `${formatInLatviaTime(firstSlot.startTime, "HH:mm")}-${formatInLatviaTime(lastSlot.endTime, "HH:mm")}`;
+      
+      return `${date}: ${timeRange}`;
+    }).join(", ");
   };
 
   // Show loading state while time slots are being fetched
@@ -647,8 +681,15 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                           // For admin mode, make unallocated slots clickable for selection
                           if (isAdmin) {
                             // Create a dummy slot for unallocated time periods to allow selection
-                            const dummyDate = new Date(currentDate);
-                            dummyDate.setDate(dummyDate.getDate() + (idx - getLatvianDayIndexFromDate(currentDate)));
+                            // Use the actual day's date from our days array to ensure proper date is used
+                            const dayData = days[idx];
+                            if (!dayData) {
+                              console.error(`Could not find day data for index ${idx}`);
+                              return null;
+                            }
+                            
+                            // Start with the correct date for this column from the days array
+                            const dummyDate = new Date(dayData.date);
                             
                             // Set hours and minutes based on the time string
                             const [dummyHour, dummyMinute] = timeString.split(':').map(Number);
@@ -852,7 +893,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
             <div>
               <h4 className="font-medium text-sm">Selected Slots: {selectedTimeSlots.length}</h4>
               <p className="text-xs text-muted-foreground">
-                {formatInLatviaTime(currentDate, "EEE, MMM d")} {getSelectedTimeRange()}
+                {getSelectedTimeRange()}
               </p>
             </div>
             <div className="text-right">
