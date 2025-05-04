@@ -134,14 +134,19 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     // Check if next week would be beyond visibility limit for regular users
     if (!isAdmin) {
       // Use Latvia timezone to ensure consistent visibility limits
-      const threeWeeksFromToday = toLatviaTime(addDays(new Date(), 21)); // Typical visibility window
+      // Use the visibility weeks setting from server
+      const visibilityLimit = toLatviaTime(addDays(new Date(), visibilityWeeks * 7));
       const nextWeekDate = toLatviaTime(addDays(currentDate, 7));
       
+      // Log the navigation check for debugging
+      console.log(`Navigation check: Next week: ${formatInLatviaTime(nextWeekDate, "yyyy-MM-dd")}, 
+                 Visibility limit: ${formatInLatviaTime(visibilityLimit, "yyyy-MM-dd")} (${visibilityWeeks} weeks)`);
+      
       // If already viewing a week that's far in the future, show a toast notification
-      if (nextWeekDate > threeWeeksFromToday) {
+      if (nextWeekDate > visibilityLimit) {
         toast({
           title: "Limited Visibility",
-          description: "Booking schedule is only available up to 3 weeks in advance.",
+          description: `Booking schedule is only available up to ${visibilityWeeks} ${visibilityWeeks === 1 ? 'week' : 'weeks'} in advance.`,
           variant: "destructive"
         });
       }
@@ -180,6 +185,19 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     }
   });
   
+  // Fetch configuration data including visibility settings
+  const { data: configData } = useQuery({
+    queryKey: ['/api/config'],
+    queryFn: async () => {
+      const res = await fetch('/api/config');
+      if (!res.ok) throw new Error('Failed to fetch configuration');
+      return res.json();
+    }
+  });
+  
+  // Get visibility weeks from server config (default to 1 if not available)
+  const visibilityWeeks = configData?.visibilityWeeks || 1;
+  
   // Determine if we're viewing a week beyond the calendar's configured visibility range
   const isFutureWeekBeyondVisibility = useMemo(() => {
     // If we have time slots, this week is within the visibility range
@@ -193,15 +211,19 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     }
     
     // If we have data but no time slots, this could be a future week beyond visibility
-    // A simple check: current date is more than 3 weeks in the future (typical visibility setting)
+    // Use the visibility weeks setting from the server
     // Use Latvia timezone for both dates to ensure proper comparison
     const todayInLatvia = toLatviaTime(new Date());
-    const threeWeeksFromNow = addDays(todayInLatvia, 21);
+    const visibilityWindow = addDays(todayInLatvia, visibilityWeeks * 7); // Convert weeks to days
     // Convert current date to Latvia time for comparison
     const currentDateInLatvia = toLatviaTime(currentDate);
     
-    return currentDateInLatvia > threeWeeksFromNow;
-  }, [dbTimeSlots, timeSlotsLoading, currentDate]);
+    // Log the visibility calculation for debugging
+    console.log(`Visibility check: Current date: ${formatInLatviaTime(currentDateInLatvia, "yyyy-MM-dd")}, 
+                 Visibility limit: ${formatInLatviaTime(visibilityWindow, "yyyy-MM-dd")} (${visibilityWeeks} weeks)`);
+    
+    return currentDateInLatvia > visibilityWindow;
+  }, [dbTimeSlots, timeSlotsLoading, currentDate, visibilityWeeks]);
   
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string): boolean => {
@@ -747,7 +769,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
             <CalendarIcon className="h-10 w-10 text-muted-foreground mb-2" />
             <h3 className="text-lg font-medium">No time slots available</h3>
             <p className="text-sm text-muted-foreground mb-3 text-center max-w-lg">
-              The booking schedule is only visible up to 3 weeks in advance. Please check back later or select an earlier date.
+              The booking schedule is only visible up to {visibilityWeeks} {visibilityWeeks === 1 ? 'week' : 'weeks'} in advance. 
+              Please check back later or select an earlier date.
             </p>
             <Button variant="outline" onClick={goToToday}>
               Go to current week
