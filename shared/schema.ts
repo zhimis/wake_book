@@ -175,6 +175,7 @@ export type TimeSlot = typeof timeSlots.$inferSelect & {
   // Include optional fields for UI display that aren't in the database schema
   originalStartTime?: Date;
   originalEndTime?: Date;
+  isPast?: boolean; // Flag to indicate if the time slot is in the past
 };
 export type InsertTimeSlot = z.infer<typeof insertTimeSlotSchema>;
 

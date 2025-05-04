@@ -81,7 +81,8 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
     originalEndTime: slot.originalEndTime,
     price: slot.price,
     status: slot.status,
-    reservationExpiry: slot.reservationExpiry
+    reservationExpiry: slot.reservationExpiry,
+    isPast: slot.isPast // Pass the isPast flag to AdminTimeSlot
   };
 }
 
