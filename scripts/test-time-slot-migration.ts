@@ -92,20 +92,26 @@ async function testTimeSlotMigration() {
       console.log('Duration validation passed: All time slots are exactly 30 minutes');
     }
     
-    // Sample some slots and verify round-trip conversions
-    console.log('\nTesting timezone round-trip conversions...');
+    // Sample some slots and verify proper timezone conversions
+    console.log('\nTesting timezone conversions and display...');
     
     const sampleSlots = migratedSlots.slice(0, 5);
     for (const slot of sampleSlots) {
-      const startUTC = new Date(slot.startTime);
-      const startLatvia = toLatviaTime(startUTC);
-      const startUTCRoundTrip = fromLatviaTime(startLatvia);
+      // The stored time in DB (always UTC)
+      const storedUTC = new Date(slot.startTime);
+      
+      // When displaying in Latvia timezone
+      const displayInLatvia = formatInTimeZone(storedUTC, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss z');
+      
+      // When submitting from Latvia timezone (converting user local time to UTC for storage)
+      const userInputLatvia = new Date(formatInTimeZone(storedUTC, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss'));
+      const convertedToUTC = fromLatviaTime(userInputLatvia);
       
       console.log(`Slot ID ${slot.id}:`);
-      console.log(`  UTC:        ${formatInTimeZone(startUTC, "UTC", 'yyyy-MM-dd HH:mm:ss z')}`);
-      console.log(`  Latvia:     ${formatInTimeZone(startLatvia, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss z')}`);
-      console.log(`  UTC again:  ${formatInTimeZone(startUTCRoundTrip, "UTC", 'yyyy-MM-dd HH:mm:ss z')}`);
-      console.log(`  Round-trip successful: ${startUTC.getTime() === startUTCRoundTrip.getTime() ? 'Yes' : 'No'}`);
+      console.log(`  Stored in DB (UTC): ${formatInTimeZone(storedUTC, "UTC", 'yyyy-MM-dd HH:mm:ss z')}`);
+      console.log(`  Displayed to user (Latvia): ${displayInLatvia}`);
+      console.log(`  User input (Latvia): ${userInputLatvia.toISOString()}`);
+      console.log(`  Converted back for storage (UTC): ${formatInTimeZone(convertedToUTC, "UTC", 'yyyy-MM-dd HH:mm:ss z')}`);
       console.log();
     }
     

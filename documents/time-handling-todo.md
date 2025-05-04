@@ -57,6 +57,8 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 - [ ] **Task 7.1**: Schedule a maintenance window for database updates
 - [ ] **Task 7.2**: Back up the production database completely
 - [ ] **Task 1.1.2**: Execute the operating hours schema migration
+- [ ] **Task 1.1.3**: Execute the time slots schema migration 
+- [ ] **Task 1.1.4**: Create and populate the time format preferences table
 - [ ] **Task 7.3**: Update all related server code to work with the new schema
 - [ ] **Task 7.4**: Verify all application functionality after migration
 - [ ] **Task 4.3.2**: Run full application test suite after migration
