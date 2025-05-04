@@ -9,13 +9,15 @@ import { Eye, Edit, Lock, Clock } from 'lucide-react';
 interface AdminTimeSlotProps {
   slot: TimeSlot;
   isSelected: boolean;
-  onClick: (slot: TimeSlot) => void;
+  onToggle: (slotId: string, status: string) => void;
+  getSlotClass?: (status: string, isSelected: boolean, isPast?: boolean) => string;
 }
 
 const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({ 
   slot, 
   isSelected, 
-  onClick 
+  onToggle,
+  getSlotClass: externalGetSlotClass
 }) => {
   // Check if the time slot is in the past
   // We need more rigorous date comparison to properly detect past slots
@@ -125,10 +127,10 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     <div 
       className={cn(
         "relative cursor-pointer rounded-md border",
-        getSlotClass(slot.status)
+        externalGetSlotClass ? externalGetSlotClass(slot.status, isSelected, isPast) : getSlotClass(slot.status)
       )} 
       style={combinedStyle}
-      onClick={() => onClick(slot)}
+      onClick={() => onToggle(slot.id.toString(), slot.status)}
     >
       <div className="text-center w-full flex flex-col items-center justify-center">
         {slot.status === 'booked' ? (
