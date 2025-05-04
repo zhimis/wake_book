@@ -48,6 +48,8 @@ interface CalendarTimeSlot {
   endTime: Date;
   reservationExpiry: Date | null;
   isPast?: boolean; // Flag to identify if this slot is in the past
+  originalStartTime?: Date; // Original database date before week mapping
+  originalEndTime?: Date; // Original database date before week mapping
 }
 
 interface BookingCalendarProps {
@@ -62,10 +64,15 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
   // Use the numeric ID directly 
   const id = parseInt(slot.id);
   
+  // Important: When sending to API/database, we should use the original dates
+  // if they exist, otherwise fall back to the mapped dates
+  const startTime = slot.originalStartTime || slot.startTime;
+  const endTime = slot.originalEndTime || slot.endTime;
+  
   return {
     id: id,
-    startTime: slot.startTime,
-    endTime: slot.endTime,
+    startTime: startTime,
+    endTime: endTime,
     price: slot.price,
     status: slot.status,
     reservationExpiry: slot.reservationExpiry
@@ -293,59 +300,70 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       // Convert to Latvian day index for UI display (0 = Monday)
       const latvianDayIndex = getLatvianDayIndexFromDate(startTime);
       
-      // Calculate days difference with current date for UI display
-      // Both dates are already in Latvia timezone so comparison will be accurate
+      // CRITICAL FIX: Instead of using day difference, match the slot to the current week days
+      // based on Latvian day index (Monday-Sunday)
+      let matchedDate: Date | null = null;
       
-      // Create date objects with time set to midnight for accurate day comparison
-      const slotDateMidnight = new Date(startTime);
-      slotDateMidnight.setHours(0, 0, 0, 0);
-      
-      // Make sure currentDate is also in Latvia timezone before comparison
-      const curDateInLatvia = toLatviaTime(currentDate);
-      const curDateMidnight = new Date(curDateInLatvia);
-      curDateMidnight.setHours(0, 0, 0, 0);
-      
-      // Calculate difference in days
-      const daysDiff = Math.floor((slotDateMidnight.getTime() - curDateMidnight.getTime()) / (1000 * 60 * 60 * 24));
-      
-      console.log(`Slot at ${startTime.toLocaleString()}, JS day: ${jsDayOfWeek}, Latvian day index: ${latvianDayIndex}, day diff: ${daysDiff}`);
-      
-      // Only show slots that are within the current week view (0-6 days from current date)
-      if (daysDiff >= 0 && daysDiff < 7) {
-        // Get time components from the converted Latvia time
-        // No need for manual offset since toLatviaTime already converted it
-        const hour = startTime.getHours();
-        const minute = startTime.getMinutes();
-        
-        // Use database price if available
-        const price = dbSlot.price || 15;
-        
-        // Use database status
-        const status = dbSlot.status as TimeSlotStatus;
-        const reservationExpiry = dbSlot.reservationExpiry ? new Date(dbSlot.reservationExpiry) : null;
-        
-        // Check if the slot is in the past (end time is earlier than current time)
-        const now = new Date();
-        const isPast = endTime < now;
-        
-        if (isPast) {
-          console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(startTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(endTime, "HH:mm")}`);
+      // Try to find the correct day from our days array by matching the Latvian day index
+      for (const dayInfo of days) {
+        if (dayInfo.latvianDayIndex === latvianDayIndex) {
+          // Found the day in the current week that matches this slot's day of week
+          matchedDate = dayInfo.date;
+          break;
         }
-        
-        slots.push({
-          id: dbSlot.id.toString(),
-          day: daysDiff, // For backward compatibility
-          latvianDayIndex, // The key field that should be used for display positioning
-          hour,
-          minute,
-          price,
-          status,
-          startTime,
-          endTime,
-          reservationExpiry,
-          isPast // Add the past flag
-        });
       }
+      
+      if (!matchedDate) {
+        console.error(`Could not find a matching day for slot ${dbSlot.id} with Latvian day index ${latvianDayIndex}`);
+        return; // Skip this slot if we can't match a day
+      }
+      
+      // Create a new date with the correct day from our days array, but keep the original time
+      const correctedStartTime = new Date(matchedDate);
+      correctedStartTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+      
+      const correctedEndTime = new Date(matchedDate);
+      correctedEndTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+      
+      // Debug our mapping
+      console.log(`SLOT MAPPING: Original date: ${formatInLatviaTime(startTime, "EEE, MMM d, yyyy HH:mm")}, 
+                   Mapped to week day: ${formatInLatviaTime(correctedStartTime, "EEE, MMM d, yyyy HH:mm")},
+                   Latvian day index: ${latvianDayIndex}`);
+      
+      // Get time components from the converted Latvia time
+      const hour = correctedStartTime.getHours();
+      const minute = correctedStartTime.getMinutes();
+      
+      // Use database price if available
+      const price = dbSlot.price || 15;
+      
+      // Use database status
+      const status = dbSlot.status as TimeSlotStatus;
+      const reservationExpiry = dbSlot.reservationExpiry ? new Date(dbSlot.reservationExpiry) : null;
+      
+      // Check if the slot is in the past (end time is earlier than current time)
+      const now = new Date();
+      const isPast = correctedEndTime < now;
+      
+      if (isPast) {
+        console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(correctedStartTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(correctedEndTime, "HH:mm")}`);
+      }
+      
+      slots.push({
+        id: dbSlot.id.toString(),
+        day: days.indexOf(days.find(d => d.latvianDayIndex === latvianDayIndex) || days[0]), // Fallback to first day if not found
+        latvianDayIndex,
+        hour,
+        minute,
+        price,
+        status,
+        startTime: correctedStartTime, // Use the corrected time that's mapped to the current week
+        endTime: correctedEndTime,     // Use the corrected time that's mapped to the current week
+        reservationExpiry,
+        isPast,
+        originalStartTime: startTime, // Keep original for reference
+        originalEndTime: endTime      // Keep original for reference
+      });
     });
     
     return slots;
