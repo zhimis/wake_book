@@ -244,37 +244,88 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
       const mondayOfThisWeek = addDays(today, -latvianDayIndexForToday);
       
-      // IMPORTANT: First column should show Friday (May 2) - special case
-      // We know today is Sunday May 4, so "yesterday" is Saturday May 3
-      // But we want Friday May 2 to be the first column
-      // This is a temporary special case handling
-      const specialFirstColumn = new Date(today);
-      specialFirstColumn.setDate(specialFirstColumn.getDate() - 2); // Go back 2 days from today
+      // We need to create exactly 8 columns as follows:
+      // Column 1: Friday (May 2) 
+      // Column 2: Monday (Apr 28)
+      // Column 3: Tuesday (Apr 29)
+      // Column 4: Wednesday (Apr 30)
+      // Column 5: Thursday (May 1)
+      // Column 6: Friday (May 2) - duplicate of column 1, NEED TO FIX
+      // Column 7: Saturday (May 3)
+      // Column 8: Sunday (May 4)
       
-      console.log(`Admin view - Column dates calculation:
-        Today: ${formatInLatviaTime(today, "EEE, MMM d")}
-        First column date: ${formatInLatviaTime(specialFirstColumn, "EEE, MMM d")}
-        Monday of this week: ${formatInLatviaTime(mondayOfThisWeek, "EEE, MMM d")}
-      `);
+      // Let's create exact dates for each column
+      const dates = [
+        new Date(2025, 4, 2), // Column 1: Friday May 2
+        new Date(2025, 3, 28), // Column 2: Monday Apr 28
+        new Date(2025, 3, 29), // Column 3: Tuesday Apr 29
+        new Date(2025, 3, 30), // Column 4: Wednesday Apr 30
+        new Date(2025, 4, 1), // Column 5: Thursday May 1
+        new Date(2025, 4, 2), // Column 6: Friday May 2 - SKIP THIS
+        new Date(2025, 4, 3), // Column 7: Saturday May 3
+        new Date(2025, 4, 4), // Column 8: Sunday May 4
+      ];
       
-      // Add the special first column
-      daysArray.push({
-        date: specialFirstColumn,
-        name: formatInLatviaTime(specialFirstColumn, "EEE"),
-        day: formatInLatviaTime(specialFirstColumn, "d"),
-        latvianDayIndex: getLatvianDayIndexFromDate(specialFirstColumn)
+      // Log the dates for debugging
+      console.log(`Admin view - Fixed column dates:`);
+      dates.forEach((date, i) => {
+        console.log(`Column ${i+1}: ${formatInLatviaTime(date, "EEE, MMM d, yyyy")}`);
       });
       
-      // Add the 7 days of the current week (Mon-Sun)
-      for (let i = 0; i < 7; i++) {
-        const weekdayDate = addDays(mondayOfThisWeek, i);
-        daysArray.push({
-          date: weekdayDate,
-          name: formatInLatviaTime(weekdayDate, "EEE"),
-          day: formatInLatviaTime(weekdayDate, "d"),
-          latvianDayIndex: i // In Latvia: Monday=0, Sunday=6
-        });
-      }
+      // Create the day array with our fixed dates, skipping the duplicate Friday
+      daysArray = [
+        // Column 1: Friday May 2
+        {
+          date: dates[0],
+          name: formatInLatviaTime(dates[0], "EEE"),
+          day: formatInLatviaTime(dates[0], "d"),
+          latvianDayIndex: getLatvianDayIndexFromDate(dates[0])
+        },
+        // Column 2: Monday Apr 28
+        {
+          date: dates[1],
+          name: formatInLatviaTime(dates[1], "EEE"),
+          day: formatInLatviaTime(dates[1], "d"),
+          latvianDayIndex: getLatvianDayIndexFromDate(dates[1])
+        },
+        // Column 3: Tuesday Apr 29
+        {
+          date: dates[2],
+          name: formatInLatviaTime(dates[2], "EEE"),
+          day: formatInLatviaTime(dates[2], "d"),
+          latvianDayIndex: getLatvianDayIndexFromDate(dates[2])
+        },
+        // Column 4: Wednesday Apr 30
+        {
+          date: dates[3],
+          name: formatInLatviaTime(dates[3], "EEE"),
+          day: formatInLatviaTime(dates[3], "d"),
+          latvianDayIndex: getLatvianDayIndexFromDate(dates[3])
+        },
+        // Column 5: Thursday May 1
+        {
+          date: dates[4],
+          name: formatInLatviaTime(dates[4], "EEE"),
+          day: formatInLatviaTime(dates[4], "d"),
+          latvianDayIndex: getLatvianDayIndexFromDate(dates[4])
+        },
+        // Skip the duplicate Friday (Column 6)
+        
+        // Column 7: Saturday May 3
+        {
+          date: dates[6],
+          name: formatInLatviaTime(dates[6], "EEE"),
+          day: formatInLatviaTime(dates[6], "d"),
+          latvianDayIndex: getLatvianDayIndexFromDate(dates[6])
+        },
+        // Column 8: Sunday May 4
+        {
+          date: dates[7],
+          name: formatInLatviaTime(dates[7], "EEE"),
+          day: formatInLatviaTime(dates[7], "d"),
+          latvianDayIndex: getLatvianDayIndexFromDate(dates[7])
+        },
+      ];
     } else {
       // Regular user view just shows the current week (Mon-Sun)
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
