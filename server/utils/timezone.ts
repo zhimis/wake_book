@@ -208,3 +208,53 @@ export function getLatviaDayEnd(date: Date | string): Date {
   
   return latviaTime;
 }
+
+/**
+ * Get stored timezone information for a time slot
+ * @param timeSlot TimeSlot object from the database
+ * @returns The timezone string (defaults to UTC)
+ */
+export function getTimeSlotTimezone(timeSlot: { storageTimezone?: string }): string {
+  return timeSlot.storageTimezone || UTC_TIMEZONE;
+}
+
+/**
+ * Get application time format preferences
+ * If preferences don't exist, returns defaults matching Latvia settings
+ */
+export async function getTimeFormatPreferences() {
+  try {
+    // Import here to avoid circular dependencies
+    const { db } = await import('../db');
+    const { timeFormatPreferences } = await import('../../shared/schema');
+
+    // Query for the first preferences record
+    const preferences = await db.select().from(timeFormatPreferences).limit(1);
+    
+    if (preferences.length > 0) {
+      return preferences[0];
+    }
+    
+    // Return defaults if no record exists
+    return {
+      id: 0,
+      use24HourFormat: true,
+      showTimezoneIndicator: true,
+      dateFormat: 'dd.MM.yyyy',
+      timeFormat: 'HH:mm',
+      defaultTimezone: LATVIA_TIMEZONE
+    };
+  } catch (error) {
+    console.error('Failed to load time format preferences:', error);
+    
+    // Return defaults if there's an error
+    return {
+      id: 0,
+      use24HourFormat: true,
+      showTimezoneIndicator: true,
+      dateFormat: 'dd.MM.yyyy',
+      timeFormat: 'HH:mm',
+      defaultTimezone: LATVIA_TIMEZONE
+    };
+  }
+}

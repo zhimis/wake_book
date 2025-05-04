@@ -69,6 +69,16 @@ export const bookingTimeSlots = pgTable("booking_time_slots", {
   timeSlotId: integer("time_slot_id").notNull(),
 });
 
+// Time format preferences table for application-wide settings
+export const timeFormatPreferences = pgTable("time_format_preferences", {
+  id: serial("id").primaryKey(),
+  use24HourFormat: boolean("use_24_hour_format").default(true).notNull(),
+  showTimezoneIndicator: boolean("show_timezone_indicator").default(true).notNull(),
+  dateFormat: text("date_format").default("dd.MM.yyyy").notNull(), // EU format by default
+  timeFormat: text("time_format").default("HH:mm").notNull(), // 24hr format by default
+  defaultTimezone: text("default_timezone").default("Europe/Riga").notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users);
 export const insertOperatingHoursSchema = createInsertSchema(operatingHours);
@@ -77,6 +87,7 @@ export const insertConfigurationSchema = createInsertSchema(configuration);
 export const insertTimeSlotSchema = createInsertSchema(timeSlots);
 export const insertBookingSchema = createInsertSchema(bookings).omit({ reference: true });
 export const insertBookingTimeSlotsSchema = createInsertSchema(bookingTimeSlots);
+export const insertTimeFormatPreferencesSchema = createInsertSchema(timeFormatPreferences).omit({ id: true });
 
 // Custom schemas
 export const bookingFormSchema = z.object({
@@ -172,6 +183,9 @@ export type InsertBooking = z.infer<typeof insertBookingSchema>;
 
 export type BookingTimeSlot = typeof bookingTimeSlots.$inferSelect;
 export type InsertBookingTimeSlot = z.infer<typeof insertBookingTimeSlotsSchema>;
+
+export type TimeFormatPreferences = typeof timeFormatPreferences.$inferSelect;
+export type InsertTimeFormatPreferences = z.infer<typeof insertTimeFormatPreferencesSchema>;
 
 export type BookingFormData = z.infer<typeof bookingFormSchema>;
 export type ManualBookingFormData = z.infer<typeof manualBookingSchema>;

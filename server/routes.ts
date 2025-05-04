@@ -782,16 +782,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get system configuration
   app.get("/api/config", async (req: Request, res: Response) => {
     try {
-      const [operatingHours, pricing, visibilityConfig] = await Promise.all([
+      // Import the getTimeFormatPreferences function
+      const { getTimeFormatPreferences } = await import('./utils/timezone');
+      
+      const [operatingHours, pricing, visibilityConfig, timeFormatPrefs] = await Promise.all([
         storage.getOperatingHours(),
         storage.getPricing(),
-        storage.getConfiguration('visibility_weeks')
+        storage.getConfiguration('visibility_weeks'),
+        getTimeFormatPreferences()
       ]);
       
       res.json({
         operatingHours,
         pricing,
-        visibilityWeeks: visibilityConfig ? parseInt(visibilityConfig.value) : 4
+        visibilityWeeks: visibilityConfig ? parseInt(visibilityConfig.value) : 4,
+        timeFormatPreferences: timeFormatPrefs
       });
     } catch (error) {
       console.error("Error fetching configuration:", error);
@@ -918,6 +923,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(500).json({ error: "Failed to update visibility configuration" });
+    }
+  });
+  
+  // Update time format preferences - requires authentication
+  app.put("/api/config/time-format", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Import necessary modules
+      const { db } = await import('./db');
+      const { timeFormatPreferences, insertTimeFormatPreferencesSchema } = await import('../shared/schema');
+      
+      // Validate request body against schema
+      const data = insertTimeFormatPreferencesSchema.parse(req.body);
+      
+      // Check if we have existing preferences
+      const existingPrefs = await db.select().from(timeFormatPreferences).limit(1);
+      
+      let updatedPrefs;
+      
+      if (existingPrefs.length > 0) {
+        // Update existing preferences
+        [updatedPrefs] = await db.update(timeFormatPreferences)
+          .set(data)
+          .where(eq(timeFormatPreferences.id, existingPrefs[0].id))
+          .returning();
+      } else {
+        // Create new preferences
+        [updatedPrefs] = await db.insert(timeFormatPreferences)
+          .values(data)
+          .returning();
+      }
+      
+      res.json(updatedPrefs);
+    } catch (error) {
+      console.error("Error updating time format preferences:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to update time format preferences" });
     }
   });
 
