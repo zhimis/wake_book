@@ -157,7 +157,11 @@ export type InsertPricing = z.infer<typeof insertPricingSchema>;
 export type Configuration = typeof configuration.$inferSelect;
 export type InsertConfiguration = z.infer<typeof insertConfigurationSchema>;
 
-export type TimeSlot = typeof timeSlots.$inferSelect;
+export type TimeSlot = typeof timeSlots.$inferSelect & {
+  // Include optional fields for UI display that aren't in the database schema
+  originalStartTime?: Date;
+  originalEndTime?: Date;
+};
 export type InsertTimeSlot = z.infer<typeof insertTimeSlotSchema>;
 
 export type Booking = typeof bookings.$inferSelect;

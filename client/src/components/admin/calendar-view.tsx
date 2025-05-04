@@ -703,11 +703,12 @@ const AdminCalendarView = () => {
       
       // Also set the unallocated slots information as a separate field
       // Filter out unallocated slots (those with negative IDs) and include their time information
-      // Use originalStartTime and originalEndTime if available to prevent timezone display issues
+      // For API operations, we need to use the originalStartTime and originalEndTime from database
       const unallocatedSlots = selectedTimeSlots
         .filter(slot => slot.id < 0)
         .map(slot => ({
           id: slot.id,
+          // When sending to the API, use the original database dates to ensure correct backend operations
           startTime: slot.originalStartTime || slot.startTime,
           endTime: slot.originalEndTime || slot.endTime
         }));

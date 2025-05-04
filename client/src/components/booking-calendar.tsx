@@ -64,15 +64,21 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
   // Use the numeric ID directly 
   const id = parseInt(slot.id);
   
-  // Important: When sending to API/database, we should use the original dates
-  // if they exist, otherwise fall back to the mapped dates
-  const startTime = slot.originalStartTime || slot.startTime;
-  const endTime = slot.originalEndTime || slot.endTime;
+  // When creating a SchemaTimeSlot object for selection or display in the UI,
+  // we want to use the display dates (slot.startTime, slot.endTime) to ensure consistency
+  // of what's visible in the calendar and what's shown in the selected slots summary.
+  
+  // However, we need to keep the original database dates for API operations.
+  // So we attach it as a separate property that the admin component can use.
   
   return {
     id: id,
-    startTime: startTime,
-    endTime: endTime,
+    // For display in the UI, use the corrected date that's mapped to the current week
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    // Attach original dates (important for API operations)
+    originalStartTime: slot.originalStartTime,
+    originalEndTime: slot.originalEndTime,
     price: slot.price,
     status: slot.status,
     reservationExpiry: slot.reservationExpiry
