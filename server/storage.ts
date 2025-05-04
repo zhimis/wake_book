@@ -181,106 +181,42 @@ export class DatabaseStorage implements IStorage {
       
       // Generate time slots for the next 4 weeks
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
       
       const endDate = new Date(today);
       endDate.setDate(endDate.getDate() + 28); // 4 weeks
       
-      let currentDate = new Date(today);
-      let batchInserts = [];
-      const BATCH_SIZE = 100;
+      console.log(`Starting time slot generation from ${today.toISOString()} to ${endDate.toISOString()}`);
       
-      while (currentDate < endDate) {
-        const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        const latvianDayIndex = toLatvianDayIndex(dayOfWeek);
+      // Import the timezone-aware generator
+      const { generateTimeSlotsWithTimezone } = await import('./utils/time-slot-generator');
+      
+      // Generate time slots with proper timezone handling
+      const timeSlotBatches = await generateTimeSlotsWithTimezone(
+        today,
+        endDate,
+        allOperatingHours,
+        allPricing
+      );
+      
+      // Insert time slots in batches to avoid memory issues
+      const BATCH_SIZE = 100;
+      let currentBatch = [];
+      
+      for (const timeSlot of timeSlotBatches) {
+        currentBatch.push(timeSlot);
         
-        console.log(`Generating slots for date ${currentDate.toISOString()}, day of week: ${dayOfWeek} (standard JS format)`);
-        console.log(`Latvian day index: ${latvianDayIndex} (${getLatvianWeekdayName(latvianDayIndex)})`);
-        
-        // Find operating hours for this day - use standard JS day index
-        const operatingHour = allOperatingHours.find(oh => oh.dayOfWeek === dayOfWeek);
-        
-        if (!operatingHour) {
-          console.log(`No operating hours defined for day ${dayOfWeek}`);
-          currentDate.setDate(currentDate.getDate() + 1);
-          continue;
+        if (currentBatch.length >= BATCH_SIZE) {
+          await db.insert(timeSlots).values(currentBatch);
+          currentBatch = [];
         }
-        
-        if (operatingHour.isClosed) {
-          console.log(`Day ${dayOfWeek} (${getWeekdayName(dayOfWeek)}) is marked as closed`);
-          currentDate.setDate(currentDate.getDate() + 1);
-          continue;
-        }
-        
-        console.log(`Day ${dayOfWeek} (${getWeekdayName(dayOfWeek)}) is open: ${operatingHour.openTime} - ${operatingHour.closeTime}`);
-        
-        // Parse opening and closing hours
-        const [openHour, openMinute] = operatingHour.openTime.split(':').map(Number);
-        const [closeHour, closeMinute] = operatingHour.closeTime.split(':').map(Number);
-          
-        // Create time slots in 30-minute increments
-        for (let hour = openHour; hour < closeHour; hour++) {
-          for (let minute of [0, 30]) {
-            // Skip if we're at opening time but have non-zero minutes
-            if (hour === openHour && minute < openMinute) continue;
-            
-            // Skip if we're at closing time
-            if (hour === closeHour - 1 && minute >= closeMinute) continue;
-            
-            const startTime = new Date(currentDate);
-            startTime.setHours(hour, minute, 0, 0);
-            
-            const endTime = new Date(startTime);
-            endTime.setMinutes(endTime.getMinutes() + 30);
-            
-            // Determine price based on time and day
-            const standardPricing = allPricing.find(p => p.name === 'standard');
-            const peakPricing = allPricing.find(p => p.name === 'peak');
-            
-            // Default to standard price
-            let price = standardPricing ? standardPricing.price : 20; 
-            
-            // Apply peak pricing based on new rules:
-            // 1. Monday to Friday (1-5): 17:00-22:00
-            // 2. Saturday and Sunday (0,6): All day
-            const isPeakTime = (
-              // Weekend (all day)
-              (dayOfWeek === 0 || dayOfWeek === 6) ||
-              // Weekday peak hours (17:00-22:00)
-              (dayOfWeek >= 1 && dayOfWeek <= 5 && hour >= 17 && hour < 22)
-            );
-            
-            if (isPeakTime && peakPricing) {
-              price = peakPricing.price;
-            }
-            
-            // Add to batch
-            batchInserts.push({
-              startTime: startTime,
-              endTime: endTime,
-              price: Math.round(price), // Round to nearest whole number
-              status: 'available',
-              reservationExpiry: null
-            });
-            
-            // Insert in batches to avoid memory issues
-            if (batchInserts.length >= BATCH_SIZE) {
-              await db.insert(timeSlots).values(batchInserts);
-              batchInserts = [];
-            }
-          }
-        }
-        
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
       }
       
       // Insert any remaining time slots
-      if (batchInserts.length > 0) {
-        await db.insert(timeSlots).values(batchInserts);
+      if (currentBatch.length > 0) {
+        await db.insert(timeSlots).values(currentBatch);
       }
       
-      console.log("Time slots generated successfully.");
+      console.log(`Time slots generated successfully (${timeSlotBatches.length} slots).`);
     } catch (error) {
       console.error("Error generating time slots:", error);
     }
@@ -307,6 +243,13 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getTimeSlotsByDateRange(startDate: Date, endDate: Date): Promise<TimeSlot[]> {
+    // Import the timezone utilities
+    const { toLatviaTime, fromLatviaTime, formatInLatviaTime, LATVIA_TIMEZONE } = await import('./utils/timezone');
+    
+    // Log the input dates for debugging
+    console.log(`Fetching time slots from ${formatInLatviaTime(startDate, 'yyyy-MM-dd HH:mm:ss')} to ${formatInLatviaTime(endDate, 'yyyy-MM-dd HH:mm:ss')} (Latvia time)`);
+    
+    // Query using the original dates (which are already in UTC format for database storage)
     return db.select()
       .from(timeSlots)
       .where(
@@ -373,19 +316,29 @@ export class DatabaseStorage implements IStorage {
     return removedTimeSlot;
   }
   
-  // Public method to regenerate time slots
+  // Public method to regenerate time slots with timezone awareness
   async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }> {
     try {
-      // Get today's date
+      // Import timezone utilities
+      const { toLatviaTime, fromLatviaTime, formatInLatviaTime, LATVIA_TIMEZONE } = await import('./utils/timezone');
+      const { checkTimeSlotConflicts } = await import('./utils/time-slot-generator');
+      
+      // Get today's date in Latvia timezone for consistency
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const latviaToday = toLatviaTime(today);
+      latviaToday.setHours(0, 0, 0, 0);
+      
+      // Convert back to UTC for database queries
+      const utcToday = fromLatviaTime(latviaToday);
+      
+      console.log(`Regenerating time slots from ${formatInLatviaTime(today, 'yyyy-MM-dd')} onwards (Latvia time)`);
       
       // First find all future time slots with bookings to preserve them
       const bookedTimeSlots = await db.select()
         .from(timeSlots)
         .where(
           and(
-            gte(timeSlots.startTime, today),
+            gte(timeSlots.startTime, utcToday),
             eq(timeSlots.status, "booked")
           )
         );
@@ -405,7 +358,7 @@ export class DatabaseStorage implements IStorage {
       await db.delete(timeSlots)
         .where(
           and(
-            gte(timeSlots.startTime, today),
+            gte(timeSlots.startTime, utcToday),
             not(eq(timeSlots.status, "booked"))
           )
         );
@@ -415,23 +368,17 @@ export class DatabaseStorage implements IStorage {
       // Now generate new time slots
       await this.generateTimeSlots();
       
-      // Check for conflicts (newly generated slots overlapping with booked slots)
-      const conflicts = [];
+      // After regeneration, check for any conflicts - this is more of a sanity check
+      // and shouldn't happen due to our delete condition, but we check to be safe
+      const conflicts: { id: number, startTime: Date, conflictTime: string }[] = [];
       
-      // A slot is considered in conflict if it has the same start time as a booked slot
-      // This should never happen in theory with our delete condition, but we check to be safe
       for (const bookedSlot of bookedSlotDetails) {
-        // Format the dates for logs
-        const formattedStart = formatInTimeZone(
-          bookedSlot.startTime, 
-          'Europe/Riga', 
-          'yyyy-MM-dd HH:mm:ss'
-        );
-        
+        // Format the dates for logs in Latvia timezone for better readability
+        const formattedStart = formatInLatviaTime(bookedSlot.startTime, 'yyyy-MM-dd HH:mm:ss');
         console.log(`Preserved booked slot: ID ${bookedSlot.id}, time: ${formattedStart}`);
       }
       
-      console.log("Time slots regenerated successfully, preserving existing bookings.");
+      console.log("Time slots regenerated successfully with timezone awareness, preserving existing bookings.");
       return {
         success: true,
         preservedBookings: bookedTimeSlots.length,

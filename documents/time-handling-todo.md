@@ -38,9 +38,9 @@ This checklist provides a step-by-step implementation plan for fixing the timezo
 
 ## Phase 5: Time Slot Generation Logic Updates (Medium Impact)
 
-- [ ] **Task 2.2.1**: Create a new timezone-aware time slot generation function
-- [ ] **Task 2.2.2**: Update the time slot regeneration endpoint to use the new function
-- [ ] **Task 2.2.3**: Ensure all time-based business logic correctly uses timezone context
+- [x] **Task 2.2.1**: Create a new timezone-aware time slot generation function ✓
+- [x] **Task 2.2.2**: Update the time slot regeneration endpoint to use the new function ✓
+- [x] **Task 2.2.3**: Ensure all time-based business logic correctly uses timezone context ✓
 - [ ] **Task 4.3.1**: Add tests for time slot generation edge cases
 - [ ] **Task 4.2.3**: Manually verify time slot generation across multiple days/times
 
