@@ -103,7 +103,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   const { toast } = useToast();
   
   // Date range for the current week view
-  const startDate = currentDate;
+  // For admin view, include yesterday in the date range
+  const startDate = isAdmin ? subDays(currentDate, 1) : currentDate;
   const endDate = addDays(currentDate, 6);
   
   // Navigation functions
@@ -225,6 +226,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
   };
   
   // Create a Latvian week (Monday-Sunday) from current date
+  // For admin view, include Sunday (yesterday) as well
   const days = useMemo(() => {
     // Get the Latvian day index for the current date (0=Monday, 1=Tuesday, etc)
     const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
@@ -234,10 +236,16 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     // If today is Tuesday (index 1), then monday is yesterday, etc.
     const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
     
+    // For admin view, we'll start with Sunday (the day before Monday)
+    let startDate = mondayDate;
+    if (isAdmin) {
+      startDate = addDays(mondayDate, -1); // Sunday before Monday
+    }
+    
     console.log(`Calculating week with:
       Current date: ${currentDate.toISOString()}
       Latvia day index: ${latvianDayIndexForToday}
-      Monday date: ${mondayDate.toISOString()}
+      Start date: ${startDate.toISOString()} (${isAdmin ? 'Sunday' : 'Monday'})
     `);
     
     // Enhanced debugging for admin view: Get the current real date to check past days
@@ -246,11 +254,25 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       console.log(`ADMIN VIEW - Current real date: ${realToday.toISOString()}`);
     }
     
-    // Now create an array of 7 days starting from Monday
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = addDays(mondayDate, i);
-      // Latvian day index is simply i (0=Monday, 1=Tuesday, etc)
+    // Create an array of days (7 for regular view, 8 for admin to include Sunday)
+    const daysArray = [];
+    const daysToShow = isAdmin ? 8 : 7;
+    
+    for (let i = 0; i < daysToShow; i++) {
+      const date = addDays(startDate, i);
+      
+      // Calculate proper Latvian day index
+      let latvianDayIndex;
+      if (isAdmin && i === 0) {
+        latvianDayIndex = 6; // Sunday is index 6 in Latvian system (0=Monday,6=Sunday)
+      } else if (isAdmin) {
+        latvianDayIndex = i - 1; // Adjust indices for admin view (i=1 → latvianDayIndex=0)
+      } else {
+        latvianDayIndex = i; // Standard view: i matches Latvian day index
+      }
+      
       const formattedDate = formatInLatviaTime(date, "yyyy-MM-dd");
+      
       if (isAdmin) {
         // Enhanced debugging to show if day is in the past
         const now = new Date();
@@ -258,15 +280,18 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const isPastDay = dayDate < dateToBefore;
         
-        console.log(`Day ${i} (${formatInLatviaTime(date, "EEE")}): ${formattedDate}, Is Past Day: ${isPastDay}`);
+        console.log(`Day ${i} (${formatInLatviaTime(date, "EEE")}): ${formattedDate}, Latvian index: ${latvianDayIndex}, Is Past: ${isPastDay}`);
       }
-      return {
+      
+      daysArray.push({
         date,
         name: formatInLatviaTime(date, "EEE"),
         day: formatInLatviaTime(date, "d"),
-        latvianDayIndex: i
-      };
-    });
+        latvianDayIndex
+      });
+    }
+    
+    return daysArray;
   }, [currentDate, isAdmin]);
   
   // Build status map from database time slots
@@ -364,9 +389,11 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       const now = new Date();
       const isPast = correctedEndTime < now;
       
-      // Debug past slots with their original status
+      // For past slots with status "booked", we need to preserve their "booked" status
+      // This is crucial for the admin view to see past bookings
       if (isPast) {
-        console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(correctedStartTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(correctedEndTime, "HH:mm")}, Status: ${dbSlot.status}`);
+        // Log detailed information about past slots for debugging
+        console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(correctedStartTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(correctedEndTime, "HH:mm")}, Status: ${dbSlot.status}, Original date: ${formatInLatviaTime(startTime, "yyyy-MM-dd")}`);
       }
       
       slots.push({
