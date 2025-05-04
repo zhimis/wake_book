@@ -220,10 +220,20 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     // If today is Tuesday (index 1), then monday is yesterday, etc.
     const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
     
+    console.log(`Calculating week with:
+      Current date: ${currentDate.toISOString()}
+      Latvia day index: ${latvianDayIndexForToday}
+      Monday date: ${mondayDate.toISOString()}
+    `);
+    
     // Now create an array of 7 days starting from Monday
     return Array.from({ length: 7 }, (_, i) => {
       const date = addDays(mondayDate, i);
       // Latvian day index is simply i (0=Monday, 1=Tuesday, etc)
+      const formattedDate = formatInLatviaTime(date, "yyyy-MM-dd");
+      if (isAdmin) {
+        console.log(`Day ${i} (${formatInLatviaTime(date, "EEE")}): ${formattedDate}`);
+      }
       return {
         date,
         name: formatInLatviaTime(date, "EEE"),
@@ -231,7 +241,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         latvianDayIndex: i
       };
     });
-  }, [currentDate]);
+  }, [currentDate, isAdmin]);
   
   // Build status map from database time slots
   const dbStatusMap = useMemo(() => {
@@ -799,8 +809,15 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                         // For admin mode, make unallocated slots clickable for selection
                         if (isAdmin) {
                           // Create a dummy slot for unallocated time periods to allow selection
-                          const dummyDate = new Date(currentDate);
-                          dummyDate.setDate(dummyDate.getDate() + (idx - getLatvianDayIndexFromDate(currentDate)));
+                          // Use the actual day's date from our days array to ensure proper date is used
+                          const dayData = days[idx];
+                          if (!dayData) {
+                            console.error(`Could not find day data for index ${idx}`);
+                            return null;
+                          }
+                          
+                          // Start with the correct date for this column from the days array
+                          const dummyDate = new Date(dayData.date);
                           
                           // Set hours and minutes based on the time string
                           const [dummyHour, dummyMinute] = timeString.split(':').map(Number);
