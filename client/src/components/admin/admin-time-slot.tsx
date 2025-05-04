@@ -18,7 +18,21 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   onClick 
 }) => {
   // Check if the time slot is in the past
-  const isPast = new Date(slot.endTime) < new Date();
+  // We need to use the current date in Latvia timezone for comparison to ensure consistency
+  const now = new Date();
+  
+  // For proper past slot detection, use either the original database date or the mapped date
+  // This ensures we're comparing the time slot correctly to the current time
+  const slotEndTime = slot.originalEndTime || slot.endTime;
+  
+  // Debug for troubleshooting past slots
+  console.log(`Slot ${slot.id} isPast check:`, {
+    endTime: slotEndTime,
+    now,
+    isPast: slotEndTime < now
+  });
+  
+  const isPast = slotEndTime < now;
   
   // Get CSS class for time slot based on status and whether it's in the past
   const getSlotClass = (status: string) => {
