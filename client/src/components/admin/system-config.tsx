@@ -425,7 +425,7 @@ const AdminSystemConfig = () => {
                       <SelectValue placeholder="Open" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 13 }, (_, i) => i + 8).map(h => {
+                      {Array.from({ length: 15 }, (_, i) => i + 8).map(h => {
                         // Create a date at this hour in UTC
                         const timeDate = new Date();
                         timeDate.setUTCHours(h, 0, 0, 0);
@@ -464,7 +464,7 @@ const AdminSystemConfig = () => {
                       <SelectValue placeholder="Close" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 13 }, (_, i) => i + 13).map(h => {
+                      {Array.from({ length: 15 }, (_, i) => i + 8).map(h => {
                         // Create a date at this hour in UTC
                         const timeDate = new Date();
                         timeDate.setUTCHours(h, 0, 0, 0);
