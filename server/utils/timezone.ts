@@ -258,3 +258,54 @@ export async function getTimeFormatPreferences() {
     };
   }
 }
+
+/**
+ * Analyze a time slot for timezone consistency
+ * This utility function helps debug and verify timezone handling
+ * 
+ * @param timeSlot A time slot object to analyze
+ * @returns Object with analysis data
+ */
+export function analyzeTimeSlotTimezone(timeSlot: { 
+  id: number; 
+  startTime: Date | string; 
+  endTime: Date | string;
+  storageTimezone?: string;
+}) {
+  // Ensure we have Date objects
+  const startTime = timeSlot.startTime instanceof Date 
+    ? timeSlot.startTime 
+    : new Date(timeSlot.startTime);
+  
+  const endTime = timeSlot.endTime instanceof Date 
+    ? timeSlot.endTime 
+    : new Date(timeSlot.endTime);
+  
+  // Get the timezone that should be used
+  const timezone = timeSlot.storageTimezone || UTC_TIMEZONE;
+  
+  // Format in both UTC and Latvia time for comparison
+  const utcStartFormatted = formatInTimeZone(startTime, 'UTC', 'yyyy-MM-dd HH:mm:ss');
+  const utcEndFormatted = formatInTimeZone(endTime, 'UTC', 'yyyy-MM-dd HH:mm:ss');
+  
+  const latviaStartFormatted = formatInTimeZone(startTime, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+  const latviaEndFormatted = formatInTimeZone(endTime, LATVIA_TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+  
+  // Return full analysis
+  return {
+    id: timeSlot.id,
+    storageTimezone: timezone,
+    startTime: {
+      raw: startTime.toISOString(),
+      utc: utcStartFormatted,
+      latvia: latviaStartFormatted
+    },
+    endTime: {
+      raw: endTime.toISOString(), 
+      utc: utcEndFormatted,
+      latvia: latviaEndFormatted
+    },
+    duration: (endTime.getTime() - startTime.getTime()) / 60000, // in minutes
+    isValid: endTime > startTime && startTime instanceof Date && endTime instanceof Date
+  };
+}

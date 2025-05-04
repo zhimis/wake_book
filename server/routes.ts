@@ -1101,6 +1101,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Diagnostic endpoint for checking time slot timezone implementation (admin only)
+  app.get("/api/diagnostics/timeslots", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Import the analyzer function
+      const { analyzeTimeSlotTimezone } = await import('./utils/timezone');
+      
+      // Get some time slots to analyze (limit to 10 for performance)
+      const timeSlotsToAnalyze = await db.select()
+        .from(timeSlots)
+        .limit(10);
+      
+      // Analyze each time slot
+      const analysis = timeSlotsToAnalyze.map(slot => analyzeTimeSlotTimezone(slot));
+      
+      // Return the results
+      res.json({
+        success: true,
+        timeSlots: analysis,
+        message: `Analyzed ${analysis.length} time slots for timezone consistency.`
+      });
+    } catch (error) {
+      console.error("Error analyzing time slots:", error);
+      res.status(500).json({ error: "Failed to analyze time slots" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
