@@ -364,8 +364,9 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       const now = new Date();
       const isPast = correctedEndTime < now;
       
+      // Debug past slots with their original status
       if (isPast) {
-        console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(correctedStartTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(correctedEndTime, "HH:mm")}`);
+        console.log(`Found past slot ${dbSlot.id}: ${formatInLatviaTime(correctedStartTime, "yyyy-MM-dd HH:mm")} to ${formatInLatviaTime(correctedEndTime, "HH:mm")}, Status: ${dbSlot.status}`);
       }
       
       slots.push({

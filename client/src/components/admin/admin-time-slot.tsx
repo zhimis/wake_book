@@ -60,6 +60,9 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   
   // Get CSS class for time slot based on status and whether it's in the past
   const getSlotClass = (status: string) => {
+    // Debug what the status is
+    console.log(`AdminTimeSlot ${slot.id} status: ${status}, isPast: ${isPast}`);
+    
     // Past slots get a different styling
     if (isPast) {
       switch (status) {
