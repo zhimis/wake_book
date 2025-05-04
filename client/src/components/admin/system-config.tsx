@@ -66,6 +66,15 @@ const AdminSystemConfig = () => {
         
         console.log(`Converting time to Latvia timezone for display - openTime: ${openTimeStr}, closeTime: ${closeTimeStr}`);
         
+        // Create proper date objects for the time strings
+        // Make sure to pad month and day with leading zeros if needed
+        const paddedMonth = (month + 1).toString().padStart(2, '0');
+        const paddedDay = day.toString().padStart(2, '0');
+        
+        // Create proper ISO date strings 
+        const openDateStr = `${year}-${paddedMonth}-${paddedDay}T${openTimeStr}:00Z`;
+        const closeDateStr = `${year}-${paddedMonth}-${paddedDay}T${closeTimeStr}:00Z`;
+        
         // Return the transformed hour object with both UTC and Latvia-displayed times
         return {
           ...hour,
@@ -74,8 +83,8 @@ const AdminSystemConfig = () => {
           openTime: openTimeStr,
           closeTime: closeTimeStr,
           // Store Latvia-formatted times for display
-          openTimeFormatted: formatTime(new Date(`${year}-${month+1}-${day}T${openTimeStr}:00Z`), true),
-          closeTimeFormatted: formatTime(new Date(`${year}-${month+1}-${day}T${closeTimeStr}:00Z`), true)
+          openTimeFormatted: formatTime(new Date(openDateStr), true),
+          closeTimeFormatted: formatTime(new Date(closeDateStr), true)
         };
       });
       
@@ -180,9 +189,16 @@ const AdminSystemConfig = () => {
           // Create a proper date object with the time string
           const timeStr = typeof value === 'string' ? value : (field === 'openTime' ? '08:00' : '22:00');
           
+          // Format month and day with leading zeros
+          const paddedMonth = (month + 1).toString().padStart(2, '0');
+          const paddedDay = day.toString().padStart(2, '0');
+          
+          // Create proper ISO date string
+          const dateStr = `${year}-${paddedMonth}-${paddedDay}T${timeStr}:00Z`;
+          
           // Add the formatted time in Latvia timezone
           const formattedField = `${field}Formatted`;
-          updatedHour[formattedField] = formatTime(new Date(`${year}-${month+1}-${day}T${timeStr}:00Z`), true);
+          updatedHour[formattedField] = formatTime(new Date(dateStr), true);
           
           console.log(`Updated ${field} to ${value}, ${formattedField} to ${updatedHour[formattedField]}`);
         }
