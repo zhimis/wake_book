@@ -240,13 +240,25 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       Monday date: ${mondayDate.toISOString()}
     `);
     
+    // Enhanced debugging for admin view: Get the current real date to check past days
+    if (isAdmin) {
+      const realToday = new Date();
+      console.log(`ADMIN VIEW - Current real date: ${realToday.toISOString()}`);
+    }
+    
     // Now create an array of 7 days starting from Monday
     return Array.from({ length: 7 }, (_, i) => {
       const date = addDays(mondayDate, i);
       // Latvian day index is simply i (0=Monday, 1=Tuesday, etc)
       const formattedDate = formatInLatviaTime(date, "yyyy-MM-dd");
       if (isAdmin) {
-        console.log(`Day ${i} (${formatInLatviaTime(date, "EEE")}): ${formattedDate}`);
+        // Enhanced debugging to show if day is in the past
+        const now = new Date();
+        const dateToBefore = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const isPastDay = dayDate < dateToBefore;
+        
+        console.log(`Day ${i} (${formatInLatviaTime(date, "EEE")}): ${formattedDate}, Is Past Day: ${isPastDay}`);
       }
       return {
         date,

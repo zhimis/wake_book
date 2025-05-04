@@ -21,6 +21,15 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   // We need more rigorous date comparison to properly detect past slots
   const now = new Date();
   
+  // IMPORTANT: If the slot already has an isPast property set by the parent component, use that
+  // This ensures we use the same isPast logic across both public and admin components
+  if (slot.isPast !== undefined) {
+    console.log(`Slot ${slot.id} using pre-calculated isPast value: ${slot.isPast}`);
+  } else {
+    // Otherwise, calculate it ourselves
+    console.log(`Slot ${slot.id} calculating isPast value because it wasn't provided`);
+  }
+  
   // Get the slot's date (either from original or mapped date)
   const slotDate = slot.originalStartTime || slot.startTime;
   
@@ -36,8 +45,8 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   const isToday = slotOnlyDate.getTime() === todayDate.getTime();
   const isPastTime = isToday && slotDate < now;
   
-  // Combine both conditions
-  const isPast = isPastDay || isPastTime;
+  // Combine both conditions, but prefer the pre-calculated value if available
+  const isPast = slot.isPast !== undefined ? slot.isPast : (isPastDay || isPastTime);
   
   // Debug for troubleshooting past slots
   console.log(`Slot ${slot.id} isPast check:`, {
