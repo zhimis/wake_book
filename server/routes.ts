@@ -26,7 +26,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get time slots for a week
   app.get("/api/timeslots", async (req: Request, res: Response) => {
     try {
-      // Get start and end dates from query params or default to current week
+      // HARDCODED FIX: Use May 4, 2025 as the fixed date to match client's hardcoded date
+      const fixedDate = new Date('2025-05-04T00:00:00Z');
+      
+      // Get start and end dates from query params or default to our fixed week
       const startDateStr = req.query.startDate as string;
       const endDateStr = req.query.endDate as string;
 
@@ -39,14 +42,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid end date format" });
       }
 
-      // Use provided date or default to today, converted to Latvia timezone
+      // Use provided date or default to our fixed date, converted to Latvia timezone
       let startDate;
       if (startDateStr) {
         // Parse the date and set to start of day in Latvia timezone
         startDate = getLatviaDayStart(new Date(startDateStr));
       } else {
-        // If no date provided, use today in Latvia timezone
-        startDate = getLatviaDayStart(new Date());
+        // If no date provided, use our fixed date in Latvia timezone
+        startDate = getLatviaDayStart(fixedDate);
       }
 
       let endDate;
