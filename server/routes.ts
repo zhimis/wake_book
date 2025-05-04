@@ -258,13 +258,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           try {
-            // Create a new time slot with proper data
+            // Create a new time slot with proper data and UTC timezone
             const newSlot = await storage.createTimeSlot({
               startTime: new Date(unallocatedSlot.startTime),
               endTime: new Date(unallocatedSlot.endTime),
               price,
               status: 'available',
-              reservationExpiry: null
+              reservationExpiry: null,
+              storageTimezone: 'UTC'
             });
             
             if (newSlot) {
@@ -371,12 +372,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
             
-            // Create a new time slot with this information
+            // Create a new time slot with this information and UTC timezone
             const newSlot = await storage.createTimeSlot({
               startTime: new Date(timeInfo.startTime),
               endTime: new Date(timeInfo.endTime),
               price: 25, // Default price
-              status: 'available'
+              status: 'available',
+              storageTimezone: 'UTC'
             });
             
             console.log(`Created new time slot with ID ${newSlot.id} for unallocated slot`);
@@ -588,7 +590,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endTime: new Date(slot.endTime),
           price: slot.price || 25, // Default price if not provided
           status: "booked",
-          reservationExpiry: null
+          reservationExpiry: null,
+          storageTimezone: 'UTC'
         });
         
         // Log what was actually stored for debugging
