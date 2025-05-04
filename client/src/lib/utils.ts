@@ -25,8 +25,20 @@ export function cn(...inputs: ClassValue[]) {
  * @returns Date object in Latvia timezone
  */
 export function toLatviaTime(date: Date | string): Date {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return toZonedTime(dateObj, LATVIA_TIMEZONE);
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if the date is valid before conversion
+    if (isNaN(dateObj.getTime())) {
+      console.error("Invalid date detected in toLatviaTime:", date);
+      return new Date(); // Return current date as fallback
+    }
+    
+    return toZonedTime(dateObj, LATVIA_TIMEZONE);
+  } catch (error) {
+    console.error("Error converting to Latvia time:", error, date);
+    return new Date(); // Return current date as fallback
+  }
 }
 
 /**
@@ -35,33 +47,44 @@ export function toLatviaTime(date: Date | string): Date {
  * @returns Date object in UTC timezone
  */
 export function fromLatviaTime(latviaDate: Date | string): Date {
-  const dateObj = typeof latviaDate === 'string' ? new Date(latviaDate) : latviaDate;
-  
-  // Manual conversion from Latvia time to UTC using timezone offset
-  const latviaTimeObj = new Date(dateObj);
-  const tzOffset = latviaTimeObj.getTimezoneOffset();
-  
-  // Latvia is EET (GMT+2) in winter and EEST (GMT+3) in summer
-  // getTimezoneOffset() returns minutes, negative for east of GMT
-  // We need to convert Latvia time to UTC by subtracting the difference between
-  // the local timezone offset and the Latvia timezone offset (2 or 3 hours)
-  
-  // Get the current Latvia timezone offset in minutes
-  // This is a simplification - for production code, we would need a more robust solution
-  const now = new Date();
-  let latviaOffset = -120; // Default to EET (GMT+2) = -120 minutes
-  
-  // Crude check for daylight saving time (April to October)
-  const month = now.getMonth(); // 0-11 (January is 0)
-  if (month >= 3 && month <= 9) {
-    latviaOffset = -180; // EEST (GMT+3) = -180 minutes
+  try {
+    const dateObj = typeof latviaDate === 'string' ? new Date(latviaDate) : latviaDate;
+    
+    // Check if the date is valid before conversion
+    if (isNaN(dateObj.getTime())) {
+      console.error("Invalid date detected in fromLatviaTime:", latviaDate);
+      return new Date(); // Return current date as fallback
+    }
+    
+    // Manual conversion from Latvia time to UTC using timezone offset
+    const latviaTimeObj = new Date(dateObj);
+    const tzOffset = latviaTimeObj.getTimezoneOffset();
+    
+    // Latvia is EET (GMT+2) in winter and EEST (GMT+3) in summer
+    // getTimezoneOffset() returns minutes, negative for east of GMT
+    // We need to convert Latvia time to UTC by subtracting the difference between
+    // the local timezone offset and the Latvia timezone offset (2 or 3 hours)
+    
+    // Get the current Latvia timezone offset in minutes
+    // This is a simplification - for production code, we would need a more robust solution
+    const now = new Date();
+    let latviaOffset = -120; // Default to EET (GMT+2) = -120 minutes
+    
+    // Crude check for daylight saving time (April to October)
+    const month = now.getMonth(); // 0-11 (January is 0)
+    if (month >= 3 && month <= 9) {
+      latviaOffset = -180; // EEST (GMT+3) = -180 minutes
+    }
+    
+    // Calculate the difference between local timezone and Latvia timezone
+    const offsetDiff = tzOffset - latviaOffset;
+    
+    // Apply the offset difference to convert to UTC
+    return new Date(latviaTimeObj.getTime() - offsetDiff * 60000);
+  } catch (error) {
+    console.error("Error converting from Latvia time:", error, latviaDate);
+    return new Date(); // Return current date as fallback
   }
-  
-  // Calculate the difference between local timezone and Latvia timezone
-  const offsetDiff = tzOffset - latviaOffset;
-  
-  // Apply the offset difference to convert to UTC
-  return new Date(latviaTimeObj.getTime() - offsetDiff * 60000);
 }
 
 /**
@@ -117,8 +140,20 @@ export function createLatviaTime(
  * @returns Formatted date string in Latvia timezone
  */
 export function formatInLatviaTime(date: Date | string, formatStr: string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return formatInTimeZone(dateObj, LATVIA_TIMEZONE, formatStr);
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Check if the date is valid before trying to format
+    if (isNaN(dateObj.getTime())) {
+      console.error("Invalid date detected:", date);
+      return "Invalid date";
+    }
+    
+    return formatInTimeZone(dateObj, LATVIA_TIMEZONE, formatStr);
+  } catch (error) {
+    console.error("Error formatting date:", error, date);
+    return "Format error";
+  }
 }
 
 /**
