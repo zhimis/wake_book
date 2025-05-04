@@ -235,97 +235,31 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     let daysArray = [];
     
     if (isAdmin) {
-      // We need to define exactly which dates to show for a consistent layout
+      // For admin view, we want to generate column headers in the proper Monday-to-Sunday order
+      // with the dates showing correctly (April 28 to May 4, 2025)
       
-      // First, identify today in Latvia timezone
-      console.log(`Admin view - Today is: ${formatInLatviaTime(today, "EEE, MMM d")}`);
+      // Start with Monday April 28 as our reference point
+      const mondayDate = new Date(2025, 3, 28); // April 28, 2025 (months are 0-indexed)
       
-      // Get the current week's Monday (for consistent week view)
-      const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
-      const mondayOfThisWeek = addDays(today, -latvianDayIndexForToday);
+      // Create the 7 days of the week (Mon-Sun) in order
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(mondayDate, i);
+        daysArray.push({
+          date: date,
+          name: formatInLatviaTime(date, "EEE"),
+          day: formatInLatviaTime(date, "d"),
+          latvianDayIndex: i // Monday=0, Sunday=6 in Latvian system
+        });
+      }
       
-      // We need to create exactly 8 columns as follows:
-      // Column 1: Friday (May 2) 
-      // Column 2: Monday (Apr 28)
-      // Column 3: Tuesday (Apr 29)
-      // Column 4: Wednesday (Apr 30)
-      // Column 5: Thursday (May 1)
-      // Column 6: Friday (May 2) - duplicate of column 1, NEED TO FIX
-      // Column 7: Saturday (May 3)
-      // Column 8: Sunday (May 4)
-      
-      // Let's create exact dates for each column
-      const dates = [
-        new Date(2025, 4, 2), // Column 1: Friday May 2
-        new Date(2025, 3, 28), // Column 2: Monday Apr 28
-        new Date(2025, 3, 29), // Column 3: Tuesday Apr 29
-        new Date(2025, 3, 30), // Column 4: Wednesday Apr 30
-        new Date(2025, 4, 1), // Column 5: Thursday May 1
-        new Date(2025, 4, 2), // Column 6: Friday May 2 - SKIP THIS
-        new Date(2025, 4, 3), // Column 7: Saturday May 3
-        new Date(2025, 4, 4), // Column 8: Sunday May 4
-      ];
-      
-      // Log the dates for debugging
-      console.log(`Admin view - Fixed column dates:`);
-      dates.forEach((date, i) => {
-        console.log(`Column ${i+1}: ${formatInLatviaTime(date, "EEE, MMM d, yyyy")}`);
+      // Log the generated dates for debugging
+      console.log(`Admin view - Column dates in order:`);
+      daysArray.forEach((day, i) => {
+        console.log(`Column ${i+1}: ${formatInLatviaTime(day.date, "EEE, MMM d, yyyy")}, Latvian index: ${day.latvianDayIndex}`);
       });
       
-      // Create the day array with our fixed dates, skipping the duplicate Friday
-      daysArray = [
-        // Column 1: Friday May 2
-        {
-          date: dates[0],
-          name: formatInLatviaTime(dates[0], "EEE"),
-          day: formatInLatviaTime(dates[0], "d"),
-          latvianDayIndex: getLatvianDayIndexFromDate(dates[0])
-        },
-        // Column 2: Monday Apr 28
-        {
-          date: dates[1],
-          name: formatInLatviaTime(dates[1], "EEE"),
-          day: formatInLatviaTime(dates[1], "d"),
-          latvianDayIndex: getLatvianDayIndexFromDate(dates[1])
-        },
-        // Column 3: Tuesday Apr 29
-        {
-          date: dates[2],
-          name: formatInLatviaTime(dates[2], "EEE"),
-          day: formatInLatviaTime(dates[2], "d"),
-          latvianDayIndex: getLatvianDayIndexFromDate(dates[2])
-        },
-        // Column 4: Wednesday Apr 30
-        {
-          date: dates[3],
-          name: formatInLatviaTime(dates[3], "EEE"),
-          day: formatInLatviaTime(dates[3], "d"),
-          latvianDayIndex: getLatvianDayIndexFromDate(dates[3])
-        },
-        // Column 5: Thursday May 1
-        {
-          date: dates[4],
-          name: formatInLatviaTime(dates[4], "EEE"),
-          day: formatInLatviaTime(dates[4], "d"),
-          latvianDayIndex: getLatvianDayIndexFromDate(dates[4])
-        },
-        // Skip the duplicate Friday (Column 6)
-        
-        // Column 7: Saturday May 3
-        {
-          date: dates[6],
-          name: formatInLatviaTime(dates[6], "EEE"),
-          day: formatInLatviaTime(dates[6], "d"),
-          latvianDayIndex: getLatvianDayIndexFromDate(dates[6])
-        },
-        // Column 8: Sunday May 4
-        {
-          date: dates[7],
-          name: formatInLatviaTime(dates[7], "EEE"),
-          day: formatInLatviaTime(dates[7], "d"),
-          latvianDayIndex: getLatvianDayIndexFromDate(dates[7])
-        },
-      ];
+      // The current daysArray now has: Mon 28, Tue 29, Wed 30, Thu 1, Fri 2, Sat 3, Sun 4
+      // This matches the expected order for the headers
     } else {
       // Regular user view just shows the current week (Mon-Sun)
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
@@ -541,7 +475,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
         }
       } else {
         // For regular view (7 columns, Monday-Sunday), use latvianDayIndex directly (0-6)
-        if (slot.latvianDayIndex >= 0 && slot.latvianDayIndex < 7) {
+        if (slot.latvianDayIndex !== undefined && slot.latvianDayIndex >= 0 && slot.latvianDayIndex < 7) {
           slotsForWeek[slot.latvianDayIndex] = slot;
         } else {
           console.error(`Invalid latvianDayIndex: ${slot.latvianDayIndex} for slot`);
@@ -806,384 +740,151 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 overflow-visible">
-        {/* Time and day headers */}
-        <div className="flex pl-1">
-          {/* Time column header */}
-          <div className="w-10 flex-shrink-0"></div>
-          
-          {/* Day columns headers - adjusted cols based on admin view */}
-          <div className={`flex-1 grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} gap-1`}>
-            {/* Slice to show correct number of days (8 for admin, 7 for regular) */}
-            {days.slice(0, isAdmin ? 8 : 7).map((day, index) => {
-              // Check if this day is today using Latvia timezone
-              const latviaToday = toLatviaTime(new Date());
-              const dayInLatvia = toLatviaTime(day.date);
-              
-              // Compare year, month, and day
-              const isCurrentDay = 
-                dayInLatvia.getFullYear() === latviaToday.getFullYear() &&
-                dayInLatvia.getMonth() === latviaToday.getMonth() &&
-                dayInLatvia.getDate() === latviaToday.getDate();
-              
-              // Check if this day is in the past
-              const isPastDay = dayInLatvia < new Date(
-                latviaToday.getFullYear(), 
-                latviaToday.getMonth(), 
-                latviaToday.getDate()
-              );
-              
-              // Set classes based on date status
-              let containerClass = 'text-center py-2';
-              let dayNameClass = 'font-medium text-sm';
-              let dayNumberClass = 'text-xs';
-              
-              if (isCurrentDay) {
-                containerClass += ' bg-blue-50 rounded-md';
-                dayNameClass += ' text-blue-700';
-                dayNumberClass += ' text-blue-600';
-              } else if (isPastDay) {
-                containerClass += ' bg-gray-50';
-                dayNameClass += ' text-gray-600';
-                dayNumberClass += ' text-gray-500';
-              } else {
-                dayNumberClass += ' text-muted-foreground';
-              }
-              
-              return (
-                <div key={index} className={containerClass}>
-                  <div className={dayNameClass}>
+      <CardContent className="p-2">
+        {/* If we're viewing a future week beyond the visibility range... */}
+        {isFutureWeekBeyondVisibility ? (
+          <div className="flex flex-col justify-center items-center py-8 my-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            <CalendarIcon className="h-10 w-10 text-muted-foreground mb-2" />
+            <h3 className="text-lg font-medium">No time slots available</h3>
+            <p className="text-sm text-muted-foreground mb-3 text-center max-w-lg">
+              The booking schedule is only visible up to 3 weeks in advance. Please check back later or select an earlier date.
+            </p>
+            <Button variant="outline" onClick={goToToday}>
+              Go to current week
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-2">
+              {/* Column Headers */}
+              <div className="p-2"></div>
+              {days.map((day, i) => (
+                <div 
+                  key={i}
+                  className={cn(
+                    "p-2 text-center font-medium text-xs",
+                    isToday(day.date) && "bg-blue-50 rounded-sm"
+                  )}
+                >
+                  <div className={isToday(day.date) ? "text-blue-500" : "text-muted-foreground"}>
                     {day.name}
                   </div>
-                  <div className={dayNumberClass}>{day.day}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* Future week message */}
-        {!isAdmin && isFutureWeekBeyondVisibility && (
-          <div className="py-8 px-4 text-center bg-blue-50 rounded-md mt-4">
-            <h3 className="text-lg font-medium text-blue-800 mb-2">Future Availability</h3>
-            <p className="text-blue-700 mb-3">
-              Availability for this week will be published later. 
-            </p>
-            <p className="text-sm text-blue-600">
-              For special requests or inquiries for this period, please call:
-              <a 
-                href="tel:+37125422219" 
-                className="block mt-1 font-bold hover:underline"
-              >
-                +371 25422219
-              </a>
-            </p>
-          </div>
-        )}
-        
-        {/* Calendar grid with time slots */}
-        <div className="mt-2">
-          {(!isFutureWeekBeyondVisibility || isAdmin) && allTimeStrings.map(timeString => {
-            const [hourStr, minuteStr] = timeString.split(':');
-            const hour = parseInt(hourStr);
-            const minute = parseInt(minuteStr);
-            const slots = getTimeSlotsForTime(hour, minute);
-            
-            // Add hourly separator
-            if (minute === 0) {
-              return (
-                <div key={`time-block-${timeString}`}>
-                  <div className="flex w-full mb-1 mt-2 first:mt-0">
-                    <div className="w-10 flex-shrink-0"></div>
-                    <div className="flex-1 border-t border-gray-200"></div>
+                  <div className={isToday(day.date) ? "text-blue-600" : ""}>
+                    {day.day}
                   </div>
-                  
-                  <div className="flex mb-1 items-start">
-                    {/* Time column */}
-                    <div className="w-10 flex-shrink-0 pt-2 pr-1 text-right">
-                      <span className="text-xs font-medium text-gray-500">{timeString}</span>
+                </div>
+              ))}
+
+              {/* Time Rows */}
+              {allTimeStrings.map((timeStr) => {
+                const [hourStr, minuteStr] = timeStr.split(":");
+                const hour = parseInt(hourStr);
+                const minute = parseInt(minuteStr);
+                
+                // Get slots for this time across all days
+                const slotsForTime = getTimeSlotsForTime(hour, minute);
+                
+                return (
+                  <React.Fragment key={timeStr}>
+                    {/* Time Label */}
+                    <div className="p-2 text-xs font-medium text-muted-foreground flex items-center justify-end h-14">
+                      {formatTimeFromComponents(hour, minute)}
                     </div>
                     
-                    {/* Slots for this time - dynamic grid */}
-                    <div className={`flex-1 grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} gap-1`}>
-                      {Array.from({ length: isAdmin ? 8 : 7 }).map((_, idx) => {
-                        const slot = slots[idx];
-                        
-                        // Find the corresponding day to check if it's today using Latvia timezone
-                        const day = days.find(d => d.latvianDayIndex === idx);
-                        const isCurrentDay = day ? (
-                          // Compare year, month and day in Latvia timezone
-                          (() => {
-                            const latviaToday = toLatviaTime(new Date());
-                            const dayInLatvia = toLatviaTime(day.date);
-                            return dayInLatvia.getFullYear() === latviaToday.getFullYear() &&
-                                  dayInLatvia.getMonth() === latviaToday.getMonth() &&
-                                  dayInLatvia.getDate() === latviaToday.getDate();
-                          })()
-                        ) : false;
-                        
-                        // If slot is undefined, render an empty placeholder
-                        if (!slot) {
-                          // For admin mode, make unallocated slots clickable for selection
-                          if (isAdmin) {
-                            // Create a dummy slot for unallocated time periods to allow selection
-                            // Use the actual day's date from our days array to ensure proper date is used
-                            const dayData = days[idx];
-                            if (!dayData) {
-                              console.error(`Could not find day data for index ${idx}`);
-                              return null;
-                            }
-                            
-                            // Start with the correct date for this column from the days array
-                            const dummyDate = new Date(dayData.date);
-                            
-                            // Set hours and minutes based on the time string
-                            const [dummyHour, dummyMinute] = timeString.split(':').map(Number);
-                            dummyDate.setHours(dummyHour, dummyMinute, 0, 0);
-                            
-                            // End time is 30 minutes later
-                            const dummyEndDate = new Date(dummyDate);
-                            dummyEndDate.setMinutes(dummyEndDate.getMinutes() + 30);
-                            
-                            // Check if this slot is in the past (for correct styling)
-                            const now = new Date();
-                            // First check if it's a past day
-                            const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                            const slotOnlyDate = new Date(dummyDate.getFullYear(), dummyDate.getMonth(), dummyDate.getDate());
-                            const isPastDay = slotOnlyDate < todayDate;
-                            // Then check if it's today but in the past
-                            const isToday = slotOnlyDate.getTime() === todayDate.getTime();
-                            const isPastTime = isToday && dummyDate < now;
-                            // Combined condition
-                            const isPast = isPastDay || isPastTime;
-                            
-                            // Create a dummy slot with "unallocated" status and unique ID
-                            const dummySlot: SchemaTimeSlot = {
-                              id: -1 * (Date.now() + idx + dummyHour + dummyMinute), // Negative ID to ensure uniqueness
-                              startTime: dummyDate,
-                              endTime: dummyEndDate,
-                              price: 25, // Default price
-                              status: "unallocated",
-                              reservationExpiry: null,
-                              isPast: isPast // Important: pass the isPast flag
-                            };
-                            
-                            const isSelected = adminSelectedSlots?.some(s => 
-                              s.startTime.getTime() === dummySlot.startTime.getTime() && 
-                              s.endTime.getTime() === dummySlot.endTime.getTime()
-                            );
-                            
-                            return (
-                              <div 
-                                key={`unallocated-${idx}-${timeString}`}
-                                className={`h-14 rounded-md border border-gray-200 cursor-pointer flex items-center justify-center ${isCurrentDay ? 'bg-blue-50' : 'bg-gray-50'} ${isSelected ? 'border-2 border-primary' : ''}`}
-                                onClick={() => onAdminSlotSelect?.(dummySlot)}
-                              >
-                                {isSelected && (
-                                  <Badge className="w-3 h-3 p-0 bg-primary flex items-center justify-center">✓</Badge>
-                                )}
-                              </div>
-                            );
-                          }
-                          
-                          // For regular user mode, render non-clickable placeholder
-                          return (
-                            <div 
-                              key={`empty-${idx}-${timeString}`} 
-                              className={`h-14 rounded-md border border-gray-200 ${isCurrentDay ? 'bg-blue-50' : 'bg-gray-50'}`}
-                            ></div>
-                          );
-                        }
-                        
-                        const isSelected = isSlotSelected(slot.id);
-                        return isAdmin ? (
-                          <AdminTimeSlot
-                            key={slot.id}
-                            slot={toSchemaTimeSlot(slot)}
-                            isSelected={isSelected}
-                            onClick={() => handleSlotToggle(slot.id, slot.status)}
-                          />
-                        ) : (
-                          <Button
-                            key={slot.id}
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                              "h-14 py-0 px-1 justify-center items-center text-center text-xs",
-                              getSlotClass(slot.status, isSelected, slot.isPast || false)
-                            )}
-                            disabled={slot.status !== "available" && !isAdmin}
-                            onClick={() => handleSlotToggle(slot.id, slot.status)}
-                          >
-                            <div className="text-center w-full">
-                              <Badge variant="outline" className="px-1 h-4 text-[10px]">
-                                €{slot.price}
-                              </Badge>
-                            </div>
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              );
-            } else {
-              return (
-                <div key={`time-block-${timeString}`} className="flex mb-1 items-start">
-                  {/* Time column */}
-                  <div className="w-10 flex-shrink-0 pt-2 pr-1 text-right">
-                    <span className="text-xs font-medium text-gray-500">{timeString}</span>
-                  </div>
-                  
-                  {/* Slots for this time - dynamic grid */}
-                  <div className={`flex-1 grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} gap-1`}>
-                    {Array.from({ length: isAdmin ? 8 : 7 }).map((_, idx) => {
-                      const slot = slots[idx];
+                    {/* Slots for each day */}
+                    {Array.from({ length: days.length }).map((_, dayIndex) => {
+                      const slot = slotsForTime[dayIndex];
                       
-                      // Find the corresponding day to check if it's today using Latvia timezone
-                      const day = days.find(d => d.latvianDayIndex === idx);
-                      const isCurrentDay = day ? (
-                        // Compare year, month and day in Latvia timezone
-                        (() => {
-                          const latviaToday = toLatviaTime(new Date());
-                          const dayInLatvia = toLatviaTime(day.date);
-                          return dayInLatvia.getFullYear() === latviaToday.getFullYear() &&
-                                dayInLatvia.getMonth() === latviaToday.getMonth() &&
-                                dayInLatvia.getDate() === latviaToday.getDate();
-                        })()
-                      ) : false;
-                      
-                      // If slot is undefined, render an empty placeholder
                       if (!slot) {
-                        // For admin mode, make unallocated slots clickable for selection
-                        if (isAdmin) {
-                          // Create a dummy slot for unallocated time periods to allow selection
-                          // Use the actual day's date from our days array to ensure proper date is used
-                          const dayData = days[idx];
-                          if (!dayData) {
-                            console.error(`Could not find day data for index ${idx}`);
-                            return null;
-                          }
-                          
-                          // Start with the correct date for this column from the days array
-                          const dummyDate = new Date(dayData.date);
-                          
-                          // Set hours and minutes based on the time string
-                          const [dummyHour, dummyMinute] = timeString.split(':').map(Number);
-                          dummyDate.setHours(dummyHour, dummyMinute, 0, 0);
-                          
-                          // End time is 30 minutes later
-                          const dummyEndDate = new Date(dummyDate);
-                          dummyEndDate.setMinutes(dummyEndDate.getMinutes() + 30);
-                          
-                          // Check if this slot is in the past (for correct styling)
-                          const now = new Date();
-                          // First check if it's a past day
-                          const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                          const slotOnlyDate = new Date(dummyDate.getFullYear(), dummyDate.getMonth(), dummyDate.getDate());
-                          const isPastDay = slotOnlyDate < todayDate;
-                          // Then check if it's today but in the past
-                          const isToday = slotOnlyDate.getTime() === todayDate.getTime();
-                          const isPastTime = isToday && dummyDate < now;
-                          // Combined condition
-                          const isPast = isPastDay || isPastTime;
-                          
-                          // Create a dummy slot with "unallocated" status and unique ID
-                          const dummySlot: SchemaTimeSlot = {
-                            id: -1 * (Date.now() + idx + dummyHour + dummyMinute), // Negative ID to ensure uniqueness
-                            startTime: dummyDate,
-                            endTime: dummyEndDate,
-                            price: 25, // Default price
-                            status: "unallocated",
-                            reservationExpiry: null,
-                            isPast: isPast // Important: pass the isPast flag
-                          };
-                          
-                          const isSelected = adminSelectedSlots?.some(s => 
-                            s.startTime.getTime() === dummySlot.startTime.getTime() && 
-                            s.endTime.getTime() === dummySlot.endTime.getTime()
-                          );
-                          
-                          return (
-                            <div 
-                              key={`unallocated-${idx}-${timeString}`}
-                              className={`h-14 rounded-md border border-gray-200 cursor-pointer flex items-center justify-center ${isCurrentDay ? 'bg-blue-50' : 'bg-gray-50'} ${isSelected ? 'border-2 border-primary' : ''}`}
-                              onClick={() => onAdminSlotSelect?.(dummySlot)}
-                            >
-                              {isSelected && (
-                                <Badge className="w-3 h-3 p-0 bg-primary flex items-center justify-center">✓</Badge>
-                              )}
-                            </div>
-                          );
-                        }
-                        
-                        // For regular user mode, render non-clickable placeholder
-                        return (
-                          <div 
-                            key={`empty-${idx}-${timeString}`} 
-                            className={`h-14 rounded-md border border-gray-200 ${isCurrentDay ? 'bg-blue-50' : 'bg-gray-50'}`}
-                          ></div>
-                        );
+                        // No slot exists for this day and time
+                        return <div key={dayIndex} className="h-14 border border-dashed border-gray-100 rounded-md"></div>;
                       }
                       
+                      // Determine if this slot is "selected" (i.e., in the booking context's selection or admin's selection)
                       const isSelected = isSlotSelected(slot.id);
                       
-                      return isAdmin ? (
-                        <AdminTimeSlot
-                          key={slot.id}
-                          slot={toSchemaTimeSlot(slot)}
-                          isSelected={isSelected}
-                          onClick={() => handleSlotToggle(slot.id, slot.status)}
-                        />
-                      ) : (
-                        <Button
-                          key={slot.id}
-                          variant="outline"
-                          size="sm"
-                          className={cn(
-                            "h-14 py-0 px-1 justify-center items-center text-center text-xs",
-                            getSlotClass(slot.status, isSelected, slot.isPast || false),
-                            isCurrentDay && !isSelected && slot.status === "available" ? "border-blue-300" : ""
-                          )}
-                          disabled={slot.status !== "available" && !isAdmin}
-                          onClick={() => handleSlotToggle(slot.id, slot.status)}
-                        >
-                          <div className="text-center w-full">
-                            <Badge variant="outline" className="px-1 h-4 text-[10px]">
-                              €{slot.price}
-                            </Badge>
+                      if (isAdmin) {
+                        // For admin interface, return the special AdminTimeSlot component
+                        return (
+                          <AdminTimeSlot
+                            key={dayIndex}
+                            slot={slot}
+                            isSelected={isSelected}
+                            getSlotClass={getSlotClass}
+                            onToggle={handleSlotToggle}
+                          />
+                        );
+                      } else {
+                        // For regular user, show slot with price and selection tracking
+                        return (
+                          <div
+                            key={dayIndex}
+                            className={cn(
+                              "h-14 rounded-md border flex flex-col justify-center items-center p-1 relative cursor-pointer",
+                              getSlotClass(slot.status, isSelected, !!slot.isPast)
+                            )}
+                            onClick={() => handleSlotToggle(slot.id, slot.status)}
+                          >
+                            <div className="text-xs font-medium">{(slot.price).toFixed(0)}€</div>
                           </div>
-                        </Button>
-                      );
+                        );
+                      }
                     })}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            
+            {/* Calendar Legend */}
+            {!isAdmin && (
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded mr-2 bg-green-100 border border-green-200"></div>
+                  <span>Available</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded mr-2 bg-amber-100 border border-amber-200"></div>
+                  <span>Booked</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-4 h-4 rounded mr-2 bg-primary border"></div>
+                  <span>Selected</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Selected Time Slots (Regular user view only) */}
+            {!isAdmin && selectedTimeSlots.length > 0 && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-md border">
+                <h3 className="font-medium text-sm mb-1">Selected Time Slots</h3>
+                <div className="text-sm">{getSelectedTimeRange()}</div>
+                <div className="mt-2 flex justify-between items-center">
+                  <div className="font-medium">
+                    Total: {calculateTotalPrice().toFixed(2)} €
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={clearSelectedTimeSlots}
+                    >
+                      Clear
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={proceedToBooking}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Proceed to Booking
+                    </Button>
                   </div>
                 </div>
-              );
-            }
-          })}
-        </div>
-        
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
-      
-      {/* Selection summary - Moved to bottom of calendar */}
-      {selectedTimeSlots.length > 0 && (
-        <div className="px-4 py-3 border-t">
-          <div className="flex justify-between items-center">
-            <div>
-              <h4 className="font-medium text-sm">Selected Slots: {selectedTimeSlots.length}</h4>
-              <p className="text-xs text-muted-foreground">
-                {getSelectedTimeRange()}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-medium">Total: €{calculateTotalPrice()}</p>
-              <Link href="/booking">
-                <Button size="sm" className="mt-2">Proceed to Booking</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </Card>
   );
 };
