@@ -424,16 +424,29 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       // Check if the hour and minute match after timezone adjustment
       slot.hour === hour && slot.minute === minute);
     
-    // Create an array of 7 slots (one for each day) - all initially undefined
-    const slotsForWeek = Array(7).fill(undefined);
+    // Create an array of slots (7 for regular view, 8 for admin) - all initially undefined
+    const slotsForWeek = Array(isAdmin ? 8 : 7).fill(undefined);
     
-    // Place slots in the correct day position based on latvianDayIndex (0-6, Monday to Sunday)
+    // Place slots in the correct day position based on latvianDayIndex
     matchingSlots.forEach(slot => {
-      // Make sure latvianDayIndex is a valid number
-      if (typeof slot.latvianDayIndex === 'number' && slot.latvianDayIndex >= 0 && slot.latvianDayIndex < 7) {
-        slotsForWeek[slot.latvianDayIndex] = slot;
+      // Get the proper latvianDayIndex (may need adjustment for admin view with Sunday)
+      let displayIndex = slot.latvianDayIndex;
+      
+      // For admin view, we need to map the Latvian day indices to our display indices
+      // Our display has Sunday (latvianDayIndex 6) as the first column (index 0)
+      if (isAdmin) {
+        if (slot.latvianDayIndex === 6) { // Sunday in Latvian week (last day)
+          displayIndex = 0; // First column in admin view
+        } else {
+          displayIndex = slot.latvianDayIndex + 1; // Shift Monday-Saturday one column to the right
+        }
+      }
+      
+      // Make sure the index is valid for our array
+      if (typeof displayIndex === 'number' && displayIndex >= 0 && displayIndex < slotsForWeek.length) {
+        slotsForWeek[displayIndex] = slot;
       } else {
-        console.error(`Invalid latvianDayIndex: ${slot.latvianDayIndex} for slot:`, slot);
+        console.error(`Invalid display index: ${displayIndex} for slot with latvianDayIndex: ${slot.latvianDayIndex}`, slot);
       }
     });
     
@@ -684,22 +697,51 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
           {/* Time column header */}
           <div className="w-10 flex-shrink-0"></div>
           
-          {/* Day columns headers */}
-          <div className="flex-1 grid grid-cols-7 gap-1">
-            {days.map((day, index) => {
+          {/* Day columns headers - adjusted cols based on admin view */}
+          <div className={`flex-1 grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} gap-1`}>
+            {/* Slice to show correct number of days (8 for admin, 7 for regular) */}
+            {days.slice(0, isAdmin ? 8 : 7).map((day, index) => {
               // Check if this day is today using Latvia timezone
               const latviaToday = toLatviaTime(new Date());
               const dayInLatvia = toLatviaTime(day.date);
+              
               // Compare year, month, and day
               const isCurrentDay = 
                 dayInLatvia.getFullYear() === latviaToday.getFullYear() &&
                 dayInLatvia.getMonth() === latviaToday.getMonth() &&
                 dayInLatvia.getDate() === latviaToday.getDate();
               
+              // Check if this day is in the past
+              const isPastDay = dayInLatvia < new Date(
+                latviaToday.getFullYear(), 
+                latviaToday.getMonth(), 
+                latviaToday.getDate()
+              );
+              
+              // Set classes based on date status
+              let containerClass = 'text-center py-2';
+              let dayNameClass = 'font-medium text-sm';
+              let dayNumberClass = 'text-xs';
+              
+              if (isCurrentDay) {
+                containerClass += ' bg-blue-50 rounded-md';
+                dayNameClass += ' text-blue-700';
+                dayNumberClass += ' text-blue-600';
+              } else if (isPastDay) {
+                containerClass += ' bg-gray-50';
+                dayNameClass += ' text-gray-600';
+                dayNumberClass += ' text-gray-500';
+              } else {
+                dayNumberClass += ' text-muted-foreground';
+              }
+              
               return (
-                <div key={index} className={`text-center py-2 ${isCurrentDay ? 'bg-blue-50 rounded-md' : ''}`}>
-                  <div className={`font-medium text-sm ${isCurrentDay ? 'text-blue-700' : ''}`}>{day.name}</div>
-                  <div className={`text-xs ${isCurrentDay ? 'text-blue-600' : 'text-muted-foreground'}`}>{day.day}</div>
+                <div key={index} className={containerClass}>
+                  <div className={dayNameClass}>
+                    {day.name}
+                    {isPastDay && isAdmin && <span className="ml-1 text-xs opacity-70">(Past)</span>}
+                  </div>
+                  <div className={dayNumberClass}>{day.day}</div>
                 </div>
               );
             })}
@@ -748,9 +790,9 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                       <span className="text-xs font-medium text-gray-500">{timeString}</span>
                     </div>
                     
-                    {/* Slots for this time */}
-                    <div className="flex-1 grid grid-cols-7 gap-1">
-                      {Array.from({ length: 7 }).map((_, idx) => {
+                    {/* Slots for this time - dynamic grid */}
+                    <div className={`flex-1 grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} gap-1`}>
+                      {Array.from({ length: isAdmin ? 8 : 7 }).map((_, idx) => {
                         const slot = slots[idx];
                         
                         // Find the corresponding day to check if it's today using Latvia timezone
@@ -879,9 +921,9 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
                     <span className="text-xs font-medium text-gray-500">{timeString}</span>
                   </div>
                   
-                  {/* Slots for this time */}
-                  <div className="flex-1 grid grid-cols-7 gap-1">
-                    {Array.from({ length: 7 }).map((_, idx) => {
+                  {/* Slots for this time - dynamic grid */}
+                  <div className={`flex-1 grid ${isAdmin ? 'grid-cols-8' : 'grid-cols-7'} gap-1`}>
+                    {Array.from({ length: isAdmin ? 8 : 7 }).map((_, idx) => {
                       const slot = slots[idx];
                       
                       // Find the corresponding day to check if it's today using Latvia timezone
