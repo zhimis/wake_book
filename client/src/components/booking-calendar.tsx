@@ -54,11 +54,18 @@ interface CalendarTimeSlot {
   originalEndTime?: Date; // Original database date before week mapping
 }
 
+interface CustomNavigationProps {
+  goToPrevious: () => void;
+  goToNext: () => void;
+  goToToday: () => void;
+}
+
 interface BookingCalendarProps {
   onDateRangeChange?: (startDate: Date, endDate: Date) => void;
   isAdmin?: boolean;
   onAdminSlotSelect?: (timeSlot: SchemaTimeSlot) => void;
   adminSelectedSlots?: SchemaTimeSlot[]; // Allow admin component to pass selected slots
+  customNavigation?: CustomNavigationProps; // Custom navigation functions for admin view
 }
 
 // Converter function to match our calendar UI slots with the DB schema
@@ -90,7 +97,12 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
 }
 
 // Simplified booking calendar with mock data
-const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlots = [] }: BookingCalendarProps) => {
+const BookingCalendar = ({ 
+  isAdmin = false, 
+  onAdminSlotSelect, 
+  adminSelectedSlots = [],
+  customNavigation
+}: BookingCalendarProps) => {
   // Initialize currentDate to be the ACTUAL current date in Latvia timezone
   // This ensures the calendar shows the correct week
   const [currentDate, setCurrentDate] = useState<Date>(() => {
@@ -747,14 +759,14 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
               variant="outline" 
               size="icon" 
               className="h-8 w-8" 
-              onClick={goToPreviousWeek}
+              onClick={customNavigation ? customNavigation.goToPrevious : goToPreviousWeek}
               title="Previous week"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button 
               variant="outline" 
-              onClick={goToToday}
+              onClick={customNavigation ? customNavigation.goToToday : goToToday}
               className="h-8 px-2 text-xs"
               title="Go to today"
             >
@@ -764,7 +776,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
               variant="outline" 
               size="icon" 
               className="h-8 w-8" 
-              onClick={goToNextWeek}
+              onClick={customNavigation ? customNavigation.goToNext : goToNextWeek}
               title="Next week"
             >
               <ChevronRight className="h-4 w-4" />
@@ -782,7 +794,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
               The booking schedule is only visible up to {visibilityWeeks} {visibilityWeeks === 1 ? 'week' : 'weeks'} in advance. 
               Please check back later or select an earlier date.
             </p>
-            <Button variant="outline" onClick={goToToday}>
+            <Button variant="outline" onClick={customNavigation ? customNavigation.goToToday : goToToday}>
               Go to current week
             </Button>
           </div>
