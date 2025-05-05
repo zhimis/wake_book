@@ -159,79 +159,105 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   const timeSlotGrid = useMemo(() => {
     if (!config || configLoading) return [];
     
-    // Determine min/max hours from operating hours or use fixed range if provided
+    // Determine min/max hours for the calendar grid
     let minHour = 24;
     let maxHour = 0;
     
     console.log("DEBUG: FULL CONFIG DATA:", JSON.stringify(config, null, 2));
     
-    // USER REQUEST: Calendar should display time slots from 13:00 to 24:00
-    // This is a fixed range that doesn't depend on operating hours
+    // FIXED REQUIREMENTS:
+    // - Admin view: always show 8:00-22:00
+    // - Public view: show all rows between earliest and latest available slots
     if (viewMode === 'admin') {
-      // For admin view, show all hours from 9am to midnight
-      minHour = 9;  // 9am
-      maxHour = 24; // Midnight
-      console.log(`Using admin fixed time range: ${minHour}:00-${maxHour}:00`);
+      // For admin view, show fixed range 8:00-22:00
+      minHour = 8;   // 8am
+      maxHour = 22;  // 10pm
+      console.log(`Using fixed admin time range: ${minHour}:00-${maxHour}:00`);
     } else if (fixedTimeRange) {
+      // If explicitly provided time range, use that
       minHour = fixedTimeRange.start;
       maxHour = fixedTimeRange.end;
       console.log(`Using provided fixed time range: ${minHour}:00-${maxHour}:00`);
-    } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
-      console.log("OPERATING HOURS FROM CONFIG:", JSON.stringify(config.operatingHours, null, 2));
+    } else if (viewMode === 'public' && timeSlots && timeSlots.length > 0) {
+      // For public view - determine range based on available time slots
+      // First - get all slots that are available
+      const availableSlots = timeSlots.filter(slot => slot.status === 'available');
       
-      // Find all non-closed days
-      const activeDays = config.operatingHours.filter(oh => !oh.isClosed);
-      console.log(`Found ${activeDays.length} active operating hour configs:`, JSON.stringify(activeDays, null, 2));
+      console.log(`Found ${availableSlots.length} available slots in the current view`);
       
-      if (activeDays.length === 0) {
-        // If all days are closed, use default 10am-6pm range
-        minHour = 10;
-        maxHour = 18;
-        console.log("No active operating hours found, using default 10:00-18:00 range");
-      } else {
-        // Process the active operating hours
-        activeDays.forEach((oh: OperatingHours) => {
-          const openHour = parseInt(oh.openTime.split(':')[0]);
-          const closeHour = parseInt(oh.closeTime.split(':')[0]);
-          const closeMinute = parseInt(oh.closeTime.split(':')[1]);
+      if (availableSlots.length > 0) {
+        // Find the earliest and latest time slots
+        let earliestHour = 24;
+        let latestHour = 0;
+        
+        availableSlots.forEach(slot => {
+          const slotDate = toLatviaTime(slot.startTime);
+          const slotEndDate = toLatviaTime(slot.endTime);
+          const hour = slotDate.getHours();
+          const endHour = slotEndDate.getHours();
+          const endMinute = slotEndDate.getMinutes();
           
-          console.log(`PROCESSING DAY ${oh.dayOfWeek}:
-            - Open time string: "${oh.openTime}"
-            - Close time string: "${oh.closeTime}"
-            - Parsed open hour: ${openHour}
-            - Parsed close hour: ${closeHour}
-            - Parsed close minute: ${closeMinute}
-            - Current min hour: ${minHour}
-            - Current max hour: ${maxHour}`);
+          earliestHour = Math.min(earliestHour, hour);
           
-          minHour = Math.min(minHour, openHour);
+          // Adjust end hour if minutes > 0
+          const adjustedEndHour = endMinute > 0 ? endHour + 1 : endHour;
+          latestHour = Math.max(latestHour, adjustedEndHour);
           
-          // Fix for 24 hour display - if closeHour is 24 (midnight), keep it as 24
-          // This ensures we show the full day up to midnight
-          let adjustedCloseHour = closeHour;
-          if (closeHour === 0 && (oh.closeTime === "00:00" || oh.closeTime === "0:00" || oh.closeTime === "00:00:00")) {
-            adjustedCloseHour = 24; // Treat midnight as hour 24
-          }
-          
-          // Add 1 to the close hour if there are minutes, to include the partial hour
-          maxHour = Math.max(maxHour, adjustedCloseHour + (closeMinute > 0 ? 1 : 0));
-          
-          console.log(`After processing day ${oh.dayOfWeek}:
-            - New min hour: ${minHour}
-            - New max hour: ${maxHour}
-            - Using adjusted close hour: ${adjustedCloseHour}`);
+          console.log(`Slot at ${hour}:${slotDate.getMinutes()} to ${endHour}:${endMinute} (Latvia time)`);
         });
         
-        // Per user's request - force the calendar to show 13:00 to 24:00 range
-        minHour = 13;
-        maxHour = 24;
-        console.log("Overriding with requested range: 13:00-24:00");
+        // Set range based on available slots
+        minHour = Math.max(8, earliestHour); // Don't go earlier than 8am
+        maxHour = Math.min(23, latestHour);  // Don't go later than 11pm
+        
+        console.log(`Public view range based on available slots: ${minHour}:00-${maxHour}:00`);
+      } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
+        // Fallback to operating hours if no available slots
+        console.log("No available slots found, using operating hours instead");
+        
+        // Find all non-closed days
+        const activeDays = config.operatingHours.filter(oh => !oh.isClosed);
+        
+        if (activeDays.length === 0) {
+          // If all days are closed, use default 10am-6pm range
+          minHour = 10;
+          maxHour = 18;
+          console.log("No active operating hours found, using default 10:00-18:00 range");
+        } else {
+          // Process the active operating hours
+          activeDays.forEach((oh: OperatingHours) => {
+            const openHour = parseInt(oh.openTime.split(':')[0]);
+            const closeHour = parseInt(oh.closeTime.split(':')[0]);
+            const closeMinute = parseInt(oh.closeTime.split(':')[1]);
+            
+            minHour = Math.min(minHour, openHour);
+            
+            // Fix for 24 hour display - if closeHour is 24 (midnight), keep it as 24
+            let adjustedCloseHour = closeHour;
+            if (closeHour === 0 && (oh.closeTime === "00:00" || oh.closeTime === "0:00" || oh.closeTime === "00:00:00")) {
+              adjustedCloseHour = 24;
+            }
+            
+            // Add 1 to the close hour if there are minutes, to include the partial hour
+            maxHour = Math.max(maxHour, adjustedCloseHour + (closeMinute > 0 ? 1 : 0));
+          });
+        }
+      } else {
+        // Fallback if no config or time slots
+        minHour = 10;
+        maxHour = 21;
+        console.log("No config or time slots available, using default 10:00-21:00 range");
       }
     } else {
-      // Fallback to reasonable defaults if no config is available
-      minHour = 13; // 1pm
-      maxHour = 24; // Midnight
-      console.log("No config available, using fixed 13:00-24:00 range per requirement");
+      // Fallback if no other method applied
+      minHour = 10;
+      maxHour = 21;
+      console.log("Using default time range: 10:00-21:00");
+    }
+    
+    // Ensure maxHour is at least minHour + 1 to show something
+    if (maxHour <= minHour) {
+      maxHour = minHour + 1;
     }
     
     console.log(`FINAL HOUR RANGE: ${minHour}:00 - ${maxHour}:00`);
@@ -245,7 +271,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     }
     
     return times;
-  }, [config, configLoading, fixedTimeRange]);
+  }, [config, configLoading, fixedTimeRange, timeSlots, viewMode]);
 
   // Find matching time slot for a given day and time
   const findTimeSlot = (day: number, hour: number, minute: number): TimeSlot | null => {
