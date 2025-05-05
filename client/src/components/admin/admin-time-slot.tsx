@@ -5,9 +5,7 @@ import { cn } from "@/lib/utils";
 import { TimeSlot } from "@shared/schema";
 import { CSSProperties } from 'react';
 import { Eye, Edit, Lock, Clock } from 'lucide-react';
-
-// Import TimeSlotStatus from the calendar component
-type TimeSlotStatus = "available" | "booked" | "selected";
+import { TimeSlotStatus } from "@/components/booking-calendar";
 
 interface AdminTimeSlotProps {
   slot: TimeSlot;

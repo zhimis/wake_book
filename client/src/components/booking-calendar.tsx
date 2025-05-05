@@ -33,7 +33,8 @@ import { TimeSlot as SchemaTimeSlot } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
 import AdminTimeSlot from "@/components/admin/admin-time-slot";
 
-type TimeSlotStatus = "available" | "booked" | "selected";
+// Define TimeSlotStatus type to be used consistently across components
+export type TimeSlotStatus = "available" | "booked" | "selected" | "unallocated";
 
 // Local TimeSlot interface with UI-specific properties
 interface CalendarTimeSlot {
