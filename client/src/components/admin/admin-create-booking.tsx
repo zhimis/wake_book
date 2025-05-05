@@ -181,7 +181,7 @@ const AdminCreateBooking = ({
         endTime: new Date(currentEndTime),
         price: 25, // Default price
         status: "available",
-        reservationExpiry: null
+        storageTimezone: "UTC" // Required field
       });
       
       // Move to next slot
