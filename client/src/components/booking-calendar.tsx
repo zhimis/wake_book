@@ -260,10 +260,19 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     
     if (isAdmin) {
       // For admin view, we want to generate column headers in the proper Monday-to-Sunday order
-      // with the dates showing correctly (April 28 to May 4, 2025)
+      // Use the current date to find the current week's Monday
       
-      // Start with Monday April 28 as our reference point
-      const mondayDate = new Date(2025, 3, 28); // April 28, 2025 (months are 0-indexed)
+      // Get the Latvian day index for the current date (0=Monday, 6=Sunday)
+      const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
+      
+      // Calculate the Monday of the current week
+      const mondayDate = addDays(today, -latvianDayIndexForToday);
+      
+      console.log(`Admin view - Week calculation:
+        Current date: ${formatInLatviaTime(today, "EEE, MMM d, yyyy")}
+        Current day index (Latvia): ${latvianDayIndexForToday} 
+        Monday of week: ${formatInLatviaTime(mondayDate, "EEE, MMM d, yyyy")}
+      `);
       
       // Create the 7 days of the week (Mon-Sun) in order
       for (let i = 0; i < 7; i++) {
@@ -281,9 +290,6 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
       daysArray.forEach((day, i) => {
         console.log(`Column ${i+1}: ${formatInLatviaTime(day.date, "EEE, MMM d, yyyy")}, Latvian index: ${day.latvianDayIndex}`);
       });
-      
-      // The current daysArray now has: Mon 28, Tue 29, Wed 30, Thu 1, Fri 2, Sat 3, Sun 4
-      // This matches the expected order for the headers
     } else {
       // Regular user view just shows the current week (Mon-Sun)
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
@@ -456,8 +462,8 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     const matchingSlots = timeSlots.filter(slot => 
       slot.hour === hour && slot.minute === minute);
     
-    // Create an array of slots (7 for regular view, 8 for admin) - all initially undefined
-    const slotsForWeek = Array(isAdmin ? 8 : 7).fill(undefined);
+    // Create an array of slots (7 for both views since we're using the current week's days) 
+    const slotsForWeek = Array(7).fill(undefined);
     
     // For important hours, log detailed information
     if ((hour === 13 || hour === 14 || hour === 15 || hour === 16) && minute === 0) {
@@ -470,7 +476,7 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     // Place slots in the correct position
     matchingSlots.forEach(slot => {
       if (isAdmin) {
-        // For admin view (8 columns)
+        // For admin view (7 columns, Monday-Sunday)
         // Get the actual date of the slot
         const slotDate = new Date(slot.startTime);
         
