@@ -261,6 +261,11 @@ const AdminCreateBooking = ({
       form.reset();
       setTimeSlots([]);
       setOpen(false);
+      
+      // Call the onBookingComplete callback if provided
+      if (onBookingComplete) {
+        onBookingComplete();
+      }
     },
     onError: (error: Error) => {
       toast({
