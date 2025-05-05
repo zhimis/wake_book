@@ -1083,7 +1083,9 @@ const AdminCalendarView = () => {
                 </Button>
               </div>
               
+              {/* Use a key to force completely new instance on date change */}
               <BookingCalendar 
+                key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
                 onDateRangeChange={handleDateRangeChange}
                 isAdmin={true}
                 onAdminSlotSelect={handleTimeSlotSelect}
