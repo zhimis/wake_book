@@ -25,9 +25,10 @@ function App() {
       const urlParams = new URLSearchParams(window.location.search);
       const tab = urlParams.get("tab");
       
-      // If tab parameter is specified, store it in localStorage for AdminPage to use
       if (tab) {
-        localStorage.setItem("adminActiveTab", tab);
+        // Don't use localStorage, instead directly navigate to the proper URL
+        // to avoid an infinite loop between AdminPage and App.tsx
+        navigate(`/admin/dashboard?activeTab=${tab}`);
       } else {
         // Only redirect if no tab parameter is specified
         navigate("/admin/dashboard");

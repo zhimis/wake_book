@@ -4,11 +4,24 @@ import AdminLayout from "@/components/admin/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Plus, Users, BarChart3, Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import AdminCreateBooking from "@/components/admin/admin-create-booking";
 
 const AdminDashboardPage = () => {
-  const [_, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  
+  // Check if coming from URL with activeTab parameter
+  useEffect(() => {
+    // Check if we have the activeTab in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get("activeTab");
+    
+    // If a tab is requested, redirect to the appropriate admin page
+    if (activeTab === "configuration") {
+      navigate("/admin/new?section=configuration");
+    }
+  }, [location, navigate]);
 
   // Fetch basic stats for the dashboard
   const { data: bookingsStats, isLoading: isLoadingStats } = useQuery({
@@ -109,7 +122,7 @@ const AdminDashboardPage = () => {
           <Button 
             variant="outline" 
             className="flex items-center justify-center py-3 h-auto bg-blue-50 border-blue-200 hover:bg-blue-100"
-            onClick={() => navigate("/admin?tab=configuration")}
+            onClick={() => navigate("/admin/dashboard?activeTab=configuration")}
           >
             <div className="flex flex-col items-center">
               <Settings className="h-6 w-6 mb-1" />
