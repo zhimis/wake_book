@@ -86,7 +86,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
 
   // Organize time slots by day of the week (0-6 where 0 is Monday in our case)
   const timeSlotsByDay: TimeSlotByDay = useMemo(() => {
-    if (!timeSlots) return {};
+    if (!timeSlots || !Array.isArray(timeSlots)) return {};
     
     const slotsByDay: TimeSlotByDay = {};
     
@@ -125,7 +125,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     if (fixedTimeRange) {
       minHour = fixedTimeRange.start;
       maxHour = fixedTimeRange.end;
-    } else if (config.operatingHours) {
+    } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
       config.operatingHours.forEach((oh: OperatingHours) => {
         if (oh.isClosed) return;
         
