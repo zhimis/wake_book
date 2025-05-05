@@ -163,18 +163,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     let minHour = 24;
     let maxHour = 0;
     
-    console.log("CONFIG DATA:", config);
+    console.log("DEBUG: FULL CONFIG DATA:", JSON.stringify(config, null, 2));
     
     if (fixedTimeRange) {
       minHour = fixedTimeRange.start;
       maxHour = fixedTimeRange.end;
       console.log(`Using fixed time range: ${minHour}-${maxHour}`);
     } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
-      console.log("Operating hours from config:", JSON.stringify(config.operatingHours));
+      console.log("OPERATING HOURS FROM CONFIG:", JSON.stringify(config.operatingHours, null, 2));
       
       // Find all non-closed days
       const activeDays = config.operatingHours.filter(oh => !oh.isClosed);
-      console.log(`Found ${activeDays.length} active operating hour configs`);
+      console.log(`Found ${activeDays.length} active operating hour configs:`, JSON.stringify(activeDays, null, 2));
       
       if (activeDays.length === 0) {
         // If all days are closed, use default 10am-6pm range
@@ -188,10 +188,21 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
           const closeHour = parseInt(oh.closeTime.split(':')[0]);
           const closeMinute = parseInt(oh.closeTime.split(':')[1]);
           
+          console.log(`PROCESSING DAY ${oh.dayOfWeek}:
+            - Open time string: "${oh.openTime}"
+            - Close time string: "${oh.closeTime}"
+            - Parsed open hour: ${openHour}
+            - Parsed close hour: ${closeHour}
+            - Parsed close minute: ${closeMinute}
+            - Current min hour: ${minHour}
+            - Current max hour: ${maxHour}`);
+          
           minHour = Math.min(minHour, openHour);
           maxHour = Math.max(maxHour, closeHour + (closeMinute > 0 ? 1 : 0));
           
-          console.log(`Day ${oh.dayOfWeek}: ${oh.openTime}-${oh.closeTime} => hours ${openHour}-${closeHour}`);
+          console.log(`After processing day ${oh.dayOfWeek}:
+            - New min hour: ${minHour}
+            - New max hour: ${maxHour}`);
         });
       }
     } else {
