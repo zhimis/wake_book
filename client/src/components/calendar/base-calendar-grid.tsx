@@ -64,7 +64,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   }, [startDate, endDate, onDateChange]);
 
   // Fetch time slots for the current week
-  const { data: timeSlots, isLoading: timeSlotsLoading } = useQuery({
+  const { data: timeSlotsResponse, isLoading: timeSlotsLoading } = useQuery({
     queryKey: ['/api/timeslots', { startDate: startDate.toISOString(), endDate: endDate.toISOString() }],
     queryFn: async () => {
       console.log(`Fetching time slots from ${startDate.toISOString()} to ${endDate.toISOString()}`);
@@ -73,6 +73,26 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return res.json();
     }
   });
+  
+  // Extract the actual time slots array from the response
+  const timeSlots = useMemo(() => {
+    if (!timeSlotsResponse) return [];
+    
+    // The API returns { startDate, endDate, timeSlots: [] }
+    if (timeSlotsResponse.timeSlots && Array.isArray(timeSlotsResponse.timeSlots)) {
+      console.log(`Successfully extracted ${timeSlotsResponse.timeSlots.length} time slots from API response`);
+      return timeSlotsResponse.timeSlots;
+    } 
+    
+    // Fallback in case the API changes in the future
+    if (Array.isArray(timeSlotsResponse)) {
+      console.log(`Received ${timeSlotsResponse.length} time slots directly as array`);
+      return timeSlotsResponse;
+    }
+    
+    console.log("Could not extract time slots from response:", timeSlotsResponse);
+    return [];
+  }, [timeSlotsResponse]);
 
   // Fetch operating hours and pricing rules
   const { data: config, isLoading: configLoading } = useQuery({
@@ -189,11 +209,22 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     
     // Add debug logging to see what's happening
     const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
+      // Create a date object for the slot's start time (UTC)
       const slotDate = new Date(slot.startTime);
+      
+      // Get hours and minutes in the browser's local timezone
+      // which will match the display timezone (Latvia/EEST)
       const slotHour = slotDate.getHours();
       const slotMinute = slotDate.getMinutes();
       
-      return slotHour === hour && slotMinute === minute;
+      // Check if this slot matches the requested hour and minute
+      const isMatch = slotHour === hour && slotMinute === minute;
+      
+      if (isMatch) {
+        console.log(`Matched: UTC slot ${format(slotDate, 'HH:mm')} with local ${hour}:${minute}`);
+      }
+      
+      return isMatch;
     });
     
     if (matchingSlots.length > 0) {
