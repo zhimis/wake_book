@@ -984,6 +984,36 @@ const AdminCalendarView = () => {
         <>
           {viewMode === 'calendar' ? (
             <>
+              {/* Custom calendar navigation controls */}
+              <div className="flex justify-between items-center mb-4 p-2 bg-background border rounded-md">
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleNavigateDates('prev')}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous Week
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleNavigateDates('next')}
+                  >
+                    Next Week
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleNavigateDates('today')}
+                >
+                  <CalendarDays className="h-4 w-4 mr-1" />
+                  Today
+                </Button>
+              </div>
+              
               <BookingCalendar 
                 onDateRangeChange={handleDateRangeChange}
                 isAdmin={true}
