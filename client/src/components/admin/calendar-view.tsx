@@ -532,67 +532,75 @@ const AdminCalendarView = () => {
     }
   });
   
+  // Fixed navigation function - properly handles date changes with week boundaries
   const handleNavigateDates = (direction: 'prev' | 'next') => {
+    // Get today's date in Latvia timezone
+    const today = toLatviaTime(new Date());
+    
+    // Use current range as base for navigation
+    const currentStart = toLatviaTime(currentDateRange.start);
+    
+    // Calculate first day of the week (Monday) from current date
+    const latvianDayIndex = getLatvianDayIndexFromDate(currentStart);
+    const currentMonday = addDays(currentStart, -latvianDayIndex);
+    
+    let newMonday;
+    
     if (direction === 'prev') {
-      // Convert Latvia time to UTC when updating date range
-      const latviaStart = toLatviaTime(currentDateRange.start);
-      const latviaEnd = toLatviaTime(currentDateRange.end);
-      
-      // Perform navigation in Latvia timezone
-      const newLatviaStart = subDays(latviaStart, 7);
-      const newLatviaEnd = subDays(latviaEnd, 7);
-      
-      // Update our lastDateRef to prevent loops
-      lastDateRef.current = {
-        start: newLatviaStart.toISOString(),
-        end: newLatviaEnd.toISOString()
-      };
-      
-      // Convert back to UTC for storage and API requests
-      setCurrentDateRange({
-        start: fromLatviaTime(newLatviaStart),
-        end: fromLatviaTime(newLatviaEnd)
-      });
+      // Navigate to previous week (7 days backward)
+      newMonday = addDays(currentMonday, -7);
+      console.log(`Navigating to previous week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     } else {
-      // Convert Latvia time to UTC when updating date range
-      const latviaStart = toLatviaTime(currentDateRange.start);
-      const latviaEnd = toLatviaTime(currentDateRange.end);
-      
-      // Perform navigation in Latvia timezone
-      const newLatviaStart = addDays(latviaStart, 7);
-      const newLatviaEnd = addDays(latviaEnd, 7);
-      
-      // Update our lastDateRef to prevent loops
-      lastDateRef.current = {
-        start: newLatviaStart.toISOString(),
-        end: newLatviaEnd.toISOString()
-      };
-      
-      // Convert back to UTC for storage and API requests
-      setCurrentDateRange({
-        start: fromLatviaTime(newLatviaStart),
-        end: fromLatviaTime(newLatviaEnd)
-      });
+      // Navigate to next week (7 days forward)
+      newMonday = addDays(currentMonday, 7);
+      console.log(`Navigating to next week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     }
+    
+    // Calculate end of week (Sunday)
+    const newSunday = addDays(newMonday, 6);
+    
+    // For admin view, we want to show yesterday through the following week
+    // So adjust the start date to be 1 day before Monday
+    const newAdminStart = addDays(newMonday, -1);
+    
+    // Clear the lastDateRef to allow a new initial update from the calendar
+    lastDateRef.current = null;
+    
+    // Update the date range state with the new dates
+    // Convert back to UTC for storage
+    setCurrentDateRange({
+      start: fromLatviaTime(newAdminStart),
+      end: fromLatviaTime(newSunday)
+    });
   };
   
   // *** FIX FOR INFINITE REFRESH LOOP ***
-  // Isolate date range changes from the calendar so there's only one-way data flow
+  // Only allow initial date range update but not continuous bidirectional updates
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
-    // Fix: Calendar component should NOT cause setCurrentDateRange updates
-    // This completely breaks the bidirectional cycle between the components
-    
-    console.log('Calendar has moved to date range:', 
-                formatInLatviaTime(startDate, "yyyy-MM-dd"),
-                "to", 
-                formatInLatviaTime(endDate, "yyyy-MM-dd"));
-                
-    // Do nothing - don't update currentDateRange
-    // This breaks the infinite loop by preventing the cycle
-    // Calendar only responds to changes from this component, but never updates it
-    
-    // Only accept date changes that come from explicit navigation functions
-    // This prevents the calendar from changing the date range on its own
+    // Only the very first update happens automatically
+    // After that, all date range changes should come through the navigation buttons
+    if (!lastDateRef.current) {
+      console.log('Initial calendar date range setup:', 
+                  formatInLatviaTime(startDate, "yyyy-MM-dd"),
+                  "to", 
+                  formatInLatviaTime(endDate, "yyyy-MM-dd"));
+      
+      // Store the strings to avoid future updates
+      lastDateRef.current = {
+        start: startDate.toISOString(),
+        end: endDate.toISOString()
+      };
+      
+      // Allow the first update to sync the UI with the BookingCalendar
+      setCurrentDateRange({
+        start: startDate,
+        end: endDate
+      });
+    } else {
+      // Log but ignore subsequent updates from the BookingCalendar
+      // This prevents infinite loop when both components try to update each other
+      console.log('Ignoring redundant date range update to prevent infinite loop');
+    }
   };
   
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
@@ -970,21 +978,34 @@ const AdminCalendarView = () => {
                   goToPrevious: () => handleNavigateDates('prev'),
                   goToNext: () => handleNavigateDates('next'),
                   goToToday: () => {
-                    // Get today in Latvia timezone
+                    // Get today's date in Latvia timezone
                     const latviaToday = toLatviaTime(new Date());
                     
-                    // Set start date to yesterday for admin view
-                    const latviaStartDate = new Date(latviaToday);
-                    latviaStartDate.setDate(latviaToday.getDate() - 1);
+                    // Calculate the Monday of the current week in Latvia
+                    const latvianDayIndex = getLatvianDayIndexFromDate(latviaToday);
+                    const currentMonday = addDays(latviaToday, -latvianDayIndex);
                     
-                    // Calculate end date (today + 6 days)
-                    const latviaEndDate = new Date(latviaToday);
-                    latviaEndDate.setDate(latviaToday.getDate() + 6);
+                    // For admin view, we want to show yesterday through the following week
+                    // So adjust the start date to be 1 day before Monday (Sunday)
+                    const adminStartDate = addDays(currentMonday, -1);
                     
-                    // Update date range
+                    // Calculate the end of week (Sunday)
+                    const endOfWeek = addDays(currentMonday, 6);
+                    
+                    console.log(`Going to today's week:
+                      Current date: ${formatInLatviaTime(latviaToday, "yyyy-MM-dd")}
+                      Monday of current week: ${formatInLatviaTime(currentMonday, "yyyy-MM-dd")}
+                      Admin view start date: ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}
+                      End of week: ${formatInLatviaTime(endOfWeek, "yyyy-MM-dd")}
+                    `);
+                    
+                    // Clear the lastDateRef to allow a new initial update from the calendar
+                    lastDateRef.current = null;
+                    
+                    // Update the date range state with the new dates
                     setCurrentDateRange({
-                      start: fromLatviaTime(latviaStartDate),
-                      end: fromLatviaTime(latviaEndDate)
+                      start: fromLatviaTime(adminStartDate),
+                      end: fromLatviaTime(endOfWeek)
                     });
                   }
                 }}
