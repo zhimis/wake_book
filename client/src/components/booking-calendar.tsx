@@ -101,7 +101,8 @@ const BookingCalendar = ({
   isAdmin = false, 
   onAdminSlotSelect, 
   adminSelectedSlots = [],
-  customNavigation
+  customNavigation,
+  onDateRangeChange
 }: BookingCalendarProps) => {
   // Initialize currentDate to be the ACTUAL current date in Latvia timezone
   // This ensures the calendar shows the correct week
@@ -121,6 +122,13 @@ const BookingCalendar = ({
   // For admin view, include yesterday in the date range
   const startDate = isAdmin ? subDays(currentDate, 1) : currentDate;
   const endDate = addDays(currentDate, 6);
+  
+  // Notify parent component of date range changes
+  useEffect(() => {
+    if (onDateRangeChange) {
+      onDateRangeChange(startDate, endDate);
+    }
+  }, [startDate, endDate, onDateRangeChange]);
   
   // Navigation functions
   const goToPreviousWeek = () => {
