@@ -788,17 +788,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Import the getTimeFormatPreferences function
       const { getTimeFormatPreferences } = await import('./utils/timezone');
       
-      const [operatingHours, pricing, visibilityConfig, timeFormatPrefs] = await Promise.all([
+      const [operatingHours, pricing, timeFormatPrefs] = await Promise.all([
         storage.getOperatingHours(),
         storage.getPricing(),
-        storage.getConfiguration('visibility_weeks'),
         getTimeFormatPreferences()
       ]);
       
       res.json({
         operatingHours,
         pricing,
-        visibilityWeeks: visibilityConfig ? parseInt(visibilityConfig.value) : 4,
         timeFormatPreferences: timeFormatPrefs
       });
     } catch (error) {
@@ -898,38 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update visibility configuration - requires authentication
-  app.put("/api/config/visibility", async (req: Request, res: Response) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-      
-      const schema = z.object({
-        weeks: z.number().min(1).max(8)
-      });
-      
-      const { weeks } = schema.parse(req.body);
-      
-      const updatedConfig = await storage.updateConfiguration('visibility_weeks', weeks.toString());
-      
-      if (!updatedConfig) {
-        return res.status(404).json({ error: "Configuration not found" });
-      }
-      
-      res.json({
-        visibilityWeeks: parseInt(updatedConfig.value)
-      });
-    } catch (error) {
-      console.error("Error updating visibility configuration:", error);
-      
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: error.errors });
-      }
-      
-      res.status(500).json({ error: "Failed to update visibility configuration" });
-    }
-  });
+  // Visibility configuration removed
   
   // Update time format preferences - requires authentication
   app.put("/api/config/time-format", async (req: Request, res: Response) => {
