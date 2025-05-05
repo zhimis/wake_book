@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, addWeeks, subWeeks } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { TimeSlot, OperatingHours } from "@shared/schema";
+import { LATVIA_TIMEZONE, toLatviaTime } from "@/lib/utils";
 
 export interface BaseCalendarProps {
   // For derived components to control behavior
@@ -141,11 +143,14 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     return slotsByDay;
   }, [timeSlots]);
 
-  // Generate array of days for the current week
+  // Generate array of days for the current week (in Latvia time)
   const weekDays = useMemo(() => {
     const days = [];
     for (let i = 0; i < 7; i++) {
-      days.push(addDays(startDate, i));
+      // Convert to Latvia time to ensure we have the correct day
+      const localDay = addDays(startDate, i);
+      const latviaDay = toLatviaTime(localDay);
+      days.push(latviaDay);
     }
     return days;
   }, [startDate]);
@@ -209,19 +214,20 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     
     // Add debug logging to see what's happening
     const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
-      // Create a date object for the slot's start time (UTC)
-      const slotDate = new Date(slot.startTime);
+      // Convert the UTC slot time to Latvia timezone
+      const slotLatviaDate = toLatviaTime(slot.startTime);
       
-      // Get hours and minutes in the browser's local timezone
-      // which will match the display timezone (Latvia/EEST)
-      const slotHour = slotDate.getHours();
-      const slotMinute = slotDate.getMinutes();
+      // Extract hours and minutes from the Latvia time
+      const slotHour = slotLatviaDate.getHours();
+      const slotMinute = slotLatviaDate.getMinutes();
       
       // Check if this slot matches the requested hour and minute
       const isMatch = slotHour === hour && slotMinute === minute;
       
       if (isMatch) {
-        console.log(`Matched: UTC slot ${format(slotDate, 'HH:mm')} with local ${hour}:${minute}`);
+        console.log(`Matched: slot ${formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, 'HH:mm')} with grid ${hour}:${minute}`);
+        console.log(`  - UTC time: ${format(new Date(slot.startTime), 'HH:mm')}`);
+        console.log(`  - Latvia time: ${formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, 'HH:mm')}`);
       }
       
       return isMatch;
@@ -230,7 +236,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     if (matchingSlots.length > 0) {
       console.log(`Matching slots for ${hour}:${minute} - ${matchingSlots.length} slots found`);
       matchingSlots.forEach((slot, index) => {
-        console.log(`Slot ${index}: day=${day}, hour=${hour}, minute=${minute}, status=${slot.status}, date=${format(new Date(slot.startTime), 'EEE, MMM d')}`);
+        console.log(`Slot ${index}: day=${day}, hour=${hour}, minute=${minute}, status=${slot.status}, date=${formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, 'EEE, MMM d')}`);
       });
     }
     
@@ -303,7 +309,8 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     <Card className="overflow-hidden">
       <div className="flex justify-between items-center p-4 border-b">
         <div className="text-lg font-semibold">
-          {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
+          {formatInTimeZone(toLatviaTime(startDate), LATVIA_TIMEZONE, 'MMM d')} - {formatInTimeZone(toLatviaTime(endDate), LATVIA_TIMEZONE, 'MMM d, yyyy')}
+          <span className="text-xs text-gray-500 ml-2">(Latvia time)</span>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
@@ -328,8 +335,8 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
                 key={index} 
                 className={`p-2 border-b text-center ${isSameDay(day, new Date()) ? 'bg-blue-50 font-bold' : ''}`}
               >
-                <div>{format(day, 'EEE')}</div>
-                <div>{format(day, 'd MMM')}</div>
+                <div>{formatInTimeZone(day, LATVIA_TIMEZONE, 'EEE')}</div>
+                <div>{formatInTimeZone(day, LATVIA_TIMEZONE, 'd MMM')}</div>
               </div>
             ))}
           </div>
