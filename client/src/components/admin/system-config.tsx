@@ -617,39 +617,7 @@ const AdminSystemConfig = () => {
               </div>
             </div>
             
-            <div className="h-px bg-gray-200 my-4"></div>
-            
-            <div className="flex flex-col space-y-2">
-              <h3 className="text-sm font-medium">Calendar Visibility</h3>
-              <div className="flex items-center mt-2">
-                <span className="mr-2">Show bookings up to:</span>
-                <Select 
-                  value={visibilityWeeks.toString()} 
-                  onValueChange={(value) => setVisibilityWeeks(parseInt(value))}
-                >
-                  <SelectTrigger className="w-36">
-                    <SelectValue placeholder="Select weeks" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 week ahead</SelectItem>
-                    <SelectItem value="2">2 weeks ahead</SelectItem>
-                    <SelectItem value="3">3 weeks ahead</SelectItem>
-                    <SelectItem value="4">4 weeks ahead</SelectItem>
-                    <SelectItem value="6">6 weeks ahead</SelectItem>
-                    <SelectItem value="8">8 weeks ahead</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button 
-                  variant="outline"
-                  className="ml-4"
-                  onClick={saveVisibility}
-                  disabled={updateVisibilityMutation.isPending}
-                >
-                  {updateVisibilityMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Visibility"}
-                </Button>
-              </div>
-            </div>
+            {/* Calendar visibility section removed */}
           </div>
         </CardContent>
       </Card>
