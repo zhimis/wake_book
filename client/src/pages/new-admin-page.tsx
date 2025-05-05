@@ -71,7 +71,16 @@ const NewAdminPage = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Original View
             </Button>
-            <AdminCreateBooking isStandalone={true} />
+            {selectedSlots.length > 0 && multiSelectMode ? (
+              <AdminCreateBooking 
+                buttonVariant="default"
+                initialSelectedSlots={selectedSlots.filter(slot => slot.status === 'available')} 
+                onBookingComplete={handleClearSelection}
+                isStandalone={true} 
+              />
+            ) : (
+              <AdminCreateBooking isStandalone={true} />
+            )}
           </div>
         </div>
         
