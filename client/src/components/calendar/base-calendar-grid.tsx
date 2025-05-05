@@ -198,11 +198,21 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
             - Current max hour: ${maxHour}`);
           
           minHour = Math.min(minHour, openHour);
-          maxHour = Math.max(maxHour, closeHour + (closeMinute > 0 ? 1 : 0));
+          
+          // Fix for 24 hour display - if closeHour is 24 (midnight), keep it as 24
+          // This ensures we show the full day up to midnight
+          let adjustedCloseHour = closeHour;
+          if (closeHour === 0 && (oh.closeTime === "00:00" || oh.closeTime === "0:00")) {
+            adjustedCloseHour = 24; // Treat midnight as hour 24
+          }
+          
+          // Add 1 to the close hour if there are minutes, to include the partial hour
+          maxHour = Math.max(maxHour, adjustedCloseHour + (closeMinute > 0 ? 1 : 0));
           
           console.log(`After processing day ${oh.dayOfWeek}:
             - New min hour: ${minHour}
-            - New max hour: ${maxHour}`);
+            - New max hour: ${maxHour}
+            - Using adjusted close hour: ${adjustedCloseHour}`);
         });
       }
     } else {
