@@ -75,83 +75,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Reserve time slots temporarily
-  app.post("/api/timeslots/reserve", async (req: Request, res: Response) => {
-    try {
-      const schema = z.object({
-        timeSlotIds: z.array(z.number()).min(1)
-      });
-
-      const { timeSlotIds } = schema.parse(req.body);
-      console.log("Reservation request for time slots:", timeSlotIds);
-      
-      // Check if all requested time slots are available
-      const timeSlots = await Promise.all(
-        timeSlotIds.map(id => storage.getTimeSlot(id))
-      );
-      
-      console.log("Time slots from database:", timeSlots);
-      
-      const unavailableSlots = timeSlots.filter(
-        slot => {
-          if (!slot) {
-            console.log("Slot is undefined");
-            return true;
-          }
-          console.log("Slot status:", slot.status);
-          return slot.status !== 'available';
-        }
-      );
-      
-      console.log("Unavailable slots:", unavailableSlots.length);
-      
-      if (unavailableSlots.length > 0) {
-        return res.status(400).json({ 
-          error: "One or more selected time slots are not available" 
-        });
-      }
-      
-      // Reserve the time slots for 10 minutes
-      const expiryTime = new Date();
-      expiryTime.setMinutes(expiryTime.getMinutes() + 10);
-      console.log("Setting expiry time to:", expiryTime);
-      
-      const reservedSlots = await Promise.all(
-        timeSlotIds.map(id => storage.temporaryHoldTimeSlot(id, expiryTime))
-      );
-      
-      console.log("Reserved slots:", reservedSlots);
-      
-      res.json({
-        reservedTimeSlots: reservedSlots,
-        expiryTime
-      });
-    } catch (error) {
-      console.error("Error reserving time slots:", error);
-      res.status(500).json({ error: "Failed to reserve time slots" });
-    }
-  });
-
-  // Release reserved time slots
-  app.post("/api/timeslots/release", async (req: Request, res: Response) => {
-    try {
-      const schema = z.object({
-        timeSlotIds: z.array(z.number()).min(1)
-      });
-
-      const { timeSlotIds } = schema.parse(req.body);
-      
-      // Release reservations
-      await Promise.all(
-        timeSlotIds.map(id => storage.releaseReservation(id))
-      );
-      
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error releasing time slots:", error);
-      res.status(500).json({ error: "Failed to release time slots" });
-    }
-  });
+  // Note: Temporary reservation endpoints have been removed as they are not used in the current implementation
+  // The system now checks for conflicts only at the time of final booking submission
   
   // Block time slots (for admin use)
   app.post("/api/timeslots/block", async (req: Request, res: Response) => {
@@ -229,8 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Update existing time slot to be available
               return storage.updateTimeSlot(id, {
                 status: 'available',
-                price,
-                reservationExpiry: null
+                price
               });
             }
           })
@@ -264,7 +188,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               endTime: new Date(unallocatedSlot.endTime),
               price,
               status: 'available',
-              reservationExpiry: null,
               storageTimezone: 'UTC'
             });
             
@@ -454,8 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Additionally ensure the time slot itself is marked as booked
         await storage.updateTimeSlot(timeSlotId, {
-          status: "booked",
-          reservationExpiry: null
+          status: "booked"
         });
         
         return result;
@@ -590,7 +512,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endTime: new Date(slot.endTime),
           price: slot.price || 25, // Default price if not provided
           status: "booked",
-          reservationExpiry: null,
           storageTimezone: 'UTC'
         });
         

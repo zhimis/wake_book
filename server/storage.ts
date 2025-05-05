@@ -436,8 +436,7 @@ export class DatabaseStorage implements IStorage {
     for (const bts of bookingTimeSlotEntries) {
       await db.update(timeSlots)
         .set({ 
-          status: "available",
-          reservationExpiry: null
+          status: "available"
         })
         .where(eq(timeSlots.id, bts.timeSlotId));
     }
@@ -466,8 +465,7 @@ export class DatabaseStorage implements IStorage {
     // First update the time slot status to booked
     await db.update(timeSlots)
       .set({
-        status: "booked",
-        reservationExpiry: null
+        status: "booked"
       })
       .where(eq(timeSlots.id, bookingTimeSlot.timeSlotId));
     
@@ -785,8 +783,7 @@ export class MemStorage implements IStorage {
               startTime,
               endTime,
               price,
-              status: 'available',
-              reservationExpiry: null
+              status: 'available'
             });
           }
         }
@@ -1019,7 +1016,6 @@ export class MemStorage implements IStorage {
               endTime,
               price: Math.round(price), // Round to nearest whole number
               status: 'available',
-              reservationExpiry: null,
               storageTimezone: 'UTC' // Add the required storageTimezone field
             });
           }
