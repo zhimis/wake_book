@@ -91,7 +91,6 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
     originalEndTime: slot.originalEndTime,
     price: slot.price,
     status: slot.status,
-    reservationExpiry: slot.reservationExpiry,
     storageTimezone: slot.storageTimezone || 'UTC', // Use the slot's timezone if available
     isPast: slot.isPast // Pass the isPast flag to AdminTimeSlot
   };
@@ -319,8 +318,7 @@ const BookingCalendar = ({
       // Create a map of database time slot statuses by ID for quick lookup
       dbTimeSlots.timeSlots.forEach((dbSlot: SchemaTimeSlot) => {
         map.set(dbSlot.id, {
-          status: dbSlot.status,
-          reservationExpiry: dbSlot.reservationExpiry
+          status: dbSlot.status
         });
       });
     }
@@ -398,7 +396,6 @@ const BookingCalendar = ({
       
       // Use database status
       const status = dbSlot.status as TimeSlotStatus;
-      const reservationExpiry = dbSlot.reservationExpiry ? new Date(dbSlot.reservationExpiry) : null;
       
       // Check if the slot is in the past
       const now = new Date();
@@ -439,7 +436,6 @@ const BookingCalendar = ({
         status,
         startTime: correctedStartTime, // Use the corrected time that's mapped to the current week
         endTime: correctedEndTime,     // Use the corrected time that's mapped to the current week
-        reservationExpiry,
         storageTimezone: dbSlot.storageTimezone || 'UTC', // Use database timezone or default to UTC
         isPast,
         originalStartTime: startTime, // Keep original for reference

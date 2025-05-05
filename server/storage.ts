@@ -864,39 +864,8 @@ export class MemStorage implements IStorage {
     return updatedTimeSlot;
   }
   
-  async temporaryHoldTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined> {
-    const existingTimeSlot = this.timeSlots.get(id);
-    
-    if (!existingTimeSlot || existingTimeSlot.status !== 'available') {
-      return undefined;
-    }
-    
-    const updatedTimeSlot: TimeSlot = { 
-      ...existingTimeSlot, 
-      status: 'booked',
-      reservationExpiry: expiryTime
-    };
-    
-    this.timeSlots.set(id, updatedTimeSlot);
-    return updatedTimeSlot;
-  }
-  
-  async releaseReservation(id: number): Promise<TimeSlot | undefined> {
-    const existingTimeSlot = this.timeSlots.get(id);
-    
-    if (!existingTimeSlot || existingTimeSlot.status !== 'booked' || !existingTimeSlot.reservationExpiry) {
-      return undefined;
-    }
-    
-    const updatedTimeSlot: TimeSlot = { 
-      ...existingTimeSlot, 
-      status: 'available',
-      reservationExpiry: null
-    };
-    
-    this.timeSlots.set(id, updatedTimeSlot);
-    return updatedTimeSlot;
-  }
+  // Removed temporaryHoldTimeSlot and releaseReservation methods
+  // They are no longer needed since we don't use temporary reservations
   
   async blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined> {
     const existingTimeSlot = this.timeSlots.get(id);
@@ -1148,7 +1117,6 @@ export class MemStorage implements IStorage {
       const timeSlot = this.timeSlots.get(bts.timeSlotId);
       if (timeSlot) {
         timeSlot.status = 'available';
-        timeSlot.reservationExpiry = null;
         this.timeSlots.set(timeSlot.id, timeSlot);
       }
       
@@ -1179,7 +1147,6 @@ export class MemStorage implements IStorage {
     const timeSlot = this.timeSlots.get(bookingTimeSlot.timeSlotId);
     if (timeSlot) {
       timeSlot.status = 'booked';
-      timeSlot.reservationExpiry = null;
       this.timeSlots.set(timeSlot.id, timeSlot);
     }
     
