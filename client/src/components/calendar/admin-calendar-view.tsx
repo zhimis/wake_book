@@ -20,6 +20,8 @@ import AdminCreateBooking from "@/components/admin/admin-create-booking";
 interface AdminCalendarViewProps {
   onSlotSelect?: (slot: TimeSlot) => void;
   onDateRangeChange?: (startDate: Date, endDate: Date) => void;
+  onSlotsSelected?: (slots: TimeSlot[]) => void;
+  enableMultiSelect?: boolean;
 }
 
 interface SlotActionState {
@@ -31,7 +33,9 @@ interface SlotActionState {
 
 const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
   onSlotSelect,
-  onDateRangeChange
+  onDateRangeChange,
+  onSlotsSelected,
+  enableMultiSelect = false
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -41,6 +45,7 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     dayDate: null,
     time: null
   });
+  const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
   
   // Mutation for blocking time slots
   const blockSlotMutation = useMutation({
@@ -138,13 +143,36 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
     if (slot) {
-      // If slot exists, store it in state for potential actions
-      setSelectedAction({
-        slotId: slot.id,
-        action: null,
-        dayDate,
-        time: timeStr
-      });
+      if (enableMultiSelect) {
+        // For multi-select mode, toggle the slot selection
+        const isAlreadySelected = selectedSlots.some(s => s.id === slot.id);
+        
+        if (isAlreadySelected) {
+          // Remove from selection
+          const updatedSelection = selectedSlots.filter(s => s.id !== slot.id);
+          setSelectedSlots(updatedSelection);
+        } else {
+          // Add to selection
+          const updatedSelection = [...selectedSlots, slot];
+          setSelectedSlots(updatedSelection);
+        }
+        
+        // Notify parent component about selection change
+        if (onSlotsSelected) {
+          const updatedSelection = isAlreadySelected 
+            ? selectedSlots.filter(s => s.id !== slot.id)
+            : [...selectedSlots, slot];
+          onSlotsSelected(updatedSelection);
+        }
+      } else {
+        // Single select mode - store the slot for potential actions
+        setSelectedAction({
+          slotId: slot.id,
+          action: null,
+          dayDate,
+          time: timeStr
+        });
+      }
     } else {
       // If no slot exists, offer to create one
       const actionDate = new Date(dayDate);
@@ -163,7 +191,7 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
         ),
       });
     }
-  }, [toast, generateSlotMutation]);
+  }, [toast, generateSlotMutation, enableMultiSelect, selectedSlots, onSlotsSelected]);
 
   // Handle the selected action
   useEffect(() => {
@@ -189,6 +217,11 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     });
   }, [selectedAction, blockSlotMutation, makeAvailableMutation]);
 
+  // Helper function to check if a slot is selected
+  const isSlotSelected = useCallback((slotId: number): boolean => {
+    return selectedSlots.some(slot => slot.id === slotId);
+  }, [selectedSlots]);
+
   // Render a time slot cell
   const renderTimeSlotCell = useCallback((
     slot: TimeSlot | null, 
@@ -206,21 +239,32 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     if (slot) {
       showDropdown = true;
       
+      // Check if the slot is selected in multi-select mode
+      const isSelected = enableMultiSelect && isSlotSelected(slot.id);
+      
       switch (slot.status) {
         case 'available':
-          statusClass = "bg-green-100 hover:bg-green-200 border border-green-300";
+          statusClass = isSelected 
+            ? "bg-green-300 hover:bg-green-400 border-2 border-green-600" 
+            : "bg-green-100 hover:bg-green-200 border border-green-300";
           statusText = `€${parseFloat(String(slot.price)).toFixed(2)}`;
           break;
         case 'booked':
-          statusClass = "bg-red-100 hover:bg-red-200 border border-red-300";
+          statusClass = isSelected 
+            ? "bg-red-300 hover:bg-red-400 border-2 border-red-600" 
+            : "bg-red-100 hover:bg-red-200 border border-red-300";
           statusText = "Booked";
           break;
         case 'blocked':
-          statusClass = "bg-gray-200 hover:bg-gray-300 border border-gray-400";
+          statusClass = isSelected 
+            ? "bg-gray-400 hover:bg-gray-500 border-2 border-gray-600" 
+            : "bg-gray-200 hover:bg-gray-300 border border-gray-400";
           statusText = "Blocked";
           break;
         default:
-          statusClass = "bg-yellow-100 hover:bg-yellow-200 border border-yellow-300";
+          statusClass = isSelected 
+            ? "bg-yellow-300 hover:bg-yellow-400 border-2 border-yellow-600" 
+            : "bg-yellow-100 hover:bg-yellow-200 border border-yellow-300";
           statusText = slot.status;
       }
     }
@@ -334,7 +378,7 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
         )}
       </div>
     );
-  }, [handleSlotClick, selectedAction, onSlotSelect]);
+  }, [handleSlotClick, selectedAction, onSlotSelect, enableMultiSelect, isSlotSelected]);
 
   return (
     <div>
