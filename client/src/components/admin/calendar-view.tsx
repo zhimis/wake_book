@@ -9,7 +9,8 @@ import {
   formatPrice,
   formatDate,
   formatTime,
-  formatTimeSlot
+  formatTimeSlot,
+  LATVIA_TIMEZONE
 } from "@/lib/utils";
 
 // Add TypeScript declaration for window.bookingsCache
