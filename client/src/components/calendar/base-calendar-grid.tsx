@@ -86,21 +86,37 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
 
   // Organize time slots by day of the week (0-6 where 0 is Monday in our case)
   const timeSlotsByDay: TimeSlotByDay = useMemo(() => {
-    if (!timeSlots || !Array.isArray(timeSlots)) return {};
+    if (!timeSlots || !Array.isArray(timeSlots)) {
+      console.log("No time slots available or not an array", timeSlots);
+      return {};
+    }
+    
+    console.log(`Processing ${timeSlots.length} time slots`);
     
     const slotsByDay: TimeSlotByDay = {};
+    
+    // Initialize empty arrays for each day of the week
+    for (let i = 0; i < 7; i++) {
+      slotsByDay[i] = [];
+    }
     
     timeSlots.forEach((slot: TimeSlot) => {
       const slotDate = new Date(slot.startTime);
       // Calculate day of week (0-6), where 0 is Monday
       const dayOfWeek = (slotDate.getDay() + 6) % 7; // Convert Sunday(0) to 6, Monday(1) to 0, etc.
       
-      if (!slotsByDay[dayOfWeek]) {
-        slotsByDay[dayOfWeek] = [];
-      }
-      
       slotsByDay[dayOfWeek].push(slot);
+      
+      // Log some details for debugging
+      if (slot.status === 'available') {
+        console.log(`Available slot: day=${dayOfWeek}, time=${format(slotDate, 'HH:mm')}, price=${slot.price}`);
+      }
     });
+    
+    // Log summary of slots by day
+    for (let i = 0; i < 7; i++) {
+      console.log(`Day ${i} (${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}): ${slotsByDay[i].length} slots`);
+    }
     
     return slotsByDay;
   }, [timeSlots]);
@@ -126,17 +142,35 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       minHour = fixedTimeRange.start;
       maxHour = fixedTimeRange.end;
     } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
-      config.operatingHours.forEach((oh: OperatingHours) => {
-        if (oh.isClosed) return;
-        
-        const openHour = parseInt(oh.openTime.split(':')[0]);
-        const closeHour = parseInt(oh.closeTime.split(':')[0]);
-        const closeMinute = parseInt(oh.closeTime.split(':')[1]);
-        
-        minHour = Math.min(minHour, openHour);
-        maxHour = Math.max(maxHour, closeHour + (closeMinute > 0 ? 1 : 0));
-      });
+      // Find all non-closed days
+      const activeDays = config.operatingHours.filter(oh => !oh.isClosed);
+      
+      if (activeDays.length === 0) {
+        // If all days are closed, use default 10am-6pm range
+        minHour = 10;
+        maxHour = 18;
+        console.log("No active operating hours found, using default 10:00-18:00 range");
+      } else {
+        // Process the active operating hours
+        activeDays.forEach((oh: OperatingHours) => {
+          const openHour = parseInt(oh.openTime.split(':')[0]);
+          const closeHour = parseInt(oh.closeTime.split(':')[0]);
+          const closeMinute = parseInt(oh.closeTime.split(':')[1]);
+          
+          minHour = Math.min(minHour, openHour);
+          maxHour = Math.max(maxHour, closeHour + (closeMinute > 0 ? 1 : 0));
+          
+          console.log(`Day ${oh.dayOfWeek}: ${oh.openTime}-${oh.closeTime} => hours ${openHour}-${closeHour}`);
+        });
+      }
+    } else {
+      // Fallback to reasonable defaults if no config is available
+      minHour = 10; // 10am
+      maxHour = 18; // 6pm
+      console.log("No config available, using default 10:00-18:00 range");
     }
+    
+    console.log(`Using hour range: ${minHour}:00 - ${maxHour}:00`);
     
     // Create time slots at 30-minute intervals
     const times = [];
@@ -153,13 +187,23 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   const findTimeSlot = (day: number, hour: number, minute: number): TimeSlot | null => {
     if (!timeSlotsByDay[day]) return null;
     
-    return timeSlotsByDay[day].find((slot: TimeSlot) => {
+    // Add debug logging to see what's happening
+    const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
       const slotDate = new Date(slot.startTime);
       const slotHour = slotDate.getHours();
       const slotMinute = slotDate.getMinutes();
       
       return slotHour === hour && slotMinute === minute;
-    }) || null;
+    });
+    
+    if (matchingSlots.length > 0) {
+      console.log(`Matching slots for ${hour}:${minute} - ${matchingSlots.length} slots found`);
+      matchingSlots.forEach((slot, index) => {
+        console.log(`Slot ${index}: day=${day}, hour=${hour}, minute=${minute}, status=${slot.status}, date=${format(new Date(slot.startTime), 'EEE, MMM d')}`);
+      });
+    }
+    
+    return matchingSlots[0] || null;
   };
 
   // Format time for display (00:00 format)

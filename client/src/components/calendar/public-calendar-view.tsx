@@ -91,6 +91,7 @@ const PublicCalendarView: React.FC<PublicCalendarViewProps> = ({
     let statusText = "Closed";
     
     if (slot) {
+      // We have a slot - check its status
       switch (slot.status) {
         case 'available':
           statusClass = isSelected 
@@ -110,6 +111,12 @@ const PublicCalendarView: React.FC<PublicCalendarViewProps> = ({
           statusClass = "bg-yellow-100 hover:bg-yellow-200";
           statusText = slot.status;
       }
+    } else {
+      // Check if this slot falls within operating hours
+      // In a real implementation, you'd check against the operating hours config
+      // For now, we're simplifying and just showing "Closed" for all null slots
+      statusClass = "bg-gray-100";
+      statusText = "Closed";
     }
     
     return (
