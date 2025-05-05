@@ -6,11 +6,14 @@ import { TimeSlot } from "@shared/schema";
 import { CSSProperties } from 'react';
 import { Eye, Edit, Lock, Clock } from 'lucide-react';
 
+// Import TimeSlotStatus from the calendar component
+type TimeSlotStatus = "available" | "booked" | "selected";
+
 interface AdminTimeSlotProps {
   slot: TimeSlot;
   isSelected: boolean;
-  onToggle: (slotId: string, status: string) => void;
-  getSlotClass?: (status: string, isSelected: boolean, isPast?: boolean) => string;
+  onToggle: (slotId: string, status: TimeSlotStatus) => void;
+  getSlotClass?: (status: TimeSlotStatus, isSelected: boolean, isPast?: boolean) => string;
 }
 
 const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({ 
@@ -61,7 +64,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   });
   
   // Get CSS class for time slot based on status and whether it's in the past
-  const getSlotClass = (status: string) => {
+  const getSlotClass = (status: TimeSlotStatus) => {
     // Debug what the status is
     console.log(`AdminTimeSlot ${slot.id} status: ${status}, isPast: ${isPast}`);
     
@@ -127,10 +130,10 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     <div 
       className={cn(
         "relative cursor-pointer rounded-md border",
-        externalGetSlotClass ? externalGetSlotClass(slot.status, isSelected, isPast) : getSlotClass(slot.status)
+        externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
       )} 
       style={combinedStyle}
-      onClick={() => onToggle(slot.id.toString(), slot.status)}
+      onClick={() => onToggle(slot.id.toString(), slot.status as TimeSlotStatus)}
     >
       <div className="text-center w-full flex flex-col items-center justify-center">
         {slot.status === 'booked' ? (

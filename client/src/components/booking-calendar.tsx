@@ -260,17 +260,17 @@ const BookingCalendar = ({ isAdmin = false, onAdminSlotSelect, adminSelectedSlot
     
     if (isAdmin) {
       // For admin view, we want to generate column headers in the proper Monday-to-Sunday order
-      // Use the current date to find the current week's Monday
+      // Use the currentDate (which changes when navigating between weeks)
       
-      // Get the Latvian day index for the current date (0=Monday, 6=Sunday)
-      const latvianDayIndexForToday = getLatvianDayIndexFromDate(today);
+      // Get the Latvian day index for the currentDate (0=Monday, 6=Sunday)
+      const latvianDayIndexForDate = getLatvianDayIndexFromDate(currentDate);
       
-      // Calculate the Monday of the current week
-      const mondayDate = addDays(today, -latvianDayIndexForToday);
+      // Calculate the Monday of the selected week
+      const mondayDate = addDays(currentDate, -latvianDayIndexForDate);
       
       console.log(`Admin view - Week calculation:
-        Current date: ${formatInLatviaTime(today, "EEE, MMM d, yyyy")}
-        Current day index (Latvia): ${latvianDayIndexForToday} 
+        Selected week date: ${formatInLatviaTime(currentDate, "EEE, MMM d, yyyy")}
+        Current day index (Latvia): ${latvianDayIndexForDate} 
         Monday of week: ${formatInLatviaTime(mondayDate, "EEE, MMM d, yyyy")}
       `);
       
