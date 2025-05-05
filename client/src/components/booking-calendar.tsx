@@ -146,22 +146,6 @@ const BookingCalendar = ({
   
   // Navigation functions
   const goToPreviousWeek = () => {
-    // For public calendar, prevent going to past weeks
-    if (!isAdmin) {
-      // Get today's date in Latvia timezone, reset to start of day
-      const today = toLatviaTime(new Date());
-      today.setHours(0, 0, 0, 0);
-      
-      // Calculate previous week date in Latvia timezone
-      const prevWeekDate = toLatviaTime(subDays(currentDate, 7));
-      prevWeekDate.setHours(0, 0, 0, 0);
-      
-      // If previous week would be before today, don't allow navigation
-      if (prevWeekDate < today) {
-        return;
-      }
-    }
-    
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
     setCurrentDate(subDays(currentDate, 7));
