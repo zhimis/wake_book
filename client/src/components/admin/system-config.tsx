@@ -579,16 +579,16 @@ const AdminSystemConfig = () => {
                 </ul>
               </div>
               
-              <div className="flex justify-end mt-2">
+              <div className="flex justify-center mt-4">
                 <Button 
                   variant="default"
                   onClick={regenerateTimeSlots}
                   disabled={isRegenerating}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto py-6 text-lg bg-blue-600 hover:bg-blue-700"
                 >
                   {isRegenerating ? 
-                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Regenerating...</> : 
-                    "Regenerate All Time Slots"}
+                    <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Regenerating Time Slots...</> : 
+                    <><Settings className="h-5 w-5 mr-2" /> Regenerate All Time Slots</>}
                 </Button>
               </div>
             </div>

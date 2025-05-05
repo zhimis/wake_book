@@ -19,14 +19,17 @@ import { useEffect } from "react";
 function App() {
   const [location, navigate] = useLocation();
   
-  // Redirect from /admin to /admin/dashboard for better UX
+  // Handle /admin URL with tab parameter
   useEffect(() => {
     if (location === "/admin") {
       const urlParams = new URLSearchParams(window.location.search);
       const tab = urlParams.get("tab");
       
-      // Only redirect if no tab parameter is specified
-      if (!tab) {
+      // If tab parameter is specified, store it in localStorage for AdminPage to use
+      if (tab) {
+        localStorage.setItem("adminActiveTab", tab);
+      } else {
+        // Only redirect if no tab parameter is specified
         navigate("/admin/dashboard");
       }
     }

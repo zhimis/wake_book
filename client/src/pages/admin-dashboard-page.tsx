@@ -36,6 +36,14 @@ const AdminDashboardPage = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              className="mr-2"
+              onClick={() => navigate("/admin?tab=configuration")}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Configure System
+            </Button>
             <AdminCreateBooking isStandalone={true} />
           </div>
         </div>
@@ -100,15 +108,12 @@ const AdminDashboardPage = () => {
           
           <Button 
             variant="outline" 
-            className="flex items-center justify-center py-3 h-auto"
-            onClick={() => { 
-              localStorage.setItem("adminActiveTab", "configuration"); 
-              navigate("/admin"); 
-            }}
+            className="flex items-center justify-center py-3 h-auto bg-blue-50 border-blue-200 hover:bg-blue-100"
+            onClick={() => navigate("/admin?tab=configuration")}
           >
             <div className="flex flex-col items-center">
               <Settings className="h-6 w-6 mb-1" />
-              <span>System Settings</span>
+              <span>Operating Hours</span>
             </div>
           </Button>
           
