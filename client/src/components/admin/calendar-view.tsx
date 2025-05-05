@@ -260,6 +260,28 @@ const AdminCalendarView = () => {
     clearBookingsCache();
   }, []);
   
+  // Add a debounce flag to prevent rapid re-renders causing infinite loops
+  const isUpdatingRef = useRef(false);
+  
+  // Debounce and stabilize calendar updates
+  useEffect(() => {
+    let timer: any = null;
+    
+    if (isUpdatingRef.current) {
+      // Clear any pending updates
+      if (timer) clearTimeout(timer);
+      
+      // Set a timer to reset the flag after a short delay
+      timer = setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 100);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [currentDateRange]);
+  
   // Form setup for manual booking
   const bookingForm = useForm<ManualBookingFormData>({
     resolver: zodResolver(manualBookingSchema),
@@ -542,6 +564,15 @@ const AdminCalendarView = () => {
   
   // Improved navigation function - handles previous, next, and today
   const handleNavigateDates = (direction: 'prev' | 'next' | 'today') => {
+    // If already updating, prevent additional navigation
+    if (isUpdatingRef.current) {
+      console.log("Navigation in progress, ignoring request");
+      return;
+    }
+    
+    // Set the updating flag to prevent loops
+    isUpdatingRef.current = true;
+    
     // Get today's date in Latvia timezone
     const today = toLatviaTime(new Date());
     
@@ -579,6 +610,16 @@ const AdminCalendarView = () => {
     // Clear the lastDateRef to allow a new initial update from the calendar
     lastDateRef.current = null;
     
+    // Store formatted versions for lookup
+    const startLatvia = formatInLatviaTime(newAdminStart, "yyyy-MM-dd");
+    const endLatvia = formatInLatviaTime(newSunday, "yyyy-MM-dd");
+    
+    // Store in lastDateRef to prevent duplicate updates
+    lastDateRef.current = {
+      start: startLatvia,
+      end: endLatvia
+    };
+    
     // Update the date range state with the new dates
     // Convert back to UTC for storage
     setCurrentDateRange({
@@ -587,9 +628,15 @@ const AdminCalendarView = () => {
     });
   };
   
-  // Properly handle date range changes from the BookingCalendar
+  // Handle date range changes from the BookingCalendar with proper debouncing
   // This keeps the admin state in sync with the calendar's view
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
+    // If already updating from navigation buttons, ignore calendar-driven updates
+    if (isUpdatingRef.current) {
+      console.log('AdminCalendarView: Update in progress, ignoring calendar feedback');
+      return;
+    }
+    
     console.log('AdminCalendarView: Received date range update:', 
                 formatInLatviaTime(startDate, "yyyy-MM-dd"),
                 "to", 
@@ -599,7 +646,17 @@ const AdminCalendarView = () => {
     const startLatvia = formatInLatviaTime(startDate, "yyyy-MM-dd");
     const endLatvia = formatInLatviaTime(endDate, "yyyy-MM-dd");
     
-    // Compare with current date range to avoid duplicate updates
+    // Check current range in state for comparison
+    const currentStartLatvia = formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd");
+    const currentEndLatvia = formatInLatviaTime(currentDateRange.end, "yyyy-MM-dd");
+    
+    // Check if this is the same as our current state to prevent loops
+    if (currentStartLatvia === startLatvia && currentEndLatvia === endLatvia) {
+      console.log('Matching current state, ignoring update');
+      return;
+    }
+    
+    // Also check against last processed date range
     if (lastDateRef.current?.start === startLatvia && 
         lastDateRef.current?.end === endLatvia) {
       console.log('Skipping redundant date range update with same values');
@@ -612,16 +669,23 @@ const AdminCalendarView = () => {
       end: endLatvia
     };
     
-    // Update the date range in admin state, which will update the calendar display
-    setCurrentDateRange({
-      start: startDate,
-      end: endDate
-    });
+    // Set updating flag to prevent rapid re-renders
+    isUpdatingRef.current = true;
     
-    console.log('Calendar date range updated to:', 
-                formatInLatviaTime(startDate, "yyyy-MM-dd"),
-                "to", 
-                formatInLatviaTime(endDate, "yyyy-MM-dd"));
+    // Update the date range in admin state (ONLY if different)
+    if (currentStartLatvia !== startLatvia || currentEndLatvia !== endLatvia) {
+      console.log('Calendar date range updated to:', 
+                  formatInLatviaTime(startDate, "yyyy-MM-dd"),
+                  "to", 
+                  formatInLatviaTime(endDate, "yyyy-MM-dd"));
+      
+      setCurrentDateRange({
+        start: startDate,
+        end: endDate
+      });
+      
+      // After a delay, reset the updating flag (done in useEffect)
+    }
   };
   
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
