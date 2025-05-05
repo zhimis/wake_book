@@ -124,12 +124,11 @@ const BookingCalendar = ({
   const startDate = isAdmin ? subDays(currentDate, 1) : currentDate;
   const endDate = addDays(currentDate, 6);
   
-  // Notify parent component of date range changes, but only once and only when calendar changes internally
-  // This breaks the bidirectional cycle between the components
+  // Notify parent component of date range changes
+  // This is needed for the admin view to sync with the calendar's date range
   useEffect(() => {
-    if (onDateRangeChange && !customNavigation) {
-      // Only notify parent of OUR OWN changes if we're not in admin view with custom navigation
-      // This prevents infinite callback loops from bidirectional updates
+    if (onDateRangeChange) {
+      console.log(`Calendar notifying parent of date range change: ${formatInLatviaTime(startDate, "yyyy-MM-dd")} to ${formatInLatviaTime(endDate, "yyyy-MM-dd")}`);
       onDateRangeChange(startDate, endDate);
     }
   }, [currentDate]); // Only when our internal currentDate changes, not on every render
