@@ -989,43 +989,7 @@ const AdminCalendarView = () => {
                 isAdmin={true}
                 onAdminSlotSelect={handleTimeSlotSelect}
                 adminSelectedSlots={selectedTimeSlots}
-                // Use custom navigation functions for the admin view
-                customNavigation={{
-                  goToPrevious: () => handleNavigateDates('prev'),
-                  goToNext: () => handleNavigateDates('next'),
-                  goToToday: () => {
-                    // Get today's date in Latvia timezone
-                    const latviaToday = toLatviaTime(new Date());
-                    
-                    // Calculate the Monday of the current week in Latvia
-                    const standardDayIndex = latviaToday.getDay(); // 0 = Sunday, 1 = Monday, etc.
-                    const latvianDayIndex = standardDayIndex === 0 ? 6 : standardDayIndex - 1; // Convert to Latvia format
-                    const currentMonday = addDays(latviaToday, -latvianDayIndex);
-                    
-                    // For admin view, we want to show yesterday through the following week
-                    // So adjust the start date to be 1 day before Monday (Sunday)
-                    const adminStartDate = addDays(currentMonday, -1);
-                    
-                    // Calculate the end of week (Sunday)
-                    const endOfWeek = addDays(currentMonday, 6);
-                    
-                    console.log(`Going to today's week:
-                      Current date: ${formatInLatviaTime(latviaToday, "yyyy-MM-dd")}
-                      Monday of current week: ${formatInLatviaTime(currentMonday, "yyyy-MM-dd")}
-                      Admin view start date: ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}
-                      End of week: ${formatInLatviaTime(endOfWeek, "yyyy-MM-dd")}
-                    `);
-                    
-                    // Clear the lastDateRef to allow a new initial update from the calendar
-                    lastDateRef.current = null;
-                    
-                    // Update the date range state with the new dates
-                    setCurrentDateRange({
-                      start: fromLatviaTime(adminStartDate),
-                      end: fromLatviaTime(endOfWeek)
-                    });
-                  }
-                }}
+                initialDate={currentDateRange.start} // Pass current date directly to calendar component
               />
               
               {/* Display Selection Active alert between calendar and action buttons */}

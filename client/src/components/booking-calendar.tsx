@@ -66,6 +66,7 @@ interface BookingCalendarProps {
   onAdminSlotSelect?: (timeSlot: SchemaTimeSlot) => void;
   adminSelectedSlots?: SchemaTimeSlot[]; // Allow admin component to pass selected slots
   customNavigation?: CustomNavigationProps; // Custom navigation functions for admin view
+  initialDate?: Date; // Allow parent to control the initial date
 }
 
 // Converter function to match our calendar UI slots with the DB schema
@@ -97,21 +98,22 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
 }
 
 // Simplified booking calendar with mock data
-// *** FIXED VERSION - Resolves infinite refresh loop ***
+// *** FIXED VERSION - With improved navigation ***
 const BookingCalendar = ({ 
   isAdmin = false, 
   onAdminSlotSelect, 
   adminSelectedSlots = [],
   customNavigation,
-  onDateRangeChange
+  onDateRangeChange,
+  initialDate // New prop to allow parent to control the initial date
 }: BookingCalendarProps) => {
-  // Initialize currentDate to be the ACTUAL current date in Latvia timezone
-  // This ensures the calendar shows the correct week 
+  // Initialize currentDate with initialDate prop if provided, or today's date
+  // This ensures the calendar shows the correct week or the one provided by parent
   const [currentDate, setCurrentDate] = useState<Date>(() => {
-    // Use Latvia timezone for initial state to ensure proper week calculation
-    const todayInLatvia = toLatviaTime(new Date());
-    console.log(`Initializing calendar with date: ${todayInLatvia.toISOString()} (Latvia time)`);
-    return todayInLatvia;
+    // Use provided initialDate if available, or default to today
+    const startingDate = initialDate ? toLatviaTime(initialDate) : toLatviaTime(new Date());
+    console.log(`Initializing calendar with date: ${startingDate.toISOString()} (Latvia time)`);
+    return startingDate;
   });
   
   // Use the booking context
@@ -123,6 +125,15 @@ const BookingCalendar = ({
   // For admin view, include yesterday in the date range
   const startDate = isAdmin ? subDays(currentDate, 1) : currentDate;
   const endDate = addDays(currentDate, 6);
+  
+  // Effect to update current date when initialDate prop changes
+  useEffect(() => {
+    if (initialDate) {
+      const newDate = toLatviaTime(initialDate);
+      console.log(`Updating calendar with new initialDate: ${formatInLatviaTime(newDate, "yyyy-MM-dd")}`);
+      setCurrentDate(newDate);
+    }
+  }, [initialDate]); // Only run when initialDate prop changes
   
   // Notify parent component of date range changes
   // This is needed for the admin view to sync with the calendar's date range
