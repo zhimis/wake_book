@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { format, addDays, subDays, isToday } from "date-fns";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -124,8 +124,29 @@ const BookingCalendar = ({
   const endDate = addDays(currentDate, 6);
   
   // Notify parent component of date range changes
+  const prevDateRangeRef = useRef<{start: string, end: string} | null>(null);
+  
   useEffect(() => {
     if (onDateRangeChange) {
+      // Convert to strings for comparison
+      const newStartStr = startDate.toISOString();
+      const newEndStr = endDate.toISOString();
+      
+      // Skip update if this is the same date range we just had
+      if (prevDateRangeRef.current && 
+          prevDateRangeRef.current.start === newStartStr && 
+          prevDateRangeRef.current.end === newEndStr) {
+        console.log('BookingCalendar: Skipping redundant date range callback');
+        return;
+      }
+      
+      // Update our reference tracker
+      prevDateRangeRef.current = {
+        start: newStartStr,
+        end: newEndStr
+      };
+      
+      // Call the callback 
       onDateRangeChange(startDate, endDate);
     }
   }, [startDate, endDate, onDateRangeChange]);
