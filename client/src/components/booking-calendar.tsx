@@ -155,6 +155,9 @@ const BookingCalendar = ({
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
     setCurrentDate(subDays(currentDate, 7));
+    
+    // Log navigation for debugging
+    console.log(`BookingCalendar: Navigating to previous week: ${formatInLatviaTime(subDays(currentDate, 7), "yyyy-MM-dd")}`);
   };
   
   const goToNextWeek = () => {
@@ -182,6 +185,9 @@ const BookingCalendar = ({
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
     setCurrentDate(addDays(currentDate, 7));
+    
+    // Log navigation for debugging
+    console.log(`BookingCalendar: Navigating to next week: ${formatInLatviaTime(addDays(currentDate, 7), "yyyy-MM-dd")}`);
   };
   
   const goToToday = () => {
@@ -190,6 +196,9 @@ const BookingCalendar = ({
     // Use current date but ensure it's consistent with our timezone handling
     const todayInLatvia = toLatviaTime(new Date());
     setCurrentDate(todayInLatvia);
+    
+    // Log navigation for debugging
+    console.log(`BookingCalendar: Going to today: ${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}`);
   };
   
   // Fetch time slots from the server with their actual statuses
