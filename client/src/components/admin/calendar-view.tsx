@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -539,6 +539,12 @@ const AdminCalendarView = () => {
       const newLatviaStart = subDays(latviaStart, 7);
       const newLatviaEnd = subDays(latviaEnd, 7);
       
+      // Update our lastDateRef to prevent loops
+      lastDateRef.current = {
+        start: newLatviaStart.toISOString(),
+        end: newLatviaEnd.toISOString()
+      };
+      
       // Convert back to UTC for storage and API requests
       setCurrentDateRange({
         start: fromLatviaTime(newLatviaStart),
@@ -553,6 +559,12 @@ const AdminCalendarView = () => {
       const newLatviaStart = addDays(latviaStart, 7);
       const newLatviaEnd = addDays(latviaEnd, 7);
       
+      // Update our lastDateRef to prevent loops
+      lastDateRef.current = {
+        start: newLatviaStart.toISOString(),
+        end: newLatviaEnd.toISOString()
+      };
+      
       // Convert back to UTC for storage and API requests
       setCurrentDateRange({
         start: fromLatviaTime(newLatviaStart),
@@ -561,12 +573,35 @@ const AdminCalendarView = () => {
     }
   };
   
+  // Track the last set date range to avoid infinite loops
+  const lastDateRef = useRef<{start: string, end: string} | null>(null);
+  
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
     // The dates we receive might be in local timezone, so convert to Latvia timezone
     // Then convert back to UTC for storage and API requests
     const latviaStart = toLatviaTime(startDate);
     const latviaEnd = toLatviaTime(endDate);
     
+    // Convert to strings for comparison
+    const newStartStr = latviaStart.toISOString();
+    const newEndStr = latviaEnd.toISOString();
+    
+    // Skip update if this is the same date range we just set
+    // This prevents infinite loops when custom navigation functions are used
+    if (lastDateRef.current && 
+        lastDateRef.current.start === newStartStr && 
+        lastDateRef.current.end === newEndStr) {
+      console.log('Skipping redundant date range update');
+      return;
+    }
+    
+    // Update the last date reference
+    lastDateRef.current = {
+      start: newStartStr,
+      end: newEndStr
+    };
+    
+    // Update the date range
     setCurrentDateRange({
       start: fromLatviaTime(latviaStart),
       end: fromLatviaTime(latviaEnd)
