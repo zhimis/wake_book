@@ -96,7 +96,7 @@ const PublicCalendarView: React.FC<PublicCalendarViewProps> = ({
           statusClass = isSelected 
             ? "bg-blue-600 text-white hover:bg-blue-700" 
             : "bg-green-100 hover:bg-green-200";
-          statusText = `€${parseFloat(slot.price).toFixed(2)}`;
+          statusText = `€${parseFloat(String(slot.price)).toFixed(2)}`;
           break;
         case 'booked':
           statusClass = "bg-red-100 hover:bg-red-100 cursor-not-allowed";
@@ -170,7 +170,7 @@ const PublicCalendarView: React.FC<PublicCalendarViewProps> = ({
                         <span className="mx-2">at</span>
                         <span>{format(new Date(slot.startTime), 'HH:mm')} - {format(new Date(slot.endTime), 'HH:mm')}</span>
                       </div>
-                      <div className="font-medium">€{parseFloat(slot.price).toFixed(2)}</div>
+                      <div className="font-medium">€{parseFloat(String(slot.price)).toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
@@ -180,7 +180,7 @@ const PublicCalendarView: React.FC<PublicCalendarViewProps> = ({
                   <div>
                     <span className="text-sm text-gray-500">Total:</span>
                     <span className="ml-2 font-bold">
-                      €{selectedSlots.reduce((sum, slot) => sum + parseFloat(slot.price), 0).toFixed(2)}
+                      €{selectedSlots.reduce((sum, slot) => sum + parseFloat(String(slot.price)), 0).toFixed(2)}
                     </span>
                   </div>
                   <Button onClick={handleBookSelected}>

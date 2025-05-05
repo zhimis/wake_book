@@ -7,6 +7,8 @@ import AdminLoginPage from "@/pages/admin-login-page";
 import AdminPage from "@/pages/admin-page";
 import AdminDashboardPage from "@/pages/admin-dashboard-page";
 import AdminBookingsPage from "@/pages/admin-bookings-page";
+import PublicPage from "@/pages/public-page";
+import NewAdminPage from "@/pages/new-admin-page";
 import Header from "./components/header";
 import Footer from "./components/footer";
 import { BookingProvider } from "./context/booking-context";
@@ -40,10 +42,12 @@ function App() {
               <Route path="/" component={HomePage} />
               <Route path="/booking" component={BookingPage} />
               <Route path="/confirmation/:reference" component={ConfirmationPage} />
+              <Route path="/public" component={PublicPage} />
               <Route path="/admin/login" component={AdminLoginPage} />
               <ProtectedRoute path="/admin" component={AdminPage} />
               <ProtectedRoute path="/admin/dashboard" component={AdminDashboardPage} />
               <ProtectedRoute path="/admin/bookings" component={AdminBookingsPage} />
+              <ProtectedRoute path="/admin/new" component={NewAdminPage} />
               <Route component={NotFound} />
             </Switch>
           </div>

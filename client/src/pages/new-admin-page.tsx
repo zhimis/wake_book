@@ -103,7 +103,7 @@ const NewAdminPage = () => {
                 </div>
                 <div>
                   <span className="font-medium">Price:</span>{" "}
-                  €{parseFloat(selectedSlot.price).toFixed(2)}
+                  €{parseFloat(String(selectedSlot.price)).toFixed(2)}
                 </div>
                 {selectedSlot.status === 'booked' && (
                   <div className="mt-4 pt-4 border-t">

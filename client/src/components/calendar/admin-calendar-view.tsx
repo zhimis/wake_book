@@ -209,7 +209,7 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
       switch (slot.status) {
         case 'available':
           statusClass = "bg-green-100 hover:bg-green-200 border border-green-300";
-          statusText = `€${parseFloat(slot.price).toFixed(2)}`;
+          statusText = `€${parseFloat(String(slot.price)).toFixed(2)}`;
           break;
         case 'booked':
           statusClass = "bg-red-100 hover:bg-red-200 border border-red-300";

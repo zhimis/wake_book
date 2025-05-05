@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
-import { TimeSlot, OperatingHours, PricingRule } from "@shared/schema";
+import { TimeSlot, OperatingHours } from "@shared/schema";
 
 export interface BaseCalendarProps {
   // For derived components to control behavior
