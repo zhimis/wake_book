@@ -576,36 +576,23 @@ const AdminCalendarView = () => {
     }
   };
   
+  // *** FIX FOR INFINITE REFRESH LOOP ***
+  // Isolate date range changes from the calendar so there's only one-way data flow
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
-    // The dates we receive might be in local timezone, so convert to Latvia timezone
-    // Then convert back to UTC for storage and API requests
-    const latviaStart = toLatviaTime(startDate);
-    const latviaEnd = toLatviaTime(endDate);
+    // Fix: Calendar component should NOT cause setCurrentDateRange updates
+    // This completely breaks the bidirectional cycle between the components
     
-    // Convert to strings for comparison
-    const newStartStr = latviaStart.toISOString();
-    const newEndStr = latviaEnd.toISOString();
+    console.log('Calendar has moved to date range:', 
+                formatInLatviaTime(startDate, "yyyy-MM-dd"),
+                "to", 
+                formatInLatviaTime(endDate, "yyyy-MM-dd"));
+                
+    // Do nothing - don't update currentDateRange
+    // This breaks the infinite loop by preventing the cycle
+    // Calendar only responds to changes from this component, but never updates it
     
-    // Skip update if this is the same date range we just set
-    // This prevents infinite loops when custom navigation functions are used
-    if (lastDateRef.current && 
-        lastDateRef.current.start === newStartStr && 
-        lastDateRef.current.end === newEndStr) {
-      console.log('Skipping redundant date range update');
-      return;
-    }
-    
-    // Update the last date reference
-    lastDateRef.current = {
-      start: newStartStr,
-      end: newEndStr
-    };
-    
-    // Update the date range
-    setCurrentDateRange({
-      start: fromLatviaTime(latviaStart),
-      end: fromLatviaTime(latviaEnd)
-    });
+    // Only accept date changes that come from explicit navigation functions
+    // This prevents the calendar from changing the date range on its own
   };
   
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {

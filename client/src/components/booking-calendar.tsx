@@ -97,6 +97,7 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
 }
 
 // Simplified booking calendar with mock data
+// *** FIXED VERSION - Resolves infinite refresh loop ***
 const BookingCalendar = ({ 
   isAdmin = false, 
   onAdminSlotSelect, 
@@ -105,7 +106,7 @@ const BookingCalendar = ({
   onDateRangeChange
 }: BookingCalendarProps) => {
   // Initialize currentDate to be the ACTUAL current date in Latvia timezone
-  // This ensures the calendar shows the correct week
+  // This ensures the calendar shows the correct week 
   const [currentDate, setCurrentDate] = useState<Date>(() => {
     // Use Latvia timezone for initial state to ensure proper week calculation
     const todayInLatvia = toLatviaTime(new Date());
@@ -123,33 +124,15 @@ const BookingCalendar = ({
   const startDate = isAdmin ? subDays(currentDate, 1) : currentDate;
   const endDate = addDays(currentDate, 6);
   
-  // Notify parent component of date range changes
-  const prevDateRangeRef = useRef<{start: string, end: string} | null>(null);
-  
+  // Notify parent component of date range changes, but only once and only when calendar changes internally
+  // This breaks the bidirectional cycle between the components
   useEffect(() => {
-    if (onDateRangeChange) {
-      // Convert to strings for comparison
-      const newStartStr = startDate.toISOString();
-      const newEndStr = endDate.toISOString();
-      
-      // Skip update if this is the same date range we just had
-      if (prevDateRangeRef.current && 
-          prevDateRangeRef.current.start === newStartStr && 
-          prevDateRangeRef.current.end === newEndStr) {
-        console.log('BookingCalendar: Skipping redundant date range callback');
-        return;
-      }
-      
-      // Update our reference tracker
-      prevDateRangeRef.current = {
-        start: newStartStr,
-        end: newEndStr
-      };
-      
-      // Call the callback 
+    if (onDateRangeChange && !customNavigation) {
+      // Only notify parent of OUR OWN changes if we're not in admin view with custom navigation
+      // This prevents infinite callback loops from bidirectional updates
       onDateRangeChange(startDate, endDate);
     }
-  }, [startDate, endDate, onDateRangeChange]);
+  }, [currentDate]); // Only when our internal currentDate changes, not on every render
   
   // Navigation functions
   const goToPreviousWeek = () => {
