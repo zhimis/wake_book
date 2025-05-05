@@ -165,10 +165,17 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     
     console.log("DEBUG: FULL CONFIG DATA:", JSON.stringify(config, null, 2));
     
-    if (fixedTimeRange) {
+    // USER REQUEST: Calendar should display time slots from 13:00 to 24:00
+    // This is a fixed range that doesn't depend on operating hours
+    if (viewMode === 'admin') {
+      // For admin view, show all hours from 9am to midnight
+      minHour = 9;  // 9am
+      maxHour = 24; // Midnight
+      console.log(`Using admin fixed time range: ${minHour}:00-${maxHour}:00`);
+    } else if (fixedTimeRange) {
       minHour = fixedTimeRange.start;
       maxHour = fixedTimeRange.end;
-      console.log(`Using fixed time range: ${minHour}-${maxHour}`);
+      console.log(`Using provided fixed time range: ${minHour}:00-${maxHour}:00`);
     } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
       console.log("OPERATING HOURS FROM CONFIG:", JSON.stringify(config.operatingHours, null, 2));
       
@@ -202,7 +209,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
           // Fix for 24 hour display - if closeHour is 24 (midnight), keep it as 24
           // This ensures we show the full day up to midnight
           let adjustedCloseHour = closeHour;
-          if (closeHour === 0 && (oh.closeTime === "00:00" || oh.closeTime === "0:00")) {
+          if (closeHour === 0 && (oh.closeTime === "00:00" || oh.closeTime === "0:00" || oh.closeTime === "00:00:00")) {
             adjustedCloseHour = 24; // Treat midnight as hour 24
           }
           
@@ -214,12 +221,17 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
             - New max hour: ${maxHour}
             - Using adjusted close hour: ${adjustedCloseHour}`);
         });
+        
+        // Per user's request - force the calendar to show 13:00 to 24:00 range
+        minHour = 13;
+        maxHour = 24;
+        console.log("Overriding with requested range: 13:00-24:00");
       }
     } else {
       // Fallback to reasonable defaults if no config is available
-      minHour = 10; // 10am
-      maxHour = 18; // 6pm
-      console.log("No config available, using default 10:00-18:00 range");
+      minHour = 13; // 1pm
+      maxHour = 24; // Midnight
+      console.log("No config available, using fixed 13:00-24:00 range per requirement");
     }
     
     console.log(`FINAL HOUR RANGE: ${minHour}:00 - ${maxHour}:00`);
