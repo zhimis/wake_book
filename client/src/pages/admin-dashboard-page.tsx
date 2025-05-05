@@ -52,7 +52,7 @@ const AdminDashboardPage = () => {
             <Button
               variant="outline"
               className="mr-2"
-              onClick={() => navigate("/admin?tab=configuration")}
+              onClick={() => window.open("/admin/system-config", "_self")}
             >
               <Settings className="h-4 w-4 mr-2" />
               Configure System
@@ -122,7 +122,7 @@ const AdminDashboardPage = () => {
           <Button 
             variant="outline" 
             className="flex items-center justify-center py-3 h-auto bg-blue-50 border-blue-200 hover:bg-blue-100"
-            onClick={() => navigate("/admin/dashboard?activeTab=configuration")}
+            onClick={() => window.open("/admin/system-config", "_self")}
           >
             <div className="flex flex-col items-center">
               <Settings className="h-6 w-6 mb-1" />
