@@ -45,7 +45,6 @@ export const timeSlots = pgTable("time_slots", {
   endTime: timestamp("end_time", { withTimezone: true }).notNull(),
   price: real("price").notNull(),
   status: text("status").notNull().default("available"), // available, booked
-  reservationExpiry: timestamp("reservation_expiry", { withTimezone: true }), // When reservation expires
   storageTimezone: text("storage_timezone").default("UTC").notNull(), // Explicit timezone field
 });
 
@@ -137,7 +136,6 @@ export const adminCustomBookingSchema = z.object({
     endTime: z.date(),
     price: z.number().optional(),
     status: z.string().optional(),
-    reservationExpiry: z.date().nullable().optional(),
   })).min(1, { message: "At least one time slot is required" }),
 });
 

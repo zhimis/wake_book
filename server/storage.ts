@@ -47,8 +47,6 @@ export interface IStorage {
   getTimeSlotsByDateRange(startDate: Date, endDate: Date): Promise<TimeSlot[]>;
   createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot>;
   updateTimeSlot(id: number, timeSlot: Partial<TimeSlot>): Promise<TimeSlot | undefined>;
-  temporaryHoldTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined>;
-  releaseReservation(id: number): Promise<TimeSlot | undefined>;
   blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined>;
   regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }>;
   
@@ -282,27 +280,7 @@ export class DatabaseStorage implements IStorage {
     return updatedTimeSlot;
   }
   
-  async temporaryHoldTimeSlot(id: number, expiryTime: Date): Promise<TimeSlot | undefined> {
-    const [updatedTimeSlot] = await db.update(timeSlots)
-      .set({ 
-        status: "booked",
-        reservationExpiry: expiryTime
-      })
-      .where(eq(timeSlots.id, id))
-      .returning();
-    return updatedTimeSlot;
-  }
-  
-  async releaseReservation(id: number): Promise<TimeSlot | undefined> {
-    const [updatedTimeSlot] = await db.update(timeSlots)
-      .set({ 
-        status: "available",
-        reservationExpiry: null
-      })
-      .where(eq(timeSlots.id, id))
-      .returning();
-    return updatedTimeSlot;
-  }
+
   
   async blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined> {
     // Instead of updating to blocked status, we'll delete the time slot entirely
