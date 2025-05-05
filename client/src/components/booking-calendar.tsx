@@ -47,7 +47,6 @@ interface CalendarTimeSlot {
   status: TimeSlotStatus;
   startTime: Date;
   endTime: Date;
-  reservationExpiry: Date | null;
   storageTimezone: string; // Added storage timezone field
   isPast?: boolean; // Flag to identify if this slot is in the past
   originalStartTime?: Date; // Original database date before week mapping
