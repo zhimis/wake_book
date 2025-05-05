@@ -10,7 +10,8 @@ import {
   formatDate,
   formatTime,
   formatTimeSlot,
-  LATVIA_TIMEZONE
+  LATVIA_TIMEZONE,
+  getLatvianDayIndexFromDate
 } from "@/lib/utils";
 
 // Add TypeScript declaration for window.bookingsCache
@@ -244,6 +245,13 @@ const AdminCalendarView = () => {
   
   // Track the last set date range to avoid infinite loops
   const lastDateRef = useRef<{start: string, end: string} | null>(null);
+  
+  // Local implementation of getLatvianDayIndexFromDate function
+  // Convert standard JS day index (0 = Sunday, 1 = Monday, etc) to Latvia format (0 = Monday, 1 = Tuesday, etc)
+  function getLatvianDayIndexFromDate(date: Date): number {
+    const standardDayIndex = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    return standardDayIndex === 0 ? 6 : standardDayIndex - 1; // Convert to Latvia format
+  }
   
   const { toast } = useToast();
   
@@ -982,7 +990,8 @@ const AdminCalendarView = () => {
                     const latviaToday = toLatviaTime(new Date());
                     
                     // Calculate the Monday of the current week in Latvia
-                    const latvianDayIndex = getLatvianDayIndexFromDate(latviaToday);
+                    const standardDayIndex = latviaToday.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                    const latvianDayIndex = standardDayIndex === 0 ? 6 : standardDayIndex - 1; // Convert to Latvia format
                     const currentMonday = addDays(latviaToday, -latvianDayIndex);
                     
                     // For admin view, we want to show yesterday through the following week
