@@ -937,6 +937,59 @@ const AdminCalendarView = () => {
         <>
           {viewMode === 'calendar' ? (
             <>
+              <div className="mb-4 flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  {formatInLatviaTime(toLatviaTime(currentDateRange.start), "MMMM d")} - {formatInLatviaTime(toLatviaTime(currentDateRange.end), "MMMM d, yyyy")}
+                  <span className="text-xs text-muted-foreground ml-1">({LATVIA_TIMEZONE})</span>
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-8 w-8" 
+                    onClick={() => handleNavigateDates('prev')}
+                    title="Previous week"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    size="sm" 
+                    className="h-8 px-2 text-xs"
+                    onClick={() => {
+                      // Get today in Latvia timezone
+                      const latviaToday = toLatviaTime(new Date());
+                      
+                      // Set start date to yesterday for admin view
+                      const latviaStartDate = new Date(latviaToday);
+                      latviaStartDate.setDate(latviaToday.getDate() - 1);
+                      
+                      // Calculate end date (today + 6 days)
+                      const latviaEndDate = new Date(latviaToday);
+                      latviaEndDate.setDate(latviaToday.getDate() + 6);
+                      
+                      // Update date range
+                      setCurrentDateRange({
+                        start: fromLatviaTime(latviaStartDate),
+                        end: fromLatviaTime(latviaEndDate)
+                      });
+                    }}
+                    title="Go to today"
+                  >
+                    Today
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-8 w-8" 
+                    onClick={() => handleNavigateDates('next')}
+                    title="Next week"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
               <BookingCalendar 
                 onDateRangeChange={handleDateRangeChange}
                 isAdmin={true}
