@@ -242,6 +242,9 @@ const AdminCalendarView = () => {
   const [cancelAction, setCancelAction] = useState<'delete' | 'clear' | null>(null);
   const [bookingDetails, setBookingDetails] = useState<any>(null); // Store full booking details including time slots
   
+  // Track the last set date range to avoid infinite loops
+  const lastDateRef = useRef<{start: string, end: string} | null>(null);
+  
   const { toast } = useToast();
   
   // Initialize bookings cache on mount
@@ -572,9 +575,6 @@ const AdminCalendarView = () => {
       });
     }
   };
-  
-  // Track the last set date range to avoid infinite loops
-  const lastDateRef = useRef<{start: string, end: string} | null>(null);
   
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
     // The dates we receive might be in local timezone, so convert to Latvia timezone
