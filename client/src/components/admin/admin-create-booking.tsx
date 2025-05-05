@@ -25,8 +25,8 @@ interface AdminCreateBookingProps {
   externalOpenState?: boolean;
   onOpenChange?: (open: boolean) => void;
   initialSelectedSlots?: TimeSlot[];
-  buttonVariant?: string;
-  buttonSize?: string;
+  buttonVariant?: "link" | "outline" | "default" | "destructive" | "secondary" | "ghost";
+  buttonSize?: "default" | "sm" | "lg" | "icon";
   onBookingComplete?: () => void;
 }
 
@@ -102,6 +102,18 @@ const AdminCreateBooking = ({
     }
   }, [selectedDate]);
   
+  // Admin custom booking form
+  const form = useForm<AdminCustomBookingData>({
+    resolver: zodResolver(adminCustomBookingSchema),
+    defaultValues: {
+      customerName: "",
+      phoneNumber: "",
+      email: "",
+      notes: "",
+      timeSlots: []
+    }
+  });
+  
   // Handle initialSelectedSlots
   useEffect(() => {
     if (initialSelectedSlots.length > 0) {
@@ -122,18 +134,6 @@ const AdminCreateBooking = ({
       });
     }
   }, [initialSelectedSlots, form, toast]);
-  
-  // Admin custom booking form
-  const form = useForm<AdminCustomBookingData>({
-    resolver: zodResolver(adminCustomBookingSchema),
-    defaultValues: {
-      customerName: "",
-      phoneNumber: "",
-      email: "",
-      notes: "",
-      timeSlots: []
-    }
-  });
   
   // Convert selected date and time to time slots
   const generateTimeSlots = async () => {
@@ -308,9 +308,16 @@ const AdminCreateBooking = ({
       {isStandalone ? (
         <DialogTrigger asChild>
           {triggerButton || (
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button 
+              variant={buttonVariant} 
+              size={buttonSize}
+              className="flex items-center gap-2"
+            >
               <PlusCircle size={16} />
-              Create Booking
+              {initialSelectedSlots.length > 0 ? 
+                `Book ${initialSelectedSlots.length} Selected Slot${initialSelectedSlots.length !== 1 ? 's' : ''}` : 
+                'Create Booking'
+              }
             </Button>
           )}
         </DialogTrigger>
