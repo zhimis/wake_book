@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { format, addDays, subDays, isToday } from "date-fns";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -578,6 +578,9 @@ const BookingCalendar = ({
     toggleTimeSlot(schemaSlot);
   };
   
+  // Import useLocation from wouter
+  const [_, navigate] = useLocation();
+  
   // Proceed to booking form without reserving slots
   const proceedToBooking = () => {
     if (selectedTimeSlots.length === 0) {
@@ -589,7 +592,8 @@ const BookingCalendar = ({
       return;
     }
     
-    // Navigate to booking page right away without showing a toast
+    // Navigate to booking page
+    navigate("/booking");
   };
   
   // Get CSS class for time slot based on status and whether it's in the past
