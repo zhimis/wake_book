@@ -24,13 +24,21 @@ interface AdminCreateBookingProps {
   isStandalone?: boolean;
   externalOpenState?: boolean;
   onOpenChange?: (open: boolean) => void;
+  initialSelectedSlots?: TimeSlot[];
+  buttonVariant?: string;
+  buttonSize?: string;
+  onBookingComplete?: () => void;
 }
 
 const AdminCreateBooking = ({ 
   triggerButton, 
   isStandalone = true, 
   externalOpenState, 
-  onOpenChange 
+  onOpenChange,
+  initialSelectedSlots = [],
+  buttonVariant = "outline",
+  buttonSize = "default",
+  onBookingComplete
 }: AdminCreateBookingProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -93,6 +101,27 @@ const AdminCreateBooking = ({
       checkExistingBookings(selectedDate);
     }
   }, [selectedDate]);
+  
+  // Handle initialSelectedSlots
+  useEffect(() => {
+    if (initialSelectedSlots.length > 0) {
+      // Use the first slot's date to set the calendar
+      const firstSlot = initialSelectedSlots[0];
+      const firstDate = new Date(firstSlot.startTime);
+      setSelectedDate(firstDate);
+      
+      // Set the slots directly
+      setTimeSlots(initialSelectedSlots);
+      form.setValue("timeSlots", initialSelectedSlots);
+      
+      // Show toast about using pre-selected slots
+      toast({
+        title: "Time Slots Loaded",
+        description: `Using ${initialSelectedSlots.length} pre-selected time slot(s)`,
+        variant: "default"
+      });
+    }
+  }, [initialSelectedSlots, form, toast]);
   
   // Admin custom booking form
   const form = useForm<AdminCustomBookingData>({

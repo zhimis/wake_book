@@ -380,6 +380,65 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     );
   }, [handleSlotClick, selectedAction, onSlotSelect, enableMultiSelect, isSlotSelected]);
 
+  // Bulk action handlers
+  const handleBulkBlock = useCallback(() => {
+    if (selectedSlots.length === 0) return;
+    
+    toast({
+      title: "Block multiple slots?",
+      description: `Are you sure you want to block ${selectedSlots.length} slot(s)?`,
+      action: (
+        <Button 
+          variant="destructive" 
+          size="sm" 
+          onClick={() => {
+            // Process each slot sequentially
+            selectedSlots.forEach(slot => {
+              if (slot.status !== 'blocked') {
+                blockSlotMutation.mutate(slot.id);
+              }
+            });
+            
+            // Clear selection after processing
+            setSelectedSlots([]);
+            if (onSlotsSelected) onSlotsSelected([]);
+          }}
+        >
+          Confirm
+        </Button>
+      ),
+    });
+  }, [selectedSlots, blockSlotMutation, toast, onSlotsSelected]);
+
+  const handleBulkMakeAvailable = useCallback(() => {
+    if (selectedSlots.length === 0) return;
+    
+    toast({
+      title: "Make slots available?",
+      description: `Are you sure you want to make ${selectedSlots.length} slot(s) available?`,
+      action: (
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={() => {
+            // Process each slot sequentially
+            selectedSlots.forEach(slot => {
+              if (slot.status !== 'available' && slot.status !== 'booked') {
+                makeAvailableMutation.mutate(slot.id);
+              }
+            });
+            
+            // Clear selection after processing
+            setSelectedSlots([]);
+            if (onSlotsSelected) onSlotsSelected([]);
+          }}
+        >
+          Confirm
+        </Button>
+      ),
+    });
+  }, [selectedSlots, makeAvailableMutation, toast, onSlotsSelected]);
+
   return (
     <div>
       <BaseCalendarGrid 
@@ -389,7 +448,56 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
         onSlotClick={handleSlotClick}
       />
       
-      {/* Additional admin controls could go here */}
+      {/* Bulk action controls */}
+      {enableMultiSelect && selectedSlots.length > 0 && (
+        <div className="mt-4 p-4 bg-slate-50 rounded-md border">
+          <h3 className="text-sm font-medium mb-3">Bulk Actions for {selectedSlots.length} Selected Slot{selectedSlots.length !== 1 ? 's' : ''}</h3>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setSelectedSlots([]);
+                if (onSlotsSelected) onSlotsSelected([]);
+              }}
+            >
+              Clear Selection
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleBulkMakeAvailable}
+            >
+              <Unlock className="mr-2 h-4 w-4" />
+              Make Available
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleBulkBlock}
+            >
+              <Lock className="mr-2 h-4 w-4" />
+              Block Slots
+            </Button>
+            
+            {selectedSlots.some(slot => slot.status === 'available') && (
+              <AdminCreateBooking 
+                buttonVariant="outline"
+                buttonSize="sm"
+                initialSelectedSlots={selectedSlots.filter(slot => slot.status === 'available')}
+                onBookingComplete={() => {
+                  setSelectedSlots([]);
+                  if (onSlotsSelected) onSlotsSelected([]);
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Regular admin controls */}
       <div className="mt-4 flex justify-end space-x-3">
         <AdminCreateBooking />
       </div>

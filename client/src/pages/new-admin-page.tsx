@@ -5,7 +5,7 @@ import AdminLayout from "@/components/admin/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TimeSlot } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, CheckSquare, Square, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import AdminCreateBooking from "@/components/admin/admin-create-booking";
@@ -15,10 +15,15 @@ const NewAdminPage = () => {
   const [selectedWeekStart, setSelectedWeekStart] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [showSlotDetails, setShowSlotDetails] = useState(false);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
 
   const handleSlotSelection = (slot: TimeSlot) => {
     setSelectedSlot(slot);
     setShowSlotDetails(true);
+  };
+
+  const handleSlotsSelected = (slots: TimeSlot[]) => {
+    setSelectedSlots(slots);
   };
 
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
@@ -27,6 +32,14 @@ const NewAdminPage = () => {
 
   const handleClearSelection = () => {
     setSelectedSlots([]);
+  };
+
+  const toggleMultiSelectMode = () => {
+    setMultiSelectMode(!multiSelectMode);
+    if (multiSelectMode) {
+      // Clear selections when turning off multi-select mode
+      setSelectedSlots([]);
+    }
   };
 
   const handleRegenerateSlots = () => {
@@ -40,6 +53,17 @@ const NewAdminPage = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Booking Management (New Component)</h1>
           <div className="flex space-x-2">
+            <Button 
+              variant={multiSelectMode ? "default" : "outline"}
+              onClick={toggleMultiSelectMode}
+            >
+              {multiSelectMode ? (
+                <CheckSquare className="h-4 w-4 mr-2" />
+              ) : (
+                <Square className="h-4 w-4 mr-2" />
+              )}
+              {multiSelectMode ? "Multi-Select On" : "Multi-Select Off"}
+            </Button>
             <Button 
               variant="outline"
               onClick={() => window.location.href = "/admin/bookings"}
@@ -59,6 +83,8 @@ const NewAdminPage = () => {
             <AdminCalendarView 
               onSlotSelect={handleSlotSelection}
               onDateRangeChange={handleDateRangeChange}
+              onSlotsSelected={handleSlotsSelected}
+              enableMultiSelect={multiSelectMode}
             />
             
             <CalendarControls 
