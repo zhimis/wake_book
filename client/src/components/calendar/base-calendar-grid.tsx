@@ -163,12 +163,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     let minHour = 24;
     let maxHour = 0;
     
+    console.log("CONFIG DATA:", config);
+    
     if (fixedTimeRange) {
       minHour = fixedTimeRange.start;
       maxHour = fixedTimeRange.end;
+      console.log(`Using fixed time range: ${minHour}-${maxHour}`);
     } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
+      console.log("Operating hours from config:", JSON.stringify(config.operatingHours));
+      
       // Find all non-closed days
       const activeDays = config.operatingHours.filter(oh => !oh.isClosed);
+      console.log(`Found ${activeDays.length} active operating hour configs`);
       
       if (activeDays.length === 0) {
         // If all days are closed, use default 10am-6pm range
@@ -195,7 +201,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       console.log("No config available, using default 10:00-18:00 range");
     }
     
-    console.log(`Using hour range: ${minHour}:00 - ${maxHour}:00`);
+    console.log(`FINAL HOUR RANGE: ${minHour}:00 - ${maxHour}:00`);
     
     // Create time slots at 30-minute intervals
     const times = [];
