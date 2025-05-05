@@ -41,7 +41,6 @@ const AdminSystemConfig = () => {
   // State for edited values
   const [operatingHoursState, setOperatingHoursState] = useState<any[]>([]);
   const [pricingState, setPricingState] = useState<any[]>([]);
-  const [visibilityWeeks, setVisibilityWeeks] = useState<number>(4);
   
   // Set initial state values when data is loaded
   // This should be useEffect, not useState!
@@ -97,7 +96,6 @@ const AdminSystemConfig = () => {
       
       setOperatingHoursState(sortedHours);
       setPricingState(data.pricing || []);
-      setVisibilityWeeks(data.visibilityWeeks || 4);
     }
   }, [data]);
   
@@ -146,27 +144,7 @@ const AdminSystemConfig = () => {
     }
   });
   
-  const updateVisibilityMutation = useMutation({
-    mutationFn: async (weeks: number) => {
-      const res = await apiRequest("PUT", "/api/config/visibility", { weeks });
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/config'] });
-      toast({
-        title: "Configuration Updated",
-        description: "Calendar visibility settings have been updated successfully.",
-        variant: "success",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
+  // Calendar visibility mutation removed
   
   // Handlers
   const handleOperatingHoursUpdate = (id: number, field: string, value: any) => {
@@ -371,9 +349,7 @@ const AdminSystemConfig = () => {
     }
   };
   
-  const saveVisibility = () => {
-    updateVisibilityMutation.mutate(visibilityWeeks);
-  };
+  // saveVisibility function removed
   
   if (isLoading) {
     return (
