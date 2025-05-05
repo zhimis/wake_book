@@ -540,8 +540,8 @@ const AdminCalendarView = () => {
     }
   });
   
-  // Fixed navigation function - properly handles date changes with week boundaries
-  const handleNavigateDates = (direction: 'prev' | 'next') => {
+  // Improved navigation function - handles previous, next, and today
+  const handleNavigateDates = (direction: 'prev' | 'next' | 'today') => {
     // Get today's date in Latvia timezone
     const today = toLatviaTime(new Date());
     
@@ -554,7 +554,12 @@ const AdminCalendarView = () => {
     
     let newMonday;
     
-    if (direction === 'prev') {
+    if (direction === 'today') {
+      // Go to current week (calculate Monday of current week)
+      const todayLatvianDayIndex = getLatvianDayIndexFromDate(today);
+      newMonday = addDays(today, -todayLatvianDayIndex);
+      console.log(`Going to today's week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
+    } else if (direction === 'prev') {
       // Navigate to previous week (7 days backward)
       newMonday = addDays(currentMonday, -7);
       console.log(`Navigating to previous week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
@@ -1009,7 +1014,7 @@ const AdminCalendarView = () => {
                   size="sm"
                   onClick={() => handleNavigateDates('today')}
                 >
-                  <CalendarDays className="h-4 w-4 mr-1" />
+                  <Calendar className="h-4 w-4 mr-1" />
                   Today
                 </Button>
               </div>
