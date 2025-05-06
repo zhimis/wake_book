@@ -41,9 +41,9 @@ export function LeadTimeSettingsForm() {
   const form = useForm<LeadTimeSettingsFormData>({
     resolver: zodResolver(leadTimeSettingsFormSchema),
     defaultValues: {
-      restrictionMode: leadTimeSettings?.restrictionMode || "off",
-      leadTimeDays: leadTimeSettings?.leadTimeDays || 0,
-      operatorOnSite: leadTimeSettings?.operatorOnSite || false,
+      restrictionMode: "off",
+      leadTimeDays: 0,
+      operatorOnSite: false,
     },
   });
 
@@ -61,10 +61,7 @@ export function LeadTimeSettingsForm() {
   // Update settings mutation
   const updateMutation = useMutation({
     mutationFn: async (data: LeadTimeSettingsFormData) => {
-      return apiRequest('/api/admin/lead-time-settings', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('POST', '/api/admin/lead-time-settings', data);
     },
     onSuccess: () => {
       toast({

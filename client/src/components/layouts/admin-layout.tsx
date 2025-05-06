@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { Header } from "@/components/header";
+import Header from "@/components/header";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { 
@@ -16,7 +16,7 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [, navigate] = useLocation();
   const [open, setOpen] = React.useState(false);
 
@@ -25,8 +25,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   const handleLogout = () => {
-    logout();
-    navigate("/admin/login");
+    logoutMutation.mutate();
   };
 
   return (
