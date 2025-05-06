@@ -1120,6 +1120,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if the user has appropriate role (admin or manager)
       const user = req.user as any;
+      console.log("User accessing /api/users:", { id: user.id, email: user.email, role: user.role });
+      
       if (user.role !== 'admin' && user.role !== 'manager') {
         return res.status(403).json({ error: "Insufficient permissions" });
       }
