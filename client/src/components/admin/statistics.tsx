@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/utils";
 
 // Component to show a bar chart with percentages
-const BarChart = ({ data }: { data: { key: string; value: number }[] }) => {
+const BarChart = ({ data }: { data: { key: string; value: number; count?: number }[] }) => {
   // If no data has values, show a message
   if (data.every(item => item.value === 0)) {
     return (
@@ -20,27 +20,37 @@ const BarChart = ({ data }: { data: { key: string; value: number }[] }) => {
   }
   
   // Calculate the max value to create relative heights
-  const maxValue = Math.max(...data.map(item => item.value));
+  const maxValue = Math.max(...data.map(item => item.value), 0.01); // Avoid division by zero
   
-  // Calculate proportional height for each bar (max height 80% of container)
+  // Calculate proportional height for each bar (max height 70% of container)
   const getBarHeight = (value: number) => {
     if (value === 0) return 0;
+    // Use a more dramatic scale to make differences more visible
+    // Values will range from 10% to 70% height based on their proportion to max
     const proportion = value / maxValue;
-    return Math.max(5, proportion * 80); // At least 5% high if not zero, max 80%
+    const minHeight = 10; // Minimum height for non-zero values
+    return minHeight + proportion * (70 - minHeight);
   };
   
   return (
-    <div className="h-64 flex items-end space-x-2 pt-4 pb-8">
+    <div className="h-64 flex items-end space-x-2 pt-4 pb-8 mt-8">
       {data.map((item) => (
         <div key={item.key} className="flex flex-col items-center flex-1 relative">
-          {/* Add the value above the bar */}
-          <span className="text-xs text-gray-500 absolute -top-5">
-            {item.value.toFixed(1)}%
-          </span>
-          <div
-            className="bg-primary w-full rounded-t-sm transition-all duration-300"
-            style={{ height: `${getBarHeight(item.value)}%` }}
-          ></div>
+          {/* Add the value and count above the bar */}
+          <div className="text-xs text-gray-500 absolute -top-8 text-center w-full">
+            <span className="font-medium">{item.value.toFixed(1)}%</span>
+            {item.count !== undefined && (
+              <div className="text-[10px] text-gray-400">({item.count || 0})</div>
+            )}
+          </div>
+          {item.value > 0 ? (
+            <div
+              className="bg-primary w-full rounded-t-sm transition-all duration-300"
+              style={{ height: `${getBarHeight(item.value)}%` }}
+            ></div>
+          ) : (
+            <div className="w-full h-1 bg-gray-200 rounded-sm"></div>
+          )}
           <span className="text-xs font-medium mt-1">{item.key}</span>
         </div>
       ))}
@@ -159,7 +169,8 @@ const AdminStatistics = () => {
   // Format data for bar chart
   const bookingByDayData = data.bookingsByDay.map(day => ({
     key: day.day,
-    value: day.percentage
+    value: day.percentage,
+    count: day.count
   }));
 
   return (
