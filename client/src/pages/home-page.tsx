@@ -21,16 +21,24 @@ const HomePage = () => {
                     <div>
                       <h4 className="font-medium text-sm">Darba laiks</h4>
                       <p className="text-gray-600 text-xs">
-                        Skatīties kalendārā. Pirmssezonas neregulārs.{" "}
-                      </p>
-                      <p className="text-gray-600 text-xs">
-                        Strādājam maija brīvdienās!
+                        Pagaidām strādājam pēc iepriekšēja pieraksta. Online
+                        rezrvācija pieejama līdz 1 dienu pirms attiecīgās
+                        dienas.
                       </p>
                     </div>
                     <div>
                       <h4 className="font-medium text-sm">Kontakti</h4>
                       <p className="text-gray-600 text-xs">
                         Telefons: +371 25 422 219
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm">Cenas:</h4>
+                      <p className="text-gray-600 text-xs">
+                        Pirmssezonas: 20 eur / pusstundu <br>
+                        Hidras noma: 7 eur /stundu (5 eur / pusstundu)<br>
+                        Dēļa noma: 10 eur / stundu (7 eur / pusstundu)<br>
+                        Pirts + kabelis + ekipējums: 60 eur / stundu.
                       </p>
                     </div>
                   </div>
