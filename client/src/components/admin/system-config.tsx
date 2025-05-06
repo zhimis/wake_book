@@ -24,6 +24,7 @@ import {
   formatWithTimezone,
   formatTime 
 } from "@/lib/utils";
+import { LeadTimeSettingsForm } from "./lead-time-settings-form";
 
 const AdminSystemConfig = () => {
   const { toast } = useToast();
@@ -597,6 +598,9 @@ const AdminSystemConfig = () => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Lead Time Settings */}
+      <LeadTimeSettingsForm />
     </div>
   );
 };
