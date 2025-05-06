@@ -136,11 +136,13 @@ const BookingCalendar = ({
   // Notify parent component of date range changes
   // This is needed for the admin view to sync with the calendar's date range
   useEffect(() => {
-    if (onDateRangeChange) {
+    if (onDateRangeChange && initialDate === undefined) { 
+      // Only notify parent if initialDate is undefined (calendar is controlling dates internally)
+      // This prevents infinite loops when parent is controlling the date with initialDate prop
       console.log(`Calendar notifying parent of date range change: ${formatInLatviaTime(startDate, "yyyy-MM-dd")} to ${formatInLatviaTime(endDate, "yyyy-MM-dd")}`);
       onDateRangeChange(startDate, endDate);
     }
-  }, [currentDate]); // Only when our internal currentDate changes, not on every render
+  }, [currentDate, onDateRangeChange, initialDate]); // Only when our internal currentDate changes, not on every render
   
   // Navigation functions
   const goToPreviousWeek = () => {
