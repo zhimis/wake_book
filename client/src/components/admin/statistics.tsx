@@ -10,15 +10,30 @@ import { formatPrice } from "@/lib/utils";
 
 // Component to show a bar chart with percentages
 const BarChart = ({ data }: { data: { key: string; value: number }[] }) => {
+  // If no data has values, show a message
+  if (data.every(item => item.value === 0)) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <p className="text-gray-500">No booking data available for this period</p>
+      </div>
+    );
+  }
+  
+  // Ensure we have a minimum height for visibility even with small values
+  const getBarHeight = (value: number) => {
+    return value === 0 ? 0 : Math.max(5, value);
+  };
+  
   return (
     <div className="h-64 flex items-end space-x-2">
       {data.map((item) => (
         <div key={item.key} className="flex flex-col items-center flex-1">
           <div
             className="bg-primary w-full rounded-t-sm transition-all duration-300"
-            style={{ height: `${item.value}%` }}
+            style={{ height: `${getBarHeight(item.value)}%` }}
           ></div>
           <span className="text-xs font-medium mt-1">{item.key}</span>
+          <span className="text-xs text-gray-500">{item.value.toFixed(1)}%</span>
         </div>
       ))}
     </div>
@@ -64,7 +79,7 @@ const AdminStatistics = () => {
       ['Booking Rate', `${data.bookingRate.toFixed(1)}%`],
       ['Total Bookings', data.totalBookings],
       ['Forecasted Income', formatPrice(data.forecastedIncome)],
-      ['Average Session Length', `${data.avgSessionLength.toFixed(1)}h`],
+      ['Average Session Length', `${data.avgSessionLength.toFixed(0)} minutes`],
     ];
 
     // Add booking by day data
@@ -197,7 +212,7 @@ const AdminStatistics = () => {
           <CardContent className="pt-6">
             <h4 className="text-sm font-medium text-gray-500 mb-1">Avg. Session Length</h4>
             <div className="flex items-baseline">
-              <span className="text-2xl font-bold text-gray-800">{data.avgSessionLength.toFixed(1)}h</span>
+              <span className="text-2xl font-bold text-gray-800">{data.avgSessionLength.toFixed(0)} min</span>
             </div>
           </CardContent>
         </Card>
@@ -219,14 +234,20 @@ const AdminStatistics = () => {
           <CardTitle>Popular Time Slots</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {data.popularTimeSlots.map((slot, index) => (
-            <HorizontalBar
-              key={index}
-              label={slot.time}
-              value={`${slot.percentage.toFixed(0)}%`}
-              percentage={slot.percentage}
-            />
-          ))}
+          {data.popularTimeSlots.length > 0 ? (
+            data.popularTimeSlots.map((slot, index) => (
+              <HorizontalBar
+                key={index}
+                label={slot.time}
+                value={`${slot.percentage.toFixed(0)}%`}
+                percentage={slot.percentage}
+              />
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              No time slot data available for this period
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
