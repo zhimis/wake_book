@@ -1147,16 +1147,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Create a new user (requires admin authentication)
+  // Create a new user (requires admin or manager authentication)
   app.post("/api/users", async (req: Request, res: Response) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      // Check if the user has appropriate role (admin only)
+      // Check if the user has appropriate role (admin or manager)
       const currentUser = req.user as any;
-      if (currentUser.role !== 'admin') {
+      if (currentUser.role !== 'admin' && currentUser.role !== 'manager') {
         return res.status(403).json({ error: "Insufficient permissions" });
       }
       
