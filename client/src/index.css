@@ -70,6 +70,32 @@
   position: relative !important;
 }
 
+/* Additional fix for specificity - only target admin time slots */
+div[id^="slot-"] {
+  position: relative;
+  box-sizing: border-box;
+}
+
+div[id^="slot-"][data-admin-selected="true"] {
+  border: 5px solid #2563eb !important;
+  outline: 2px solid #2563eb !important;
+  background-color: #bfdbfe !important;
+  color: #1e3a8a !important;
+  font-weight: bold !important;
+  z-index: 100 !important;
+  transform: scale(1.15) !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.8) !important;
+}
+
+div[id^="slot-"][data-admin-selected="false"] {
+  transform: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-width: 0 1px 1px 0 !important;
+  border-style: solid !important;
+  border-color: #e5e7eb !important;
+}
+
 /* Ensure admin selected slots are very visible */
 button.admin-selected-slot,
 .admin-selected-slot button {
