@@ -19,21 +19,29 @@ const BarChart = ({ data }: { data: { key: string; value: number }[] }) => {
     );
   }
   
-  // Ensure we have a minimum height for visibility even with small values
+  // Calculate the max value to create relative heights
+  const maxValue = Math.max(...data.map(item => item.value));
+  
+  // Calculate proportional height for each bar (max height 80% of container)
   const getBarHeight = (value: number) => {
-    return value === 0 ? 0 : Math.max(5, value);
+    if (value === 0) return 0;
+    const proportion = value / maxValue;
+    return Math.max(5, proportion * 80); // At least 5% high if not zero, max 80%
   };
   
   return (
-    <div className="h-64 flex items-end space-x-2">
+    <div className="h-64 flex items-end space-x-2 pt-4 pb-8">
       {data.map((item) => (
-        <div key={item.key} className="flex flex-col items-center flex-1">
+        <div key={item.key} className="flex flex-col items-center flex-1 relative">
+          {/* Add the value above the bar */}
+          <span className="text-xs text-gray-500 absolute -top-5">
+            {item.value.toFixed(1)}%
+          </span>
           <div
             className="bg-primary w-full rounded-t-sm transition-all duration-300"
             style={{ height: `${getBarHeight(item.value)}%` }}
           ></div>
           <span className="text-xs font-medium mt-1">{item.key}</span>
-          <span className="text-xs text-gray-500">{item.value.toFixed(1)}%</span>
         </div>
       ))}
     </div>
@@ -41,17 +49,31 @@ const BarChart = ({ data }: { data: { key: string; value: number }[] }) => {
 };
 
 // Component to show horizontal bar stats
-const HorizontalBar = ({ label, value, percentage }: { label: string; value: string; percentage: number }) => {
+const HorizontalBar = ({ 
+  label, 
+  value, 
+  percentage, 
+  count
+}: { 
+  label: string; 
+  value: string; 
+  percentage: number;
+  count?: number 
+}) => {
   return (
     <div className="flex items-center">
-      <span className="text-sm font-medium w-20">{label}</span>
-      <div className="flex-1 h-4 bg-gray-100 rounded-full">
+      <span className="text-sm font-medium w-28">{label}</span>
+      <div className="flex-1 h-5 bg-gray-100 rounded-full">
         <div
-          className="bg-primary h-4 rounded-full transition-all duration-300"
-          style={{ width: `${percentage}%` }}
-        ></div>
+          className="bg-primary h-5 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+          style={{ width: `${Math.max(percentage, 5)}%` }}
+        >
+          {percentage >= 15 && (
+            <span className="text-xs text-white font-medium">{count || ''}</span>
+          )}
+        </div>
       </div>
-      <span className="text-sm font-medium ml-3 w-12">{value}</span>
+      <span className="text-sm font-medium ml-3 w-14">{value}</span>
     </div>
   );
 };

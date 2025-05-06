@@ -817,9 +817,9 @@ export class DatabaseStorage implements IStorage {
             const dayOfWeek = slotDate.getDay(); // 0-6 (0 is Sunday)
             bookingsByDay[dayOfWeek] = (bookingsByDay[dayOfWeek] || 0) + 1;
             
-            // Count by hour
+            // Count by hour with better formatting
             const hour = slotDate.getHours();
-            const timeKey = `${hour}:00`;
+            const timeKey = `${hour.toString().padStart(2, '0')}:00-${((hour + 1) % 24).toString().padStart(2, '0')}:00`;
             timeSlotCounts[timeKey] = (timeSlotCounts[timeKey] || 0) + 1;
           }
         }
@@ -835,11 +835,15 @@ export class DatabaseStorage implements IStorage {
       // Calculate booking rate as percentage of booked slots out of all slots
       const bookingRate = totalTimeSlots > 0 ? (bookedSlots / totalTimeSlots) * 100 : 0;
       
+      // Calculate total booked slots
+      const totalBookedSlots = Object.values(bookingsByDay).reduce((sum, count) => sum + count, 0);
+      
       // Format booking by day data
       const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const bookingsByDayFormatted = daysOfWeek.map((day, index) => {
         const count = bookingsByDay[index] || 0;
-        const percentage = totalBookings > 0 ? (count / totalBookings) * 100 : 0;
+        // Calculate percentage of total booked slots, not total bookings
+        const percentage = totalBookedSlots > 0 ? (count / totalBookedSlots) * 100 : 0;
         return {
           day,
           count,
@@ -847,11 +851,12 @@ export class DatabaseStorage implements IStorage {
         };
       });
       
-      // Format popular time slots
+      // Format popular time slots - calculate as percentage of total booked slots
       const timeSlotsSorted = Object.entries(timeSlotCounts)
         .map(([time, count]) => ({
           time,
-          percentage: totalBookings > 0 ? (count / totalBookings) * 100 : 0
+          count,
+          percentage: totalBookedSlots > 0 ? (count / totalBookedSlots) * 100 : 0
         }))
         .sort((a, b) => b.percentage - a.percentage)
         .slice(0, 5) // Top 5 time slots
@@ -860,11 +865,15 @@ export class DatabaseStorage implements IStorage {
           percentage: Math.round(item.percentage * 10) / 10 // Round to 1 decimal place
         }));
       
+      // Calculate average session length (in minutes) per booking
+      // A session is the average duration of all time slots booked by a single customer
+      const avgSessionLengthPerBooking = totalBookings > 0 ? Math.round(totalDuration / totalBookings) : 0;
+      
       return {
         bookingRate: Math.round(bookingRate * 10) / 10, // Percentage with 1 decimal place
         totalBookings,
         forecastedIncome: Math.round(totalIncome),
-        avgSessionLength: totalBookings > 0 ? totalDuration : 0, // Keep it in minutes
+        avgSessionLength: avgSessionLengthPerBooking, // Average minutes per booking
         bookingsByDay: bookingsByDayFormatted,
         popularTimeSlots: timeSlotsSorted
       };
