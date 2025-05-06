@@ -825,11 +825,15 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // Calculate booking rate (bookings / total time slots in range)
-      const daysInRange = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const avgSlotsPerDay = 28; // Assuming 14 hours of operation with 30-minute slots
-      const totalPossibleSlots = daysInRange * avgSlotsPerDay;
-      const bookingRate = totalPossibleSlots > 0 ? (totalDuration / 30) / totalPossibleSlots : 0;
+      // Get all time slots in the date range (available, booked, and blocked)
+      const allTimeSlots = await this.getTimeSlotsByDateRange(startDate, endDate);
+      
+      // Calculate booking rate based on actual time slots (booked slots / total slots)
+      const totalTimeSlots = allTimeSlots.length;
+      const bookedSlots = allTimeSlots.filter(slot => slot.status === 'booked').length;
+      
+      // Calculate booking rate as percentage of booked slots out of all slots
+      const bookingRate = totalTimeSlots > 0 ? (bookedSlots / totalTimeSlots) * 100 : 0;
       
       // Format booking by day data
       const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -857,10 +861,10 @@ export class DatabaseStorage implements IStorage {
         }));
       
       return {
-        bookingRate: Math.round(bookingRate * 1000) / 10, // Percentage with 1 decimal place
+        bookingRate: Math.round(bookingRate * 10) / 10, // Percentage with 1 decimal place
         totalBookings,
         forecastedIncome: Math.round(totalIncome),
-        avgSessionLength: totalBookings > 0 ? totalDuration / totalBookings : 0,
+        avgSessionLength: totalBookings > 0 ? totalDuration : 0, // Keep it in minutes
         bookingsByDay: bookingsByDayFormatted,
         popularTimeSlots: timeSlotsSorted
       };

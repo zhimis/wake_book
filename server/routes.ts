@@ -913,6 +913,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endDate.setDate(0);
           endDate.setHours(23, 59, 59, 999);
           break;
+        case 'year':
+          // Start from beginning of current year
+          startDate.setMonth(0, 1); // January 1st
+          // End at end of year
+          endDate.setFullYear(endDate.getFullYear(), 11, 31); // December 31st
+          endDate.setHours(23, 59, 59, 999);
+          break;
         default:
           return res.status(400).json({ error: "Invalid period" });
       }
