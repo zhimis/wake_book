@@ -136,7 +136,10 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
               "px-1 h-4 text-[10px]",
               isPast ? "bg-gray-200" : "bg-gray-50"
             )}>
-              {slot.id < 0 ? 'Empty' : `€${slot.price}`}
+              {(typeof slot.id === 'number' && slot.id < 0) || 
+               (typeof slot.id === 'string' && slot.id.startsWith('-')) 
+                ? 'Empty' 
+                : `€${slot.price}`}
             </Badge>
             {isSelected && (
               <div className="absolute top-0 right-0 -mt-1 -mr-1">

@@ -626,6 +626,12 @@ const AdminCalendarView = () => {
       start: fromLatviaTime(newAdminStart),
       end: fromLatviaTime(newSunday)
     });
+    
+    // Reset updating flag after a small delay to allow state to update
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+      console.log('AdminCalendarView: Navigation update complete');
+    }, 100);
   };
   
   // Handle date range changes from the BookingCalendar with proper debouncing
@@ -773,8 +779,12 @@ const AdminCalendarView = () => {
     } else {
       // For available or unallocated slots: Add to selection
       // Check if this slot is already selected
-      // Note: For unallocated slots with negative IDs, need to compare by time
-      const isSelected = timeSlot.id < 0 
+      // Note: For unallocated slots with negative IDs or ID strings starting with '-', need to compare by time
+      const isNegativeId = 
+        (typeof timeSlot.id === 'number' && timeSlot.id < 0) || 
+        (typeof timeSlot.id === 'string' && timeSlot.id.startsWith('-'));
+        
+      const isSelected = isNegativeId
         ? selectedTimeSlots.some(slot => 
             slot.startTime.getTime() === timeSlot.startTime.getTime() && 
             slot.endTime.getTime() === timeSlot.endTime.getTime()
@@ -784,7 +794,7 @@ const AdminCalendarView = () => {
       if (isSelected) {
         // Remove from selection
         console.log(`Removing slot ${timeSlot.id} from selection`);
-        if (timeSlot.id < 0) {
+        if (isNegativeId) {
           // For unallocated slots with negative IDs, filter by time
           setSelectedTimeSlots(selectedTimeSlots.filter(slot => 
             !(slot.startTime.getTime() === timeSlot.startTime.getTime() && 
@@ -1017,8 +1027,11 @@ const AdminCalendarView = () => {
   };
   
   const onMakeAvailableSubmit = (data: MakeAvailableFormData) => {
-    // Identify which time slots are unallocated (have negative IDs)
-    const unallocatedSlots = selectedTimeSlots.filter(slot => slot.id < 0);
+    // Identify which time slots are unallocated (have negative IDs, either numeric or string)
+    const unallocatedSlots = selectedTimeSlots.filter(slot => 
+      (typeof slot.id === 'number' && slot.id < 0) || 
+      (typeof slot.id === 'string' && slot.id.startsWith('-'))
+    );
     
     // Prepare the data to send to the server
     const formData = {
