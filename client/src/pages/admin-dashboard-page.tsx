@@ -45,7 +45,7 @@ const AdminDashboardPage = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="px-1 py-2 sm:p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <div className="hidden md:flex space-x-2">

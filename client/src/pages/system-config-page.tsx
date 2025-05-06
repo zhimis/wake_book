@@ -45,25 +45,28 @@ const SystemConfigPage = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="px-1 py-2 sm:p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
           <h1 className="text-2xl font-bold">System Configuration</h1>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline"
-              className="bg-blue-50 border-blue-200 hover:bg-blue-100"
+              className="bg-blue-50 border-blue-200 hover:bg-blue-100 text-xs sm:text-sm"
               disabled={isRegenerating}
               onClick={handleRegenerateSlots}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRegenerating ? 'animate-spin' : ''}`} />
-              {isRegenerating ? 'Regenerating...' : 'Regenerate Time Slots'}
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRegenerating ? 'animate-spin' : ''}`} />
+              <span className="truncate">
+                {isRegenerating ? 'Regenerating...' : 'Regenerate Slots'}
+              </span>
             </Button>
             <Button 
               variant="outline"
+              className="text-xs sm:text-sm"
               onClick={() => navigate("/admin/dashboard")}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              <span className="truncate">Back</span>
             </Button>
           </div>
         </div>

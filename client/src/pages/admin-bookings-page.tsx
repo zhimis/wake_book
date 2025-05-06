@@ -20,7 +20,7 @@ const AdminBookingsPage = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="px-0.5 py-2 sm:p-4">
         <AdminCalendarView />
       </div>
     </AdminLayout>
