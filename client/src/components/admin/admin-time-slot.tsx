@@ -137,7 +137,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
               isPast ? "bg-gray-200" : "bg-gray-50"
             )}>
               {(typeof slot.id === 'number' && slot.id < 0) || 
-               (typeof slot.id === 'string' && slot.id.startsWith('-')) 
+               (typeof slot.id === 'string' && slot.id.toString().startsWith('-')) 
                 ? 'Empty' 
                 : `€${slot.price}`}
             </Badge>

@@ -591,10 +591,17 @@ const AdminCalendarView = () => {
     let newMonday;
     
     if (direction === 'today') {
-      // Go to current week (calculate Monday of current week)
-      const todayLatvianDayIndex = getLatvianDayIndexFromDate(today);
-      newMonday = addDays(today, -todayLatvianDayIndex);
-      console.log(`Going to today's week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
+      // Get the accurate today date in Latvia timezone
+      const actualToday = toLatviaTime(new Date());
+      
+      // Calculate the Latvian day index of today (0 = Monday, 6 = Sunday)
+      const todayLatvianDayIndex = getLatvianDayIndexFromDate(actualToday);
+      
+      // Calculate Monday of this week by subtracting the day index
+      newMonday = addDays(actualToday, -todayLatvianDayIndex);
+      
+      console.log(`Today is: ${formatInLatviaTime(actualToday, "yyyy-MM-dd")}`);
+      console.log(`Going to today's week (Monday): ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     } else if (direction === 'prev') {
       // Navigate to previous week (7 days backward)
       newMonday = addDays(currentMonday, -7);
@@ -793,7 +800,7 @@ const AdminCalendarView = () => {
       // Note: For unallocated slots with negative IDs or ID strings starting with '-', need to compare by time
       const isNegativeId = 
         (typeof timeSlot.id === 'number' && timeSlot.id < 0) || 
-        (typeof timeSlot.id === 'string' && timeSlot.id.startsWith('-'));
+        (typeof timeSlot.id === 'string' && timeSlot.id.toString().startsWith('-'));
         
       const isSelected = isNegativeId
         ? selectedTimeSlots.some(slot => 
@@ -1041,7 +1048,7 @@ const AdminCalendarView = () => {
     // Identify which time slots are unallocated (have negative IDs, either numeric or string)
     const unallocatedSlots = selectedTimeSlots.filter(slot => 
       (typeof slot.id === 'number' && slot.id < 0) || 
-      (typeof slot.id === 'string' && slot.id.startsWith('-'))
+      (typeof slot.id === 'string' && slot.id.toString().startsWith('-'))
     );
     
     // Prepare the data to send to the server
