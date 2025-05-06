@@ -24,11 +24,22 @@ export function generateTimeSlotId(date: Date, duration: number = 30, useUTC: bo
   return `${year}${(month + 1).toString().padStart(2, '0')}${day.toString().padStart(2, '0')}-${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}-${duration}`;
 }
 
-// User table (admin users)
+// Define user roles enum
+export const userRoleEnum = pgEnum('user_role', ['admin', 'manager', 'operator', 'athlete']);
+
+// User table with roles and email
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(), // Email as unique identifier
+  username: text("username").notNull(),
   password: text("password").notNull(),
+  role: userRoleEnum("role").notNull().default('athlete'),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phoneNumber: text("phone_number"),
+  isActive: boolean("is_active").notNull().default(true),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Day of week operating hours

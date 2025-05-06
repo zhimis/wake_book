@@ -41,7 +41,12 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
+  adminUserExists(): Promise<boolean>;
+  updateUserLastLogin(id: number): Promise<void>;
   
   // TimeSlot methods
   getTimeSlot(id: number): Promise<TimeSlot | undefined>;
@@ -253,9 +258,44 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
   
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
+  }
+  
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const [updatedUser] = await db.update(users)
+      .set({ ...userData })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+    
+    return updatedUser;
+  }
+  
+  async adminUserExists(): Promise<boolean> {
+    const [admin] = await db.select()
+      .from(users)
+      .where(eq(users.role, 'admin'));
+    return !!admin;
+  }
+  
+  async updateUserLastLogin(id: number): Promise<void> {
+    await db.update(users)
+      .set({ lastLogin: new Date() })
+      .where(eq(users.id, id));
   }
   
   async getTimeSlot(id: number): Promise<TimeSlot | undefined> {

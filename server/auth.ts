@@ -1,11 +1,12 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, insertUserSchema } from "@shared/schema";
+import { z } from "zod";
 
 declare global {
   namespace Express {
@@ -15,18 +16,30 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
+/**
+ * Hash a password using scrypt and salt
+ * @param password Plain text password to hash
+ * @returns Hash+salt string in format "hash.salt"
+ */
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
 }
 
+/**
+ * Safely compare a supplied password against a stored hashed password
+ * @param supplied Plain text password provided by the user
+ * @param stored Hashed password stored in the database
+ * @returns Boolean indicating if passwords match
+ */
 async function comparePasswords(supplied: string, stored: string) {
   try {
     // Check if the stored password contains a salt (has a dot)
     if (!stored.includes('.')) {
-      // If we're using the default password "wakeboard2023", just do direct comparison
-      return supplied === "wakeboard2023";
+      // Legacy support for plaintext passwords - for migration only
+      // This allows old admin accounts to still login during the transition
+      return supplied === stored;
     }
     
     const [hashed, salt] = stored.split(".");
@@ -39,6 +52,30 @@ async function comparePasswords(supplied: string, stored: string) {
   }
 }
 
+/**
+ * Custom middleware to check if user has required role
+ * @param roles Array of roles that are allowed to access the route
+ * @returns Express middleware function
+ */
+export function requireRole(roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const userRole = req.user.role;
+    if (!roles.includes(userRole)) {
+      return res.status(403).json({ error: "Insufficient permissions" });
+    }
+
+    next();
+  };
+}
+
+/**
+ * Setup authentication for the application
+ * @param app Express application
+ */
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "wakeboard-booking-secret",
@@ -56,15 +93,23 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Configure local strategy for username/email & password login
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({ 
+      usernameField: 'email' // Use email as the username field
+    }, async (email, password, done) => {
       try {
-        console.log("Login attempt for user:", username);
-        const user = await storage.getUserByUsername(username);
+        console.log("Login attempt with email:", email);
+        const user = await storage.getUserByEmail(email);
         
         if (!user) {
-          console.log("User not found:", username);
-          return done(null, false, { message: "Invalid username or password" });
+          console.log("User not found with email:", email);
+          return done(null, false, { message: "Invalid email or password" });
+        }
+        
+        if (!user.isActive) {
+          console.log("User account is inactive:", email);
+          return done(null, false, { message: "Account is inactive" });
         }
         
         console.log("User found, checking password");
@@ -72,8 +117,11 @@ export function setupAuth(app: Express) {
         
         if (!passwordMatches) {
           console.log("Password does not match");
-          return done(null, false, { message: "Invalid username or password" });
+          return done(null, false, { message: "Invalid email or password" });
         }
+        
+        // Update last login time
+        await storage.updateUserLastLogin(user.id);
         
         console.log("Password matches, login successful");
         return done(null, user);
@@ -98,13 +146,19 @@ export function setupAuth(app: Express) {
   console.log("Checking for admin user...");
   (async () => {
     try {
-      const adminUser = await storage.getUserByUsername("admin");
-      if (!adminUser) {
+      const adminExists = await storage.adminUserExists();
+      if (!adminExists) {
         console.log("No admin user found, creating one...");
-        // Create a plain text password - we'll handle the comparison separately
+        // Create admin with secure hashed password
+        const hashedPassword = await hashPassword("wakeboard2023");
         await storage.createUser({ 
+          email: "admin@hiwake.lv",
           username: "admin", 
-          password: "wakeboard2023"
+          password: hashedPassword,
+          role: "admin",
+          firstName: "Admin",
+          lastName: "User",
+          isActive: true
         });
         console.log("Default admin user created successfully");
       } else {
@@ -115,6 +169,120 @@ export function setupAuth(app: Express) {
     }
   })();
 
+  // User management endpoints (protected)
+  app.get("/api/users", requireRole(["admin"]), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Don't send passwords to client
+      const safeUsers = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Create new user (admin only)
+  app.post("/api/users", requireRole(["admin"]), async (req, res) => {
+    try {
+      // Validate the input
+      const createUserSchema = insertUserSchema
+        .omit({ id: true, createdAt: true, lastLogin: true })
+        .extend({
+          password: z.string().min(8, "Password must be at least 8 characters")
+        });
+        
+      const validatedData = createUserSchema.parse(req.body);
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already in use" });
+      }
+      
+      // Hash the password
+      const hashedPassword = await hashPassword(validatedData.password);
+      
+      // Create the user with hashed password
+      const newUser = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword
+      });
+      
+      // Don't return the password
+      const { password, ...userWithoutPassword } = newUser;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        // Handle validation errors
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
+      
+      console.error("Error creating user:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  // Update user (admin only)
+  app.put("/api/users/:id", requireRole(["admin"]), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Check if the user exists
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Define update schema (password is optional for updates)
+      const updateUserSchema = insertUserSchema
+        .omit({ id: true, createdAt: true, lastLogin: true })
+        .extend({
+          password: z.string().min(8).optional(),
+        })
+        .partial(); // Make all fields optional for partial updates
+        
+      const validatedData = updateUserSchema.parse(req.body);
+      
+      // If email is being changed, check it's not already in use
+      if (validatedData.email && validatedData.email !== existingUser.email) {
+        const emailExists = await storage.getUserByEmail(validatedData.email);
+        if (emailExists) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+      }
+      
+      // Hash the password if provided
+      if (validatedData.password) {
+        validatedData.password = await hashPassword(validatedData.password);
+      }
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(userId, validatedData);
+      
+      // Don't return the password
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: error.errors 
+        });
+      }
+      
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  // Authentication endpoints
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) return next(err);
@@ -143,6 +311,37 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send();
-    res.json(req.user);
+    // Don't return the password
+    const { password, ...userWithoutPassword } = req.user;
+    res.json(userWithoutPassword);
+  });
+  
+  // Reset password for a user (admin only)
+  app.post("/api/users/:id/reset-password", requireRole(["admin"]), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { password } = req.body;
+      
+      if (!password || typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+      
+      // Check if the user exists
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await hashPassword(password);
+      
+      // Update only the password
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
   });
 }
