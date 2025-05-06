@@ -70,12 +70,18 @@
   position: relative !important;
 }
 
-/* Additional fix for specificity - only target admin time slots */
+/* Fix for specific time slots using ID pattern with specific hour-day-time */
 div[id^="slot-"] {
   position: relative;
   box-sizing: border-box;
 }
 
+/* Available slots styling */
+div[data-slot-id][class*="bg-green"] {
+  background-color: #dcfce7 !important; /* Light green */
+}
+
+/* Selected slot styling with ID targeting to solve the overlapping highlight issue */
 div[id^="slot-"][data-admin-selected="true"] {
   border: 5px solid #2563eb !important;
   outline: 2px solid #2563eb !important;
@@ -87,6 +93,7 @@ div[id^="slot-"][data-admin-selected="true"] {
   box-shadow: 0 0 12px rgba(37, 99, 235, 0.8) !important;
 }
 
+/* Reset non-selected slots to normal appearance */
 div[id^="slot-"][data-admin-selected="false"] {
   transform: none !important;
   outline: none !important;

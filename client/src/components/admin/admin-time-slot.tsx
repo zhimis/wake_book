@@ -102,34 +102,15 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     flexDirection: 'column',
   };
 
-  // Rather than relying on global CSS selectors, we'll create inline styles for selected slots
-  // This should eliminate any cross-selection issues
-  const selectedStyle: CSSProperties = isSelected ? {
-    border: '5px solid #2563eb',
-    outline: '2px solid #2563eb',
-    backgroundColor: '#bfdbfe',
-    color: '#1e3a8a',
-    fontWeight: 'bold',
-    zIndex: 100,
-    transform: 'scale(1.15)',
-    boxShadow: '0 0 12px rgba(37, 99, 235, 0.8)',
-    position: 'relative',
-  } : {};
-  
-  // Combine base style with potential selected style
-  const combinedStyle = {
-    ...baseStyle,
-    ...selectedStyle
-  };
-  
-  // Also create a unique identifier for this slot
+  // Create a unique identifier for this slot that includes time information
+  // This helps ensure we're targeting the exact slot, not just by ID
   const uniqueSlotId = `slot-${slot.id}-${slot.startTime.getDate()}-${slot.startTime.getHours()}-${slot.startTime.getMinutes()}`;
   
   return (
     <div 
       className={cn(
         "relative cursor-pointer border-r border-b border-gray-200",
-        // Don't use the admin-selected-slot class anymore
+        isSelected ? "admin-selected-slot" : "",
         externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
       )} 
       id={uniqueSlotId}
@@ -139,7 +120,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
       data-slot-minute={slot.startTime.getMinutes()}
       data-slot-day={slot.startTime.getDate()}
       data-slot-date={slot.startTime.toISOString()}
-      style={combinedStyle}
+      style={baseStyle}
       onClick={() => onToggle(slot.id.toString(), slot.status as TimeSlotStatus)}
     >
       <div className="text-center w-full flex flex-col items-center justify-center">

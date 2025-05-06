@@ -881,9 +881,13 @@ const BookingCalendar = ({
                           };
                           
                           // Render a clickable empty slot for admin
+                          // Create a unique ID for empty slots to ensure they are handled properly
+                          const emptySlotUniqueId = `slot-${tempId}-${days[dayIndex].date.getDate()}-${hour}-${minute}`;
+                          
                           return (
                             <div 
                               key={dayIndex} 
+                              id={emptySlotUniqueId}
                               className={cn(
                                 "h-14 border-r border-b border-gray-200 flex items-center justify-center cursor-pointer transition-all duration-100",
                                 isSlotSelected(tempId) ? 
@@ -891,6 +895,10 @@ const BookingCalendar = ({
                                   "bg-gray-50 hover:bg-gray-100"
                               )}
                               data-admin-selected={isSlotSelected(tempId) ? "true" : "false"}
+                              data-slot-id={tempId}
+                              data-slot-hour={hour}
+                              data-slot-minute={minute}
+                              data-slot-day={days[dayIndex].date.getDate()}
                               onClick={handleEmptySlotClick}
                             >
                               {isAdmin && (
