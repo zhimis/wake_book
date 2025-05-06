@@ -21,7 +21,7 @@ const scryptAsync = promisify(scrypt);
  * @param password Plain text password to hash
  * @returns Hash+salt string in format "hash.salt"
  */
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
@@ -33,7 +33,7 @@ async function hashPassword(password: string) {
  * @param stored Hashed password stored in the database
  * @returns Boolean indicating if passwords match
  */
-async function comparePasswords(supplied: string, stored: string) {
+export async function comparePasswords(supplied: string, stored: string) {
   try {
     // Check if the stored password contains a salt (has a dot)
     if (!stored.includes('.')) {

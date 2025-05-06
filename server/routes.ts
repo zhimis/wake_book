@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword } from "./auth";
 import { z } from "zod";
 import { 
   bookingFormSchema, 
@@ -1187,7 +1187,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Hash the password before storing it
-      const { hashPassword } = require('./auth');
       const hashedPassword = await hashPassword(userData.password);
       
       // Create the user
@@ -1244,7 +1243,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Hash the password
-      const { hashPassword } = require('./auth');
       const hashedPassword = await hashPassword(password);
       
       // Update the user
