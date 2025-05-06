@@ -577,45 +577,27 @@ const AdminCalendarView = () => {
     isUpdatingRef.current = true;
     
     // Create a new date object representing right now
-    const rightNow = new Date();
-    
-    // Convert it to the Latvia timezone to ensure correct day calculation
-    const todayInLatvia = toLatviaTime(rightNow);
-    
-    // Use current range as base for navigation
-    // In our new standardized approach, currentDateRange.start is already Monday
-    const currentStart = toLatviaTime(currentDateRange.start);
-    const currentMonday = currentStart; // Monday is now directly our start date
-    
-    console.log(`Current monday calculated as: ${formatInLatviaTime(currentMonday, "yyyy-MM-dd")}`);
+    // Use current range as base for navigation 
+    // Current date range start is always Monday in our standardized approach
+    const currentMonday = toLatviaTime(currentDateRange.start);
     
     let newMonday;
     
     if (direction === 'today') {
-      console.log("ADMIN CALENDAR: Today button clicked");
-      
       // Get today in Latvia timezone
       const today = toLatviaTime(new Date());
-      console.log(`Today in Latvia timezone: ${formatInLatviaTime(today, "yyyy-MM-dd")}`);
       
-      // Get Latvia day of week (0=Monday, 6=Sunday)
+      // Get Latvia day of week (0=Monday, 6=Sunday) 
       const latvianDayIndex = getLatvianDayIndexFromDate(today);
-      console.log(`Latvia day of week index: ${latvianDayIndex}`);
       
       // Calculate this week's Monday
-      const mondayDate = subDays(today, latvianDayIndex);
-      console.log(`This week's Monday: ${formatInLatviaTime(mondayDate, "yyyy-MM-dd")}`);
-      
-      // Set the new Monday
-      newMonday = mondayDate;
+      newMonday = subDays(today, latvianDayIndex);
     } else if (direction === 'prev') {
       // Navigate to previous week (7 days backward)
       newMonday = addDays(currentMonday, -7);
-      console.log(`Navigating to previous week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     } else if (direction === 'next') {
       // Navigate to next week (7 days forward)
       newMonday = addDays(currentMonday, 7);
-      console.log(`Navigating to next week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     } else {
       console.error("Invalid navigation direction:", direction);
       isUpdatingRef.current = false;
@@ -631,8 +613,6 @@ const AdminCalendarView = () => {
     // Store formatted versions for lookup
     const startLatvia = formatInLatviaTime(newMonday, "yyyy-MM-dd");
     const endLatvia = formatInLatviaTime(newSunday, "yyyy-MM-dd");
-    
-    console.log(`Setting new date range (Monday-Sunday): ${startLatvia} to ${endLatvia}`);
     
     // Store in lastDateRef to prevent duplicate updates
     lastDateRef.current = {
@@ -813,7 +793,6 @@ const AdminCalendarView = () => {
       
       if (isSelected) {
         // Remove from selection
-        console.log(`Removing slot ${timeSlot.id} from selection`);
         if (isNegativeId) {
           // For unallocated slots with negative IDs, filter by time
           setSelectedTimeSlots(selectedTimeSlots.filter(slot => 
@@ -826,7 +805,6 @@ const AdminCalendarView = () => {
         }
       } else {
         // Add to selection but preserve the original date information for API calls
-        console.log(`Adding slot ${timeSlot.id} to selection (status: ${timeSlot.status})`);
         
         // Create a copy of the time slot with added original date information
         // This ensures the UI shows the date from the current week's display
@@ -871,7 +849,6 @@ const AdminCalendarView = () => {
         }));
       
       if (unallocatedSlots.length > 0) {
-        console.log("Including unallocated slots:", unallocatedSlots);
         bookingForm.setValue("unallocatedSlots", unallocatedSlots);
       }
       
@@ -1058,7 +1035,6 @@ const AdminCalendarView = () => {
       timeSlotIds: selectedTimeSlots.map(slot => slot.id)
     };
     
-    console.log("Make available data:", formData);
     makeAvailableSlotsMutation.mutate(formData);
   };
   
@@ -1120,12 +1096,6 @@ const AdminCalendarView = () => {
                           // Get the Latvia timezone version for display
                           const adjustedStartTime = toLatviaTime(startTime);
                           const adjustedEndTime = toLatviaTime(endTime);
-                          
-                          // Debug our selection display
-                          console.log(`Displaying admin selected slot: 
-                            ID: ${slot.id},
-                            Original database start: ${startTime.toISOString()},
-                            Latvia time: ${formatInLatviaTime(startTime, "EEE, MMM d HH:mm:ss")}`);
                           
                           return (
                             <div key={slot.id} className="text-xs flex gap-1">
