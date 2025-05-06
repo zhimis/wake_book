@@ -649,6 +649,32 @@ const BookingCalendar = ({
     // For "enforced" mode, simply check if we're within lead time
     return leadTimeSettings.restrictionMode === "enforced" && isWithinLeadTime;
   };
+  
+  // Function to check if a day is affected by lead time restrictions
+  const isDayRestrictedByLeadTime = (date: Date): boolean => {
+    // If we're in admin mode, no lead time restrictions apply
+    if (isAdmin) return false;
+    
+    // If lead time settings aren't loaded yet or no restrictions, allow booking
+    if (!leadTimeSettings) return false;
+    if (leadTimeSettings.restrictionMode === "off") return false;
+    
+    // If operator is on-site, override all restrictions
+    if (leadTimeSettings.operatorOnSite) return false;
+    
+    // Get current date and calculate difference
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    // Calculate days difference
+    const diffTime = dayDate.getTime() - today.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Get lead time in days
+    const leadTimeDays = leadTimeSettings.leadTimeDays || 0;
+    return diffDays < leadTimeDays;
+  };
 
   const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
     // Find the actual slot object - compare both as strings
@@ -664,10 +690,11 @@ const BookingCalendar = ({
     
     // Check lead time restrictions (for non-admin users)
     if (!isAdmin && isSlotRestrictedByLeadTime(slot)) {
+      // Use a more subtle, non-destructive toast
       toast({
-        title: "Booking restricted",
-        description: `This time slot cannot be booked as it's within the ${leadTimeSettings?.leadTimeDays} day lead time restriction period.`,
-        variant: "destructive",
+        title: "Booking needs planning",
+        description: "For bookings this close to the date, please contact us directly to check availability.",
+        variant: "default", // Use default style instead of destructive
         duration: 5000,
       });
       return;
@@ -707,8 +734,8 @@ const BookingCalendar = ({
     navigate("/booking");
   };
   
-  // Get CSS class for time slot based on status and whether it's in the past
-  const getSlotClass = (status: TimeSlotStatus, isSelected: boolean, isPast: boolean = false) => {
+  // Get CSS class for time slot based on status, selection, past status, and lead time restriction
+  const getSlotClass = (status: TimeSlotStatus, isSelected: boolean, isPast: boolean = false, slot?: CalendarTimeSlot) => {
     // If admin mode and selected, force use of our special CSS class
     if (isAdmin && isSelected) {
       // Use a very prominent style for admin selected slots to ensure they stand out
@@ -728,6 +755,9 @@ const BookingCalendar = ({
       }
     }
     
+    // Check if this slot is restricted by lead time (only for non-admin view)
+    const isRestricted = !isAdmin && slot && isSlotRestrictedByLeadTime(slot);
+    
     // For regular user view (future slots)
     if (!isAdmin) {
       // Regular user selected slots styling
@@ -735,7 +765,19 @@ const BookingCalendar = ({
         return "bg-primary text-primary-foreground hover:bg-primary/90";
       }
       
-      // Regular user slot status styling
+      // Lead time restricted slot has paler styling
+      if (isRestricted) {
+        switch (status) {
+          case "available":
+            return "bg-blue-50 text-blue-400 border-blue-100 cursor-help opacity-60"; // Pale blue for restricted slots
+          case "booked":
+            return "bg-amber-50 text-amber-400 border-amber-100 cursor-not-allowed opacity-60"; 
+          default:
+            return "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed opacity-60";
+        }
+      }
+      
+      // Regular user slot status styling (non-restricted)
       switch (status) {
         case "available":
           return "bg-green-100 text-green-800 hover:bg-green-200";
@@ -914,25 +956,7 @@ const BookingCalendar = ({
                   <div className={isToday(day.date) ? "text-blue-600" : ""}>
                     {day.day}
                   </div>
-                  {!isAdmin && leadTimeSettings && leadTimeSettings.restrictionMode !== "off" && !leadTimeSettings.operatorOnSite && (() => {
-                    // Calculate days difference from today
-                    const today = new Date();
-                    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                    const slotDate = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
-                    
-                    const diffTime = slotDate.getTime() - todayDate.getTime();
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    // Check if this day is within lead time restriction
-                    if (diffDays < leadTimeSettings.leadTimeDays) {
-                      return (
-                        <Badge variant="destructive" className="text-[0.6rem] mt-1 px-1">
-                          Restricted
-                        </Badge>
-                      );
-                    }
-                    return null;
-                  })()}
+                  {/* No longer using badges for restricted days */}
                 </div>
               ))}
 
@@ -1072,9 +1096,10 @@ const BookingCalendar = ({
                             key={`regular-slot-${slot.id}-${dayIndex}`}
                             className={cn(
                               "h-14 border-r border-b border-gray-200 flex flex-col justify-center items-center p-1 relative cursor-pointer",
-                              getSlotClass(slot.status, isSelected, !!slot.isPast)
+                              getSlotClass(slot.status, isSelected, !!slot.isPast, slot)
                             )}
                             onClick={() => handleSlotToggle(slot.id, slot.status)}
+                            title={isSlotRestrictedByLeadTime(slot) ? "For bookings this close to the date, please contact us directly" : undefined}
                           >
                             <div className="text-xs font-medium">{(slot.price).toFixed(0)}€</div>
                           </div>
@@ -1101,6 +1126,19 @@ const BookingCalendar = ({
                   <div className="w-4 h-4 rounded mr-2 bg-primary border"></div>
                   <span>Selected</span>
                 </div>
+                {leadTimeSettings && leadTimeSettings.restrictionMode !== "off" && !leadTimeSettings.operatorOnSite && (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded mr-2 bg-blue-50 border border-blue-100 opacity-60"></div>
+                    <span>Restricted - contact us directly to check availability</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Lead time information for users */}
+            {!isAdmin && leadTimeSettings && leadTimeSettings.restrictionMode !== "off" && !leadTimeSettings.operatorOnSite && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                <p>For bookings within {leadTimeSettings.leadTimeDays} day{leadTimeSettings.leadTimeDays !== 1 ? 's' : ''} of today, please contact us directly by phone or email to verify availability.</p>
               </div>
             )}
             
