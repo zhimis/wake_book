@@ -46,9 +46,9 @@ const AdminDashboardPage = () => {
   return (
     <AdminLayout>
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="flex space-x-2">
+          <div className="hidden md:flex space-x-2">
             <Button
               variant="outline"
               className="mr-2"
@@ -107,53 +107,45 @@ const AdminDashboardPage = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Button 
             variant="outline" 
-            className="flex items-center justify-center py-3 h-auto"
+            className="flex flex-col items-center justify-center py-2 h-auto text-xs sm:text-sm"
             onClick={() => navigate("/admin/bookings")}
           >
-            <div className="flex flex-col items-center">
-              <BarChart3 className="h-6 w-6 mb-1" />
-              <span>View Bookings</span>
-            </div>
+            <BarChart3 className="h-5 w-5 mb-1" />
+            <span>View Bookings</span>
           </Button>
           
           <Button 
             variant="outline" 
-            className="flex items-center justify-center py-3 h-auto bg-blue-50 border-blue-200 hover:bg-blue-100"
+            className="flex flex-col items-center justify-center py-2 h-auto text-xs sm:text-sm bg-blue-50 border-blue-200 hover:bg-blue-100"
             onClick={() => window.open("/admin/system-config", "_self")}
           >
-            <div className="flex flex-col items-center">
-              <Settings className="h-6 w-6 mb-1" />
-              <span>Operating Hours</span>
-            </div>
+            <Settings className="h-5 w-5 mb-1" />
+            <span>Operating Hours</span>
           </Button>
           
           <Button 
             variant="outline" 
-            className="flex items-center justify-center py-3 h-auto"
+            className="flex flex-col items-center justify-center py-2 h-auto text-xs sm:text-sm"
             onClick={() => { 
               localStorage.setItem("adminActiveTab", "statistics"); 
               navigate("/admin"); 
             }}
           >
-            <div className="flex flex-col items-center">
-              <BarChart3 className="h-6 w-6 mb-1" />
-              <span>Statistics</span>
-            </div>
+            <BarChart3 className="h-5 w-5 mb-1" />
+            <span>Statistics</span>
           </Button>
           
           <AdminCreateBooking
             triggerButton={
               <Button 
                 variant="outline" 
-                className="flex items-center justify-center py-3 h-auto w-full"
+                className="flex flex-col items-center justify-center py-2 h-auto w-full text-xs sm:text-sm"
               >
-                <div className="flex flex-col items-center">
-                  <Plus className="h-6 w-6 mb-1" />
-                  <span>Create Booking</span>
-                </div>
+                <Plus className="h-5 w-5 mb-1" />
+                <span>Create Booking</span>
               </Button>
             }
             isStandalone={true}

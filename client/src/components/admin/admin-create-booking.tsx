@@ -316,13 +316,15 @@ const AdminCreateBooking = ({
             <Button 
               variant={buttonVariant} 
               size={buttonSize}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 text-xs sm:text-sm"
             >
               <PlusCircle size={16} />
-              {initialSelectedSlots.length > 0 ? 
-                `Book ${initialSelectedSlots.length} Selected Slot${initialSelectedSlots.length !== 1 ? 's' : ''}` : 
-                'Create Booking'
-              }
+              <span className="truncate">
+                {initialSelectedSlots.length > 0 ? 
+                  `Book ${initialSelectedSlots.length} Slot${initialSelectedSlots.length !== 1 ? 's' : ''}` : 
+                  'Create Booking'
+                }
+              </span>
             </Button>
           )}
         </DialogTrigger>
