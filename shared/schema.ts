@@ -120,7 +120,7 @@ export const bookingFormSchema = z.object({
     z.string().email({ message: "Invalid email format" }),
     z.string().length(0)
   ]).optional(),
-  timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+  timeSlotIds: z.array(z.union([z.number(), z.string()])).min(1, { message: "Select at least one time slot" }),
 });
 
 // Admin booking form - like the regular booking form but without experienceLevel requirement
@@ -133,10 +133,10 @@ export const manualBookingSchema = z.object({
     z.string().email({ message: "Invalid email format" }),
     z.string().length(0)
   ]).optional(),
-  timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+  timeSlotIds: z.array(z.union([z.number(), z.string()])).min(1, { message: "Select at least one time slot" }),
   // Include information about unallocated slots that need to be created
   unallocatedSlots: z.array(z.object({
-    id: z.number(), // This will be a negative ID from client
+    id: z.union([z.number(), z.string()]), // Allow both number and string IDs
     startTime: z.string().or(z.date()), // Accept either string or Date
     endTime: z.string().or(z.date())
   })).optional(),
@@ -164,15 +164,15 @@ export const adminCustomBookingSchema = z.object({
 // Block time slot form
 export const blockTimeSlotSchema = z.object({
   reason: z.string().min(1, { message: "Reason is required" }),
-  timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+  timeSlotIds: z.array(z.union([z.number(), z.string()])).min(1, { message: "Select at least one time slot" }),
 });
 
 // Make available form
 export const makeAvailableSchema = z.object({
   price: z.number().positive({ message: "Price must be a positive number" }),
-  timeSlotIds: z.array(z.number()).min(1, { message: "Select at least one time slot" }),
+  timeSlotIds: z.array(z.union([z.number(), z.string()])).min(1, { message: "Select at least one time slot" }),
   unallocatedSlots: z.array(z.object({
-    id: z.number(), // This will be a negative ID from client
+    id: z.union([z.number(), z.string()]), // Allow both number and string IDs
     startTime: z.string().or(z.date()), // Accept either string or Date
     endTime: z.string().or(z.date())
   })).optional(),
@@ -196,6 +196,7 @@ export type TimeSlot = typeof timeSlots.$inferSelect & {
   originalStartTime?: Date;
   originalEndTime?: Date;
   isPast?: boolean; // Flag to indicate if the time slot is in the past
+  id: number | string; // Explicitly support both number and string IDs
 };
 export type InsertTimeSlot = z.infer<typeof insertTimeSlotSchema>;
 
