@@ -594,20 +594,29 @@ const AdminCalendarView = () => {
     let newMonday;
     
     if (direction === 'today') {
-      // This is the critical fix - we need to get this week's Monday from today's date in Latvia time
+      // Get today in Latvia timezone
+      const latviaToday = toLatviaTime(new Date());
       
-      // Get the current day number in Latvia's week (0-6 where 0 is Monday)
-      // Important: Latvia uses ISO week format where Monday is 0
-      const currentDayIndex = todayInLatvia.getDay(); // 0 = Sunday, 1 = Monday, etc (JS format)
+      // Get the actual current day of the week (in JavaScript format: 0 = Sunday, 1 = Monday, etc.)
+      const jsDayOfWeek = latviaToday.getDay();
       
-      // Convert JavaScript day (0 = Sunday) to Latvian day (0 = Monday)
-      const latvianDayOfWeekIndex = currentDayIndex === 0 ? 6 : currentDayIndex - 1;
+      // Convert to Latvia day index (0 = Monday, 6 = Sunday)
+      const latvianDayIndex = jsDayOfWeek === 0 ? 6 : jsDayOfWeek - 1;
       
-      // Calculate Monday of this week by subtracting the day index from today's date
-      newMonday = addDays(todayInLatvia, -latvianDayOfWeekIndex);
+      // To get Monday of the current week, subtract the Latvia day index from today
+      // e.g., if today is Wednesday (Latvia index 2), subtract 2 days to get to Monday
+      const thisMonday = new Date(latviaToday);
+      thisMonday.setDate(latviaToday.getDate() - latvianDayIndex);
+      thisMonday.setHours(0, 0, 0, 0); // Reset time part to start of day
       
-      console.log(`Today's actual date: ${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}`);
-      console.log(`Day of week in Latvia: ${latvianDayOfWeekIndex} (0=Mon, 6=Sun)`);
+      // Set new Monday to be this week's Monday
+      newMonday = thisMonday;
+      
+      // Detailed logging to help diagnose any issues
+      console.log(`Today button pressed:`);
+      console.log(`Today's date: ${formatInLatviaTime(latviaToday, "yyyy-MM-dd")}`);
+      console.log(`JavaScript day of week: ${jsDayOfWeek} (0=Sun, 6=Sat)`);
+      console.log(`Latvia day index: ${latvianDayIndex} (0=Mon, 6=Sun)`);
       console.log(`This week's Monday: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     } else if (direction === 'prev') {
       // Navigate to previous week (7 days backward)
