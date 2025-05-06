@@ -1069,7 +1069,7 @@ const AdminCalendarView = () => {
     // Identify which time slots are unallocated (have negative IDs, either numeric or string)
     const unallocatedSlots = selectedTimeSlots.filter(slot => 
       (typeof slot.id === 'number' && slot.id < 0) || 
-      (typeof slot.id === 'string' && slot.id.toString().startsWith('-'))
+      (typeof slot.id === 'string' && slot.id.startsWith('-'))
     );
     
     // Prepare the data to send to the server
