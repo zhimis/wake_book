@@ -267,7 +267,7 @@ const BookingCalendar = ({
   // Fetch all bookings to check for booking-based lead time restrictions
   const { data: bookingsData } = useQuery({
     queryKey: ['/api/bookings'],
-    queryFn: getQueryFn<any[]>({ on401: "returnEmptyArray" }),
+    queryFn: getQueryFn<any[]>({ on401: "returnNull" }),
     staleTime: 60000,
   });
   
@@ -652,8 +652,36 @@ const BookingCalendar = ({
     
     // If in "booking_based" mode, we need to check if there are any bookings for this day
     if (leadTimeSettings.restrictionMode === "booking_based" && isWithinLeadTime) {
-      // TODO: Check if there are any bookings for this day
-      // For now, we'll enforce the restriction
+      // Check if there are any bookings for this day
+      if (bookingsData && Array.isArray(bookingsData)) {
+        // Format the slot date to YYYY-MM-DD for consistent comparison
+        const slotDateStr = formatInLatviaTime(slotDate, 'yyyy-MM-dd');
+        
+        // Check if any booking contains a time slot on this day
+        const bookingExistsForDay = bookingsData.some((booking: any) => {
+          // Each booking has timeSlots array with startTime and endTime
+          if (booking.timeSlots && Array.isArray(booking.timeSlots)) {
+            return booking.timeSlots.some((bookingSlot: { startTime: string | Date }) => {
+              // Convert the booking slot's date to Latvia timezone and format as YYYY-MM-DD
+              const bookingDate = formatInLatviaTime(new Date(bookingSlot.startTime), 'yyyy-MM-dd');
+              // Check if this booking is for the same day as our slot
+              const match = bookingDate === slotDateStr;
+              if (match) {
+                console.log(`Found booking for ${slotDateStr}, relaxing lead time restriction`);
+              }
+              return match;
+            });
+          }
+          return false;
+        });
+        
+        // If a booking exists for this day, no restriction applies even if within lead time
+        if (bookingExistsForDay) {
+          return false;
+        }
+      }
+      
+      // If no bookings for this day or bookings data not loaded, apply the restriction
       return true;
     }
     
@@ -684,8 +712,41 @@ const BookingCalendar = ({
     
     // Get lead time in days
     const leadTimeDays = leadTimeSettings.leadTimeDays || 0;
-    // Make sure to use the same logic as isSlotRestrictedByLeadTime
-    return diffDays <= leadTimeDays;
+    
+    // Check if the day is within lead time
+    const isWithinLeadTime = diffDays <= leadTimeDays;
+    
+    // If not within lead time or not in booking_based mode, use the standard logic
+    if (!isWithinLeadTime || leadTimeSettings.restrictionMode !== "booking_based") {
+      return leadTimeSettings.restrictionMode === "enforced" && isWithinLeadTime;
+    }
+    
+    // For booking_based mode, check if any bookings exist for this day
+    if (bookingsData && Array.isArray(bookingsData)) {
+      // Format the day date to YYYY-MM-DD for consistent comparison
+      const dayDateStr = formatInLatviaTime(dayDate, 'yyyy-MM-dd');
+      
+      // Check if any booking contains a time slot on this day
+      const bookingExistsForDay = bookingsData.some((booking: any) => {
+        // Each booking has timeSlots array with startTime and endTime
+        if (booking.timeSlots && Array.isArray(booking.timeSlots)) {
+          return booking.timeSlots.some((bookingSlot: { startTime: string | Date }) => {
+            // Convert the booking slot's date to Latvia timezone and format as YYYY-MM-DD
+            const bookingDate = formatInLatviaTime(new Date(bookingSlot.startTime), 'yyyy-MM-dd');
+            return bookingDate === dayDateStr;
+          });
+        }
+        return false;
+      });
+      
+      // If a booking exists for this day, no restriction applies even if within lead time
+      if (bookingExistsForDay) {
+        return false;
+      }
+    }
+    
+    // If no bookings for this day, apply the restriction
+    return true;
   };
 
   const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
