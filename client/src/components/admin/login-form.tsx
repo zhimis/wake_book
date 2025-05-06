@@ -26,7 +26,7 @@ import { Loader2 } from "lucide-react";
 
 // Form schema
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().min(1, "Email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -41,7 +41,7 @@ const LoginForm = () => {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -49,11 +49,11 @@ const LoginForm = () => {
   // Handle form submission
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
-    console.log("Login form submitted with:", data.username);
+    console.log("Login form submitted with:", data.email);
 
     try {
       loginMutation.mutate(
-        { username: data.username, password: data.password },
+        { email: data.email, password: data.password },
         {
           onSuccess: (user) => {
             console.log("Login mutation success, user:", user);
@@ -94,12 +94,12 @@ const LoginForm = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="username"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your username" {...field} />
+                    <Input placeholder="Enter your email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
