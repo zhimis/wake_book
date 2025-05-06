@@ -1053,36 +1053,6 @@ const AdminCalendarView = () => {
         <>
           {viewMode === 'calendar' ? (
             <>
-              {/* Custom calendar navigation controls */}
-              <div className="flex justify-between items-center mb-4 p-2 bg-background border rounded-md">
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleNavigateDates('prev')}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous Week
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleNavigateDates('next')}
-                  >
-                    Next Week
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleNavigateDates('today')}
-                >
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Today
-                </Button>
-              </div>
-              
               {/* Use a key to force completely new instance on date change */}
               <BookingCalendar 
                 key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
@@ -1091,6 +1061,11 @@ const AdminCalendarView = () => {
                 onAdminSlotSelect={handleTimeSlotSelect}
                 adminSelectedSlots={selectedTimeSlots}
                 initialDate={currentDateRange.start} // Pass current date directly to calendar component
+                customNavigation={{
+                  goToPrevious: () => handleNavigateDates('prev'),
+                  goToNext: () => handleNavigateDates('next'),
+                  goToToday: () => handleNavigateDates('today')
+                }}
               />
               
               {/* Display Selection Active alert between calendar and action buttons */}
