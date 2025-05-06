@@ -635,7 +635,11 @@ const BookingCalendar = ({
     
     // Get lead time in days
     const leadTimeDays = leadTimeSettings.leadTimeDays || 0;
-    const isWithinLeadTime = diffDays < leadTimeDays;
+    
+    // The key issue: With a lead time of 1 day, slots 1 day ahead should be restricted
+    // In other words, if lead time is 1 day and today is 6th, then 7th should be restricted
+    // Since diffDays would be 1, we need to use <= instead of <
+    const isWithinLeadTime = diffDays <= leadTimeDays;
     
     console.log(`Lead time check: Slot date=${formatInLatviaTime(slotDate, 'yyyy-MM-dd')}, Today=${formatInLatviaTime(today, 'yyyy-MM-dd')}, Days difference=${diffDays}, Lead time required=${leadTimeDays}, Restricted=${isWithinLeadTime}, Mode=${leadTimeSettings.restrictionMode}`);
     
@@ -673,7 +677,8 @@ const BookingCalendar = ({
     
     // Get lead time in days
     const leadTimeDays = leadTimeSettings.leadTimeDays || 0;
-    return diffDays < leadTimeDays;
+    // Make sure to use the same logic as isSlotRestrictedByLeadTime
+    return diffDays <= leadTimeDays;
   };
 
   const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
