@@ -223,47 +223,22 @@ const BookingCalendar = ({
   
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string | number): boolean => {
-    // Make sure we have a number for comparison
-    // We need to be very careful about type conversion here as JS equality can be tricky
-    const numericId = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
+    // Convert the ID to a number if it's a string
+    const id = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
     
-    // For admin mode, check if the slot is in the admin's selected slots
-    if (isAdmin && adminSelectedSlots && adminSelectedSlots.length > 0) {
-      // For multi-selection, check if any slot matches this ID
-      // Handle negative IDs (empty slots) specially
-      if (numericId < 0) {
-        const isFound = adminSelectedSlots.some(selectedSlot => {
-          const selectedNumericId = typeof selectedSlot.id === 'string' ? parseInt(selectedSlot.id) : selectedSlot.id;
-          return selectedNumericId === numericId;
-        });
-        
-        if (isFound) {
-          console.log(`Admin empty slot ${numericId} is selected!`);
-        }
-        return isFound;
-      }
-      
-      // For regular slots, check all slots in adminSelectedSlots with strict ID comparison
-      const isMatch = adminSelectedSlots.some(selectedSlot => {
-        const selectedNumericId = typeof selectedSlot.id === 'string' ? parseInt(selectedSlot.id) : selectedSlot.id;
-        const matched = selectedNumericId === numericId;
-        
-        // Debug output for matches
-        if (matched) {
-          console.log(`Found match! Slot ${numericId} is selected`);
-        }
-        
-        return matched;
-      });
-      
-      return isMatch;
+    // For admin mode, use adminSelectedSlots instead of the booking context
+    if (isAdmin) {
+      const isAdminSelected = adminSelectedSlots.some(slot => slot.id === id);
+      return isAdminSelected;
     }
     
     // For regular mode, use the booking context
-    return selectedTimeSlots.some(slot => {
-      const slotNumericId = typeof slot.id === 'string' ? parseInt(slot.id) : slot.id;
-      return slotNumericId === numericId;
-    });
+    const isSelected = selectedTimeSlots.some(slot => slot.id === id);
+    
+    console.log(`Regular isSlotSelected checking id: ${id}, found in selected: ${isSelected}, selected slots: `, 
+                selectedTimeSlots.map(s => s.id));
+    
+    return isSelected;
   };
   
   // Create a Latvian week (Monday-Sunday) from current date
@@ -806,7 +781,7 @@ const BookingCalendar = ({
         ) : (
           <>
             {/* Calendar Grid */}
-            <div className="grid grid-cols-[auto_repeat(7,minmax(0,1fr))] gap-0 border border-gray-200 rounded">
+            <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border border-gray-200 rounded">
               {/* Column Headers */}
               <div className="p-2 border-r border-gray-200"></div>
               {days.map((day, i) => (
@@ -836,7 +811,7 @@ const BookingCalendar = ({
                 const slotsForTime = getTimeSlotsForTime(hour, minute);
                 
                 return (
-                  <div key={timeStr} className="contents">
+                  <React.Fragment key={timeStr}>
                     {/* Time Label */}
                     <div className="p-2 text-xs font-medium text-muted-foreground flex items-center justify-end h-14 border-r border-b border-gray-200">
                       {formatTimeFromComponents(hour, minute)}
@@ -881,24 +856,13 @@ const BookingCalendar = ({
                           };
                           
                           // Render a clickable empty slot for admin
-                          // Create a unique ID for empty slots to ensure they are handled properly
-                          const emptySlotUniqueId = `slot-${tempId}-${days[dayIndex].date.getDate()}-${hour}-${minute}`;
-                          
                           return (
                             <div 
                               key={dayIndex} 
-                              id={emptySlotUniqueId}
-                              className={cn(
-                                "h-14 border-r border-b border-gray-200 flex items-center justify-center cursor-pointer transition-all duration-100",
-                                isSlotSelected(tempId) ? 
-                                  "admin-selected-slot" : 
-                                  "bg-gray-50 hover:bg-gray-100"
-                              )}
-                              data-admin-selected={isSlotSelected(tempId) ? "true" : "false"}
-                              data-slot-id={tempId}
-                              data-slot-hour={hour}
-                              data-slot-minute={minute}
-                              data-slot-day={days[dayIndex].date.getDate()}
+                              className="h-14 border-r border-b border-gray-200
+                                        bg-gray-50 hover:bg-gray-100 
+                                        transition-colors duration-100 cursor-pointer
+                                        flex items-center justify-center"
                               onClick={handleEmptySlotClick}
                             >
                               {isAdmin && (
@@ -947,7 +911,7 @@ const BookingCalendar = ({
                         );
                       }
                     })}
-                  </div>
+                  </React.Fragment>
                 );
               })}
             </div>

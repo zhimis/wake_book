@@ -102,24 +102,12 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     flexDirection: 'column',
   };
 
-  // Create a unique identifier for this slot that includes time information
-  // This helps ensure we're targeting the exact slot, not just by ID
-  const uniqueSlotId = `slot-${slot.id}-${slot.startTime.getDate()}-${slot.startTime.getHours()}-${slot.startTime.getMinutes()}`;
-  
   return (
     <div 
       className={cn(
         "relative cursor-pointer border-r border-b border-gray-200",
-        isSelected ? "admin-selected-slot" : "",
         externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
       )} 
-      id={uniqueSlotId}
-      data-admin-selected={isSelected ? "true" : "false"}
-      data-slot-id={slot.id}
-      data-slot-hour={slot.startTime.getHours()}
-      data-slot-minute={slot.startTime.getMinutes()}
-      data-slot-day={slot.startTime.getDate()}
-      data-slot-date={slot.startTime.toISOString()}
       style={baseStyle}
       onClick={() => onToggle(slot.id.toString(), slot.status as TimeSlotStatus)}
     >

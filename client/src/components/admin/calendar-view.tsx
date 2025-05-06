@@ -575,48 +575,37 @@ const AdminCalendarView = () => {
     
     // Get today's date in Latvia timezone
     const today = toLatviaTime(new Date());
-    console.log(`Current date (Latvia): ${formatInLatviaTime(today, "EEE, MMM d, yyyy HH:mm")}`);
     
-    // Get the current week's Monday as reference
+    // Use current range as base for navigation
+    const currentStart = toLatviaTime(currentDateRange.start);
+    
+    // Calculate first day of the week (Monday) from current date
+    const latvianDayIndex = getLatvianDayIndexFromDate(currentStart);
+    const currentMonday = addDays(currentStart, -latvianDayIndex);
+    
     let newMonday;
     
     if (direction === 'today') {
-      // Get today's Latvian day index (0=Monday, 6=Sunday)
+      // Go to current week (calculate Monday of current week)
       const todayLatvianDayIndex = getLatvianDayIndexFromDate(today);
-      
-      // Calculate Monday of current week for today
       newMonday = addDays(today, -todayLatvianDayIndex);
-      console.log(`Today's day index: ${todayLatvianDayIndex}, Monday of current week: ${formatInLatviaTime(newMonday, "EEE, MMM d, yyyy")}`);
+      console.log(`Going to today's week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
+    } else if (direction === 'prev') {
+      // Navigate to previous week (7 days backward)
+      newMonday = addDays(currentMonday, -7);
+      console.log(`Navigating to previous week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     } else {
-      // For prev/next, use the current range's start date to find the current Monday
-      const currentStart = toLatviaTime(currentDateRange.start);
-      const latvianDayIndex = getLatvianDayIndexFromDate(currentStart);
-      
-      // Adjust to get to Monday of current week
-      // If we're showing the previous day too, adjust accordingly
-      const currentMonday = addDays(currentStart, latvianDayIndex === 0 ? 0 : -latvianDayIndex + 1);
-      
-      console.log(`Current week's Monday: ${formatInLatviaTime(currentMonday, "EEE, MMM d, yyyy")}`);
-      
-      if (direction === 'prev') {
-        // Navigate to previous week (7 days backward)
-        newMonday = addDays(currentMonday, -7);
-        console.log(`Going to previous week's Monday: ${formatInLatviaTime(newMonday, "EEE, MMM d, yyyy")}`);
-      } else {
-        // Navigate to next week (7 days forward)
-        newMonday = addDays(currentMonday, 7);
-        console.log(`Going to next week's Monday: ${formatInLatviaTime(newMonday, "EEE, MMM d, yyyy")}`);
-      }
+      // Navigate to next week (7 days forward)
+      newMonday = addDays(currentMonday, 7);
+      console.log(`Navigating to next week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
     }
     
-    // Calculate the last day of the week (Sunday)
+    // Calculate end of week (Sunday)
     const newSunday = addDays(newMonday, 6);
-    console.log(`Week Sunday: ${formatInLatviaTime(newSunday, "EEE, MMM d, yyyy")}`);
     
-    // For admin view, we want to include Sunday in the calendar
-    // In this case, we want the admin week to start on Monday
-    const newAdminStart = newMonday;
-    console.log(`Admin view start: ${formatInLatviaTime(newAdminStart, "EEE, MMM d, yyyy")}`);
+    // For admin view, we want to show yesterday through the following week
+    // So adjust the start date to be 1 day before Monday
+    const newAdminStart = addDays(newMonday, -1);
     
     // Clear the lastDateRef to allow a new initial update from the calendar
     lastDateRef.current = null;
@@ -631,20 +620,12 @@ const AdminCalendarView = () => {
       end: endLatvia
     };
     
-    // Clear any selected slots when navigating
-    setSelectedTimeSlots([]);
-    
     // Update the date range state with the new dates
     // Convert back to UTC for storage
     setCurrentDateRange({
       start: fromLatviaTime(newAdminStart),
       end: fromLatviaTime(newSunday)
     });
-    
-    // Reset the updating flag in the next event loop
-    setTimeout(() => {
-      isUpdatingRef.current = false;
-    }, 100);
   };
   
   // Handle date range changes from the BookingCalendar with proper debouncing
@@ -708,10 +689,7 @@ const AdminCalendarView = () => {
   };
   
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
-    // Enhanced logging for selection
-    console.log(`Admin selecting slot: ID=${timeSlot.id}, status=${timeSlot.status}, ` + 
-                `date=${timeSlot.startTime.toDateString()}, ` + 
-                `time=${timeSlot.startTime.getHours()}:${timeSlot.startTime.getMinutes()}`);
+    console.log(`Admin selecting slot: ${timeSlot.id}, status: ${timeSlot.status}, start: ${new Date(timeSlot.startTime).toLocaleTimeString()}`);
     
     // Different behavior based on the time slot status
     if (timeSlot.status === 'booked') {
@@ -793,49 +771,52 @@ const AdminCalendarView = () => {
         getBookingDetailsForSlot();
       }
     } else {
-      // For available or unallocated slots: Toggle selection
+      // For available or unallocated slots: Add to selection
+      // Check if this slot is already selected
+      // Note: For unallocated slots with negative IDs, need to compare by time
+      const isSelected = timeSlot.id < 0 
+        ? selectedTimeSlots.some(slot => 
+            slot.startTime.getTime() === timeSlot.startTime.getTime() && 
+            slot.endTime.getTime() === timeSlot.endTime.getTime()
+          )
+        : selectedTimeSlots.some(slot => slot.id === timeSlot.id);
       
-      // Create a copy of the time slot with added original date information
-      // This ensures the UI shows the date from the current week's display
-      // but backend API operations use the actual database date
-      const slotWithOriginalDates = {
-        ...timeSlot,
-        originalStartTime: timeSlot.startTime,
-        originalEndTime: timeSlot.endTime
-      };
-      
-      // Check if this slot is already selected (to toggle it off if needed)
-      const slotNumericId = typeof timeSlot.id === 'string' ? parseInt(timeSlot.id) : timeSlot.id;
-      const isAlreadySelected = selectedTimeSlots.some(slot => {
-        const selectedNumericId = typeof slot.id === 'string' ? parseInt(slot.id) : slot.id;
-        return selectedNumericId === slotNumericId;
-      });
-      
-      if (isAlreadySelected) {
-        // Remove from selection if already selected
+      if (isSelected) {
+        // Remove from selection
         console.log(`Removing slot ${timeSlot.id} from selection`);
-        setSelectedTimeSlots(prev => 
-          prev.filter(slot => {
-            const selectedNumericId = typeof slot.id === 'string' ? parseInt(slot.id) : slot.id;
-            return selectedNumericId !== slotNumericId;
-          })
-        );
-        
-        toast({
-          title: "Selection Removed",
-          description: `Removed slot on ${timeSlot.startTime.toLocaleDateString()} at ${timeSlot.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-          variant: "default",
-        });
+        if (timeSlot.id < 0) {
+          // For unallocated slots with negative IDs, filter by time
+          setSelectedTimeSlots(selectedTimeSlots.filter(slot => 
+            !(slot.startTime.getTime() === timeSlot.startTime.getTime() && 
+              slot.endTime.getTime() === timeSlot.endTime.getTime())
+          ));
+        } else {
+          // For regular slots, filter by ID
+          setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
+        }
       } else {
-        // Add to selection
-        console.log(`Adding slot ${timeSlot.id} to selection`);
+        // Add to selection but preserve the original date information for API calls
+        console.log(`Adding slot ${timeSlot.id} to selection (status: ${timeSlot.status})`);
+        
+        // Create a copy of the time slot with added original date information
+        // This ensures the UI shows the date from the current week's display
+        // but backend API operations use the actual database date
+        const slotWithOriginalDates = {
+          ...timeSlot,
+          originalStartTime: timeSlot.startTime,
+          originalEndTime: timeSlot.endTime
+        };
+        
         setSelectedTimeSlots(prev => [...prev, slotWithOriginalDates]);
         
-        toast({
-          title: "Time Slot Selected",
-          description: `Added slot on ${timeSlot.startTime.toLocaleDateString()} at ${timeSlot.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-          variant: "default",
-        });
+        // If this is the first slot selected, show the action buttons
+        if (selectedTimeSlots.length === 0) {
+          toast({
+            title: "Time Slot Selected",
+            description: "You can now create a booking or block this time slot.",
+            variant: "default",
+          });
+        }
       }
     }
   };
