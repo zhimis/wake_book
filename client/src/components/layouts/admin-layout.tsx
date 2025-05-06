@@ -59,13 +59,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   </a>
                 </Link>
               </li>
-              <li>
-                <Link href="/admin/lead-time">
-                  <a className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                    Lead Time Settings
-                  </a>
-                </Link>
-              </li>
+
             </ul>
           </div>
           
@@ -125,16 +119,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                       </a>
                     </Link>
                   </li>
-                  <li>
-                    <Link href="/admin/lead-time">
-                      <a 
-                        className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setOpen(false)}
-                      >
-                        Lead Time Settings
-                      </a>
-                    </Link>
-                  </li>
+
                 </ul>
               </div>
               <div className="p-4 border-t mt-auto">

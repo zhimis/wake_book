@@ -10,7 +10,7 @@ import AdminBookingsPage from "@/pages/admin-bookings-page";
 import PublicPage from "@/pages/public-page";
 import NewAdminPage from "@/pages/new-admin-page";
 import SystemConfigPage from "@/pages/system-config-page";
-import AdminLeadTimePage from "@/pages/admin-lead-time-page";
+
 import Header from "./components/header";
 import Footer from "./components/footer";
 import { BookingProvider } from "./context/booking-context";
@@ -55,7 +55,6 @@ function App() {
               <ProtectedRoute path="/admin/bookings" component={AdminBookingsPage} />
               <ProtectedRoute path="/admin/new" component={NewAdminPage} />
               <ProtectedRoute path="/admin/system-config" component={SystemConfigPage} />
-              <ProtectedRoute path="/admin/lead-time" component={AdminLeadTimePage} />
               <Route component={NotFound} />
             </Switch>
           </div>
