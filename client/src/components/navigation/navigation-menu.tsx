@@ -108,7 +108,7 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
 
   return (
     <Sheet>
-      <SheetTrigger asChild>
+      <SheetTrigger asChild className="ml-auto">
         <Button variant="ghost" size="icon">
           <Menu className="h-5 w-5" />
         </Button>
