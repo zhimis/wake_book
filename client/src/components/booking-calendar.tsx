@@ -223,29 +223,26 @@ const BookingCalendar = ({
   
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string | number): boolean => {
-    // Handle both string and number IDs for consistent comparison
-    const stringId = String(uiSlotId);
+    // For empty slots, we need to be very specific with the ID match
+    // Empty slots use negative numbers as IDs, so we need exact matching
+    if (typeof uiSlotId === 'number' && uiSlotId < 0) {
+      // For admin mode with negative IDs (empty slots)
+      if (isAdmin && adminSelectedSlots) {
+        return adminSelectedSlots.some(slot => slot.id === uiSlotId);
+      }
+    }
+    
+    // Regular slots have positive IDs that can be strings or numbers
+    // For string IDs, convert to number for comparison
     const numericId = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
     
     // For admin mode, use adminSelectedSlots instead of the booking context
     if (isAdmin && adminSelectedSlots) {
-      // Try both string and numeric comparison to ensure we catch matches
-      const isAdminSelected = adminSelectedSlots.some(slot => 
-        String(slot.id) === stringId || slot.id === numericId
-      );
-      
-      // Log for debugging selected slots
-      console.log(`Admin isSlotSelected checking id: ${stringId}, numeric: ${numericId}, selected:`, isAdminSelected);
-      
-      return isAdminSelected;
+      return adminSelectedSlots.some(slot => slot.id === numericId);
     }
     
     // For regular mode, use the booking context
-    const isSelected = selectedTimeSlots.some(slot => 
-      String(slot.id) === stringId || slot.id === numericId
-    );
-    
-    return isSelected;
+    return selectedTimeSlots.some(slot => slot.id === numericId);
   };
   
   // Create a Latvian week (Monday-Sunday) from current date
