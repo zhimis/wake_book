@@ -222,15 +222,13 @@ const BookingCalendar = ({
   }, [dbTimeSlots, timeSlotsLoading]);
   
   // Function to check if a UI slot is selected 
-  const isSlotSelected = (uiSlotId: string): boolean => {
-    // Parse the string ID to a number and compare directly
-    const id = parseInt(uiSlotId);
+  const isSlotSelected = (uiSlotId: string | number): boolean => {
+    // Convert the ID to a number if it's a string
+    const id = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
     
     // For admin mode, use adminSelectedSlots instead of the booking context
     if (isAdmin) {
       const isAdminSelected = adminSelectedSlots.some(slot => slot.id === id);
-      console.log(`Admin isSlotSelected checking id: ${id}, found in selected: ${isAdminSelected}, admin selected slots: `, 
-                adminSelectedSlots.map(s => s.id));
       return isAdminSelected;
     }
     
