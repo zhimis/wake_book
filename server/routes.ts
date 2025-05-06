@@ -1114,6 +1114,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all users (requires authentication)
   app.get("/api/users", async (req: Request, res: Response) => {
     try {
+      console.log("GET /api/users endpoint called");
+      console.log("Authentication status:", req.isAuthenticated());
+      console.log("req.user:", req.user);
+      
       if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -1123,8 +1127,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("User accessing /api/users:", { id: user.id, email: user.email, role: user.role });
       
       if (user.role !== 'admin' && user.role !== 'manager') {
+        console.log("User has insufficient permissions:", user.role);
         return res.status(403).json({ error: "Insufficient permissions" });
       }
+      
+      console.log("User has appropriate permissions:", user.role);
       
       const users = await storage.getAllUsers();
       
