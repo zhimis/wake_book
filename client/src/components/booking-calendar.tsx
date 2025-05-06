@@ -29,7 +29,7 @@ import {
 import { useBooking } from "@/context/booking-context";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { TimeSlot as SchemaTimeSlot } from "@shared/schema";
+import { TimeSlot as SchemaTimeSlot, generateTimeSlotId } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
 import AdminTimeSlot from "@/components/admin/admin-time-slot";
 
@@ -839,37 +839,36 @@ const BookingCalendar = ({
                           const endDate = new Date(slotDate);
                           endDate.setMinutes(endDate.getMinutes() + 30);
                           
-                          // Create a truly unique negative ID for each empty slot 
-                          // We need to ensure the IDs are unique based on exact time and day
-                          const tempId = -1 * ((dayIndex + 1) * 10000 + (hour + 1) * 100 + (minute + 1)); // Negative number
+                          // Use our universal time slot ID generator from schema.ts
+                          // This ensures all slots for the same time period have the same ID
+                          // regardless of whether they're from database or empty slots
+                          const slotId = generateTimeSlotId(slotDate, 30, false); // Use local time
                           
-                          // The cell key used for React rendering must be unique
-                          // This ensures React doesn't reuse DOM elements incorrectly
-                          const cellKey = `empty-${dayIndex}-${hour}-${minute}`;
+                          // For React's key property, we need a unique string
+                          // We use the universal ID as the base for consistency
+                          const cellKey = `empty-${slotId}`;
                           
-                          // For checking selection of empty slots, we need to do a more precise check
-                          // Since the calendar may recreate these slots with new IDs on rerenders
-                          // We use a time-based comparison for empty slots
+                          // We still need a numeric ID for compatibility with existing code
+                          // so we'll create a negative hash of the string ID
+                          const tempId = -1 * Math.abs(slotId.split("").reduce((a: number, b: string) => {
+                            a = ((a << 5) - a) + b.charCodeAt(0);
+                            return a & a;
+                          }, 0));
+                          
+                          // For checking selection of empty slots, we can use the universal ID for consistency
+                          // This is more reliable than matching by time components as we did before
                           const isEmptySlotSelected = adminSelectedSlots.some(slot => {
-                            // If this is a regular slot with a positive ID, just match IDs
+                            // For database slots with positive IDs, we don't match here
                             if (slot.id > 0) return false;
                             
-                            // For empty slots, match the specific day, hour, and minute
-                            const slotHour = new Date(slot.startTime).getHours();
-                            const slotMinute = new Date(slot.startTime).getMinutes();
+                            // Generate a universal ID for the slot in the selection
+                            const selectedSlotId = generateTimeSlotId(new Date(slot.startTime), 30, false);
                             
-                            // Get the day index for the slot date
-                            const slotDate = new Date(slot.startTime);
-                            const slotDayIndex = getLatvianDayIndexFromDate(slotDate);
-                            
-                            // Check if this is the exact same slot by time components
-                            const exactMatch = 
-                              slotDayIndex === days[dayIndex].latvianDayIndex &&
-                              slotHour === hour &&
-                              slotMinute === minute;
+                            // Direct string comparison of universal IDs
+                            const exactMatch = selectedSlotId === slotId;
                             
                             if (exactMatch) {
-                              console.log(`MATCHED EMPTY SLOT: ${cellKey} matches slot with ID ${slot.id} at ${slotHour}:${slotMinute}`);
+                              console.log(`MATCHED EMPTY SLOT: Universal ID ${slotId} matches selected slot`);
                             }
                             
                             return exactMatch;
