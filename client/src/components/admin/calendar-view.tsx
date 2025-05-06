@@ -1113,11 +1113,12 @@ const AdminCalendarView = () => {
                 onAdminSlotSelect={handleTimeSlotSelect}
                 adminSelectedSlots={selectedTimeSlots}
                 initialDate={currentDateRange.start} // Pass current date directly to calendar component
-                /* Use our custom navigation functions for all buttons to ensure consistent state */
+                /* Use our custom navigation functions only for prev/next to ensure consistent state,
+                   but let the BookingCalendar handle Today directly since our implementation causes issues */
                 customNavigation={{
                   goToPrevious: () => handleNavigateDates('prev'),
-                  goToNext: () => handleNavigateDates('next'),
-                  goToToday: () => handleNavigateDates('today')
+                  goToNext: () => handleNavigateDates('next')
+                  // No goToToday - let BookingCalendar use its internal implementation
                 }}
               />
               
