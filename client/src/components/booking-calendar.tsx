@@ -548,8 +548,8 @@ const BookingCalendar = ({
   
   // Toggle slot selection
   const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
-    // Find the actual slot object
-    const slot = timeSlots.find(s => s.id === slotId);
+    // Find the actual slot object - compare both as strings
+    const slot = timeSlots.find(s => String(s.id) === slotId);
     if (!slot) return;
     
     // Check if the slot is in the past
@@ -838,14 +838,14 @@ const BookingCalendar = ({
                           endDate.setMinutes(endDate.getMinutes() + 30);
                           
                           // Create a temporary ID using negative numbers for empty slots
-                          // Format: day-hour-minute to ensure uniqueness
-                          const tempId = `-${dayIndex}-${hour}-${minute}`;
+                          // Using a formula to generate a unique negative ID
+                          const tempId = -1 * (dayIndex + 1) * (hour + 1) * (minute + 1); // Negative number
                           
                           // Define a function to handle click on the empty slot
                           const handleEmptySlotClick = () => {
                             // Create a schema-compatible time slot object
                             const tempSlot: SchemaTimeSlot = {
-                              id: -1 * (dayIndex + 1) * (hour + 1) * (minute + 1), // Negative ID to mark as temporary
+                              id: tempId, // Use numeric ID
                               startTime: slotDate,
                               endTime: endDate,
                               status: 'available', // Treat as available for simplicity
