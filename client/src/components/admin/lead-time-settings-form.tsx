@@ -35,9 +35,12 @@ export function LeadTimeSettingsForm() {
   const { data: leadTimeSettings, isLoading } = useQuery({
     queryKey: ['/api/admin/lead-time-settings'],
     retry: false,
+    staleTime: 0, // Always refetch to get the latest data
   });
 
-  // Form setup with defaults
+  console.log("Fetched lead time settings:", leadTimeSettings);
+
+  // Form setup with defaults 
   const form = useForm<LeadTimeSettingsFormData>({
     resolver: zodResolver(leadTimeSettingsFormSchema),
     defaultValues: {
@@ -50,8 +53,9 @@ export function LeadTimeSettingsForm() {
   // Update form when data is loaded
   React.useEffect(() => {
     if (leadTimeSettings) {
+      console.log("Setting form values from fetched data:", leadTimeSettings);
       form.reset({
-        restrictionMode: leadTimeSettings.restrictionMode,
+        restrictionMode: leadTimeSettings.restrictionMode, 
         leadTimeDays: leadTimeSettings.leadTimeDays,
         operatorOnSite: leadTimeSettings.operatorOnSite,
       });
@@ -61,14 +65,25 @@ export function LeadTimeSettingsForm() {
   // Update settings mutation
   const updateMutation = useMutation({
     mutationFn: async (data: LeadTimeSettingsFormData) => {
-      return apiRequest('POST', '/api/admin/lead-time-settings', data);
+      console.log("Submitting lead time settings data:", data);
+      const response = await apiRequest('POST', '/api/admin/lead-time-settings', data);
+      const result = await response.json();
+      console.log("Lead time settings update response:", result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Lead time settings updated successfully:", data);
+      
+      // Explicitly update the cache with the new data
+      queryClient.setQueryData(['/api/admin/lead-time-settings'], data.settings);
+      
+      // Invalidate the query to refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/lead-time-settings'] });
+      
       toast({
         title: "Settings updated",
         description: "Lead time settings have been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/lead-time-settings'] });
     },
     onError: (error) => {
       console.error("Error updating lead time settings:", error);
@@ -111,7 +126,7 @@ export function LeadTimeSettingsForm() {
                     <FormLabel>Restriction Mode</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
