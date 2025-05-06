@@ -1174,6 +1174,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userData = schema.parse(req.body);
       
+      // If the user is a manager trying to create an admin user, return an error
+      if (currentUser.role === 'manager' && userData.role === 'admin') {
+        return res.status(403).json({ error: "Managers cannot create admin users" });
+      }
+      
       // Check if user with this email already exists
       const existingEmailUser = await storage.getUserByEmail(userData.email);
       if (existingEmailUser) {
