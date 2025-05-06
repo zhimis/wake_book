@@ -1053,25 +1053,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Check if user is authenticated
       if (!req.isAuthenticated()) {
+        console.log("User is not authenticated for lead time settings update", req.user);
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const validatedData = leadTimeSettingsFormSchema.parse(req.body);
+      console.log("User authenticated, processing lead time settings update", req.user);
       
-      let settings = await storage.getLeadTimeSettings();
-      
-      if (!settings) {
-        // Create new settings if they don't exist
-        settings = await storage.createLeadTimeSettings(validatedData);
-      } else {
-        // Update existing settings
-        settings = await storage.updateLeadTimeSettings(validatedData);
+      try {
+        const validatedData = leadTimeSettingsFormSchema.parse(req.body);
+        console.log("Validated lead time settings data:", validatedData);
+        
+        let settings = await storage.getLeadTimeSettings();
+        
+        if (!settings) {
+          // Create new settings if they don't exist
+          console.log("No existing lead time settings, creating new");
+          settings = await storage.createLeadTimeSettings(validatedData);
+        } else {
+          // Update existing settings
+          console.log("Updating existing lead time settings", settings.id);
+          settings = await storage.updateLeadTimeSettings(validatedData);
+        }
+        
+        console.log("Lead time settings updated successfully", settings);
+        res.json({
+          success: true,
+          settings
+        });
+      } catch (validationError) {
+        console.error("Validation error in lead time settings:", validationError);
+        return res.status(400).json({ error: "Invalid lead time settings data" });
       }
-      
-      res.json({
-        success: true,
-        settings
-      });
     } catch (error) {
       console.error("Error updating lead time settings:", error);
       res.status(500).json({ error: "Failed to update lead time settings" });
