@@ -110,6 +110,10 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
         externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
       )} 
       data-admin-selected={isSelected ? "true" : "false"}
+      data-slot-id={slot.id}
+      data-slot-hour={slot.startTime.getHours()}
+      data-slot-minute={slot.startTime.getMinutes()}
+      data-slot-day={slot.startTime.getDate()}
       style={baseStyle}
       onClick={() => onToggle(slot.id.toString(), slot.status as TimeSlotStatus)}
     >

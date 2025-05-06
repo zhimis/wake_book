@@ -708,7 +708,10 @@ const AdminCalendarView = () => {
   };
   
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
-    console.log(`Admin selecting slot: ${timeSlot.id}, status: ${timeSlot.status}, start: ${new Date(timeSlot.startTime).toLocaleTimeString()}`);
+    // Enhanced logging for selection
+    console.log(`Admin selecting slot: ID=${timeSlot.id}, status=${timeSlot.status}, ` + 
+                `date=${timeSlot.startTime.toDateString()}, ` + 
+                `time=${timeSlot.startTime.getHours()}:${timeSlot.startTime.getMinutes()}`);
     
     // Different behavior based on the time slot status
     if (timeSlot.status === 'booked') {
@@ -791,52 +794,30 @@ const AdminCalendarView = () => {
       }
     } else {
       // For available or unallocated slots: Add to selection
-      // Check if this slot is already selected
-      // Note: For unallocated slots with negative IDs, need to compare by time
-      const isSelected = timeSlot.id < 0 
-        ? selectedTimeSlots.some(slot => 
-            slot.startTime.getTime() === timeSlot.startTime.getTime() && 
-            slot.endTime.getTime() === timeSlot.endTime.getTime()
-          )
-        : selectedTimeSlots.some(slot => slot.id === timeSlot.id);
       
-      if (isSelected) {
-        // Remove from selection
-        console.log(`Removing slot ${timeSlot.id} from selection`);
-        if (timeSlot.id < 0) {
-          // For unallocated slots with negative IDs, filter by time
-          setSelectedTimeSlots(selectedTimeSlots.filter(slot => 
-            !(slot.startTime.getTime() === timeSlot.startTime.getTime() && 
-              slot.endTime.getTime() === timeSlot.endTime.getTime())
-          ));
-        } else {
-          // For regular slots, filter by ID
-          setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
-        }
-      } else {
-        // Add to selection but preserve the original date information for API calls
-        console.log(`Adding slot ${timeSlot.id} to selection (status: ${timeSlot.status})`);
-        
-        // Create a copy of the time slot with added original date information
-        // This ensures the UI shows the date from the current week's display
-        // but backend API operations use the actual database date
-        const slotWithOriginalDates = {
-          ...timeSlot,
-          originalStartTime: timeSlot.startTime,
-          originalEndTime: timeSlot.endTime
-        };
-        
-        setSelectedTimeSlots(prev => [...prev, slotWithOriginalDates]);
-        
-        // If this is the first slot selected, show the action buttons
-        if (selectedTimeSlots.length === 0) {
-          toast({
-            title: "Time Slot Selected",
-            description: "You can now create a booking or block this time slot.",
-            variant: "default",
-          });
-        }
-      }
+      // Clear all current selections first 
+      // This ensures only one slot is selected at a time
+      setSelectedTimeSlots([]);
+      
+      // Create a copy of the time slot with added original date information
+      // This ensures the UI shows the date from the current week's display
+      // but backend API operations use the actual database date
+      const slotWithOriginalDates = {
+        ...timeSlot,
+        originalStartTime: timeSlot.startTime,
+        originalEndTime: timeSlot.endTime
+      };
+      
+      // Set this single slot as the selected one
+      console.log(`Setting single selected slot: ${timeSlot.id}`);
+      setSelectedTimeSlots([slotWithOriginalDates]);
+      
+      // Show feedback toast
+      toast({
+        title: "Time Slot Selected",
+        description: `Selected slot on ${timeSlot.startTime.toLocaleDateString()} at ${timeSlot.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+        variant: "default",
+      });
     }
   };
   

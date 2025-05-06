@@ -84,6 +84,19 @@ button.admin-selected-slot,
   transition: all 0.2s ease-in-out !important;
 }
 
+/* Override the admin-selected-slot class behavior for calendar cells */
+/* Use a more specific selector to target only calendar cells but not other elements */
+div[data-slot-id]:not([data-admin-selected="true"]) {
+  transform: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: inherit !important;
+  border-width: 0 1px 1px 0 !important;
+  border-style: solid !important;
+  border-color: #e5e7eb !important;
+  z-index: 1 !important;
+}
+
 /* Direct targeting of the Button components */
 [data-admin-selected="true"] {
   border: 5px solid #2563eb !important; 
