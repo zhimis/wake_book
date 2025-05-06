@@ -17,7 +17,8 @@ import {
   LayoutDashboard,
   Calendar,
   Settings,
-  BarChart2
+  BarChart2,
+  Users
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -79,6 +80,11 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
       name: "Configuration",
       path: "/admin/system-config",
       icon: <Settings className="h-5 w-5 mr-2" />
+    },
+    {
+      name: "Users",
+      path: "/admin/users",
+      icon: <Users className="h-5 w-5 mr-2" />
     },
     {
       name: "Statistics",
