@@ -7,6 +7,7 @@ import AdminLoginPage from "@/pages/admin-login-page";
 import AdminPage from "@/pages/admin-page";
 import AdminDashboardPage from "@/pages/admin-dashboard-page";
 import AdminBookingsPage from "@/pages/admin-bookings-page";
+import AdminUsersPage from "@/pages/admin-users-page";
 import PublicPage from "@/pages/public-page";
 import NewAdminPage from "@/pages/new-admin-page";
 import SystemConfigPage from "@/pages/system-config-page";
@@ -53,6 +54,7 @@ function App() {
               <ProtectedRoute path="/admin" component={AdminPage} />
               <ProtectedRoute path="/admin/dashboard" component={AdminDashboardPage} />
               <ProtectedRoute path="/admin/bookings" component={AdminBookingsPage} />
+              <ProtectedRoute path="/admin/users" component={AdminUsersPage} />
               <ProtectedRoute path="/admin/new" component={NewAdminPage} />
               <ProtectedRoute path="/admin/system-config" component={SystemConfigPage} />
               <Route component={NotFound} />
