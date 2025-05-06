@@ -594,31 +594,18 @@ const AdminCalendarView = () => {
     let newMonday;
     
     if (direction === 'today') {
-      // SIMPLE APPROACH: Let's directly use BookingCalendar's goToToday
-      // In the BookingCalendar, we initialize a date range starting with today's date,
-      // which is a simpler approach that seems to work correctly in the public view
+      console.log("ADMIN CALENDAR: Today button clicked");
       
-      console.log("ADMIN CALENDAR: Today button clicked - using simple approach");
-      
-      // Simple approach: Get today's date in Latvia timezone
+      // Get today in Latvia timezone
       const today = toLatviaTime(new Date());
       console.log(`Today in Latvia timezone: ${formatInLatviaTime(today, "yyyy-MM-dd")}`);
       
-      // For today = Tuesday May 6, the Monday of this week would be May 5
-      // So just need to create a Latvia-timezone version of today's date
-      
-      // Calculate the Monday of the current week
-      // First, get the day of week in Latvia format (0 = Monday, 6 = Sunday)
-      const jsDayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const latvianDayIndex = jsDayOfWeek === 0 ? 6 : jsDayOfWeek - 1;
-      
-      // Calculate the Monday of the current week by subtracting the latvianDayIndex from today
-      // For Tuesday (dayIndex = 1), we subtract 1 to get Monday
-      const mondayDate = new Date(today);
-      mondayDate.setDate(today.getDate() - latvianDayIndex);
-      mondayDate.setHours(0, 0, 0, 0);
-      
+      // Get Latvia day of week (0=Monday, 6=Sunday)
+      const latvianDayIndex = getLatvianDayIndexFromDate(today);
       console.log(`Latvia day of week index: ${latvianDayIndex}`);
+      
+      // Calculate this week's Monday
+      const mondayDate = subDays(today, latvianDayIndex);
       console.log(`This week's Monday: ${formatInLatviaTime(mondayDate, "yyyy-MM-dd")}`);
       
       // Set the new Monday
