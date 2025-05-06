@@ -223,29 +223,24 @@ const BookingCalendar = ({
   
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string | number): boolean => {
-    // Convert the ID to a number if it's a string
+    // We need to normalize the ID for comparison
     const id = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
     
-    // For admin mode, use adminSelectedSlots instead of the booking context
+    // For admin mode, check against adminSelectedSlots
     if (isAdmin) {
-      // Special check for admin mode to handle negative IDs for empty slots
-      const isAdminSelected = adminSelectedSlots.some(slot => {
-        // Debug log for selection
-        if (slot.id === id) {
-          console.log(`Admin slot selected: ${id}`);
-          return true;
-        }
-        return false;
-      });
+      // Directly check if the ID exists in adminSelectedSlots
+      const isAdminSelected = adminSelectedSlots.some(slot => slot.id === id);
+      
+      // Log selection status for debugging 
+      if (isAdminSelected) {
+        console.log(`Admin slot SELECTED: ${id}`);
+      }
       
       return isAdminSelected;
     }
     
     // For regular mode, use the booking context
     const isSelected = selectedTimeSlots.some(slot => slot.id === id);
-    
-    console.log(`Regular isSlotSelected checking id: ${id}, found in selected: ${isSelected}, selected slots: `, 
-                selectedTimeSlots.map(s => s.id));
     
     return isSelected;
   };
@@ -604,8 +599,8 @@ const BookingCalendar = ({
   const getSlotClass = (status: TimeSlotStatus, isSelected: boolean, isPast: boolean = false) => {
     // If admin mode and selected, force use of our special CSS class
     if (isAdmin && isSelected) {
-      // Return the global admin-selected-slot class to override everything else with strong blue styling
-      return "admin-selected-slot border-4 border-blue-500 bg-blue-100 text-blue-900 font-semibold transform scale-105 z-50 shadow-lg";
+      // Use a very prominent style for admin selected slots to ensure they stand out
+      return "!border-4 !border-blue-500 !bg-blue-100 !text-blue-900 !font-semibold !z-50 !shadow-md";
     }
     
     // Handle past slots differently
@@ -844,9 +839,22 @@ const BookingCalendar = ({
                           const endDate = new Date(slotDate);
                           endDate.setMinutes(endDate.getMinutes() + 30);
                           
-                          // Create a temporary ID using negative numbers for empty slots
-                          // Using a formula to generate a unique negative ID
-                          const tempId = -1 * (dayIndex + 1) * (hour + 1) * (minute + 1); // Negative number
+                          // Create a more reliable and unique negative ID for empty slots
+                          // Using day, hour, minute as components in a deterministic formula
+                          const tempId = -1 * ((dayIndex + 1) * 10000 + (hour + 1) * 100 + (minute + 1)); // Negative number
+                          
+                          // The cell key used for React rendering must be unique
+                          // This ensures React doesn't reuse DOM elements incorrectly
+                          const cellKey = `empty-${dayIndex}-${hour}-${minute}`;
+                          
+                          // Check if this specific empty slot is selected (exact ID match)
+                          const isEmptySlotSelected = adminSelectedSlots.some(slot => {
+                            const match = slot.id === tempId;
+                            if (match) {
+                              console.log(`MATCHED: Empty slot ${cellKey} with ID ${tempId} is selected`);
+                            }
+                            return match;
+                          });
                           
                           // Define a function to handle click on the empty slot
                           const handleEmptySlotClick = () => {
@@ -860,19 +868,23 @@ const BookingCalendar = ({
                               storageTimezone: 'UTC'
                             };
                             
+                            console.log(`Empty slot ${cellKey} with ID ${tempId} clicked`);
                             // Pass to the admin handler
                             onAdminSlotSelect(tempSlot);
                           };
                           
+                          // Simplified class handling for empty slots - always use a distinct class name
+                          const emptySlotClasses = isEmptySlotSelected
+                            ? "empty-slot-selected h-14 border-4 border-blue-500 bg-blue-100 text-blue-900 font-semibold z-50 flex items-center justify-center cursor-pointer"
+                            : "empty-slot-unselected h-14 border-r border-b border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer flex items-center justify-center";
+                          
                           // Render a clickable empty slot for admin
                           return (
                             <div 
-                              key={dayIndex} 
-                              className="h-14 border-r border-b border-gray-200
-                                        bg-gray-50 hover:bg-gray-100 
-                                        transition-colors duration-100 cursor-pointer
-                                        flex items-center justify-center"
+                              key={cellKey} 
+                              className={emptySlotClasses}
                               onClick={handleEmptySlotClick}
+                              data-id={tempId}
                             >
                               {isAdmin && (
                                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600">
@@ -887,7 +899,7 @@ const BookingCalendar = ({
                         }
                         
                         // For regular users or non-interactive admin view, show empty cell
-                        return <div key={dayIndex} className="h-14 border-r border-b border-gray-200"></div>;
+                        return <div key={`empty-regular-${dayIndex}-${hour}-${minute}`} className="h-14 border-r border-b border-gray-200"></div>;
                       }
                       
                       // Determine if this slot is "selected" (i.e., in the booking context's selection or admin's selection)
@@ -897,7 +909,7 @@ const BookingCalendar = ({
                         // For admin interface, return the special AdminTimeSlot component
                         return (
                           <AdminTimeSlot
-                            key={dayIndex}
+                            key={`slot-${slot.id}-${dayIndex}`}
                             slot={slot}
                             isSelected={isSelected}
                             getSlotClass={getSlotClass}
@@ -908,7 +920,7 @@ const BookingCalendar = ({
                         // For regular user, show slot with price and selection tracking
                         return (
                           <div
-                            key={dayIndex}
+                            key={`regular-slot-${slot.id}-${dayIndex}`}
                             className={cn(
                               "h-14 border-r border-b border-gray-200 flex flex-col justify-center items-center p-1 relative cursor-pointer",
                               getSlotClass(slot.status, isSelected, !!slot.isPast)
