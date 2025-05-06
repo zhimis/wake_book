@@ -223,20 +223,27 @@ const BookingCalendar = ({
   
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string | number): boolean => {
-    // Convert the ID to a number if it's a string
-    const id = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
+    // Handle both string and number IDs for consistent comparison
+    const stringId = String(uiSlotId);
+    const numericId = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
     
     // For admin mode, use adminSelectedSlots instead of the booking context
-    if (isAdmin) {
-      const isAdminSelected = adminSelectedSlots.some(slot => slot.id === id);
+    if (isAdmin && adminSelectedSlots) {
+      // Try both string and numeric comparison to ensure we catch matches
+      const isAdminSelected = adminSelectedSlots.some(slot => 
+        String(slot.id) === stringId || slot.id === numericId
+      );
+      
+      // Log for debugging selected slots
+      console.log(`Admin isSlotSelected checking id: ${stringId}, numeric: ${numericId}, selected:`, isAdminSelected);
+      
       return isAdminSelected;
     }
     
     // For regular mode, use the booking context
-    const isSelected = selectedTimeSlots.some(slot => slot.id === id);
-    
-    console.log(`Regular isSlotSelected checking id: ${id}, found in selected: ${isSelected}, selected slots: `, 
-                selectedTimeSlots.map(s => s.id));
+    const isSelected = selectedTimeSlots.some(slot => 
+      String(slot.id) === stringId || slot.id === numericId
+    );
     
     return isSelected;
   };
@@ -781,7 +788,7 @@ const BookingCalendar = ({
         ) : (
           <>
             {/* Calendar Grid */}
-            <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border border-gray-200 rounded">
+            <div className="grid grid-cols-[auto_repeat(7,minmax(0,1fr))] gap-0 border border-gray-200 rounded">
               {/* Column Headers */}
               <div className="p-2 border-r border-gray-200"></div>
               {days.map((day, i) => (
@@ -859,10 +866,12 @@ const BookingCalendar = ({
                           return (
                             <div 
                               key={dayIndex} 
-                              className="h-14 border-r border-b border-gray-200
-                                        bg-gray-50 hover:bg-gray-100 
-                                        transition-colors duration-100 cursor-pointer
-                                        flex items-center justify-center"
+                              className={cn(
+                                "h-14 border-r border-b border-gray-200 flex items-center justify-center cursor-pointer transition-all duration-100",
+                                isSlotSelected(tempId) ? 
+                                  "bg-blue-100 border-blue-500 border-4 shadow-md" : 
+                                  "bg-gray-50 hover:bg-gray-100"
+                              )}
                               onClick={handleEmptySlotClick}
                             >
                               {isAdmin && (
