@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -244,6 +244,9 @@ const AdminStatistics = () => {
       <Card>
         <CardHeader>
           <CardTitle>Booking Distribution by Day</CardTitle>
+          <CardDescription>
+            Distribution of booked time slots across days of the week (percentage of total booked slots)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <BarChart data={bookingByDayData} />
@@ -254,6 +257,9 @@ const AdminStatistics = () => {
       <Card>
         <CardHeader>
           <CardTitle>Popular Time Slots</CardTitle>
+          <CardDescription>
+            Most frequently booked time slots by hour (with booking count and percentage)
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {data.popularTimeSlots.length > 0 ? (
@@ -263,6 +269,7 @@ const AdminStatistics = () => {
                 label={slot.time}
                 value={`${slot.percentage.toFixed(0)}%`}
                 percentage={slot.percentage}
+                count={slot.count}
               />
             ))
           ) : (
