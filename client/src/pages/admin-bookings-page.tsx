@@ -2,8 +2,6 @@ import AdminCalendarView from "@/components/admin/calendar-view";
 import AdminLayout from "@/components/admin/admin-layout";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 
 const AdminBookingsPage = () => {
   const [location, navigate] = useLocation();
@@ -23,20 +21,6 @@ const AdminBookingsPage = () => {
   return (
     <AdminLayout>
       <div className="p-6">
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-2"
-            onClick={() => navigate("/admin/dashboard")}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back to Dashboard
-          </Button>
-          <h1 className="text-2xl font-bold">Booking Management</h1>
-        </div>
-        
-        {/* This is the original AdminCalendarView component */}
         <AdminCalendarView />
       </div>
     </AdminLayout>
