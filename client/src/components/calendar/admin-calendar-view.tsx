@@ -188,7 +188,7 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
           id: -Math.floor(Math.random() * 1000000), // Temporary negative ID
           startTime: actionDate, // Store as Date object
           endTime: tempEndTime, // Store as Date object
-          status: 'empty',
+          status: 'empty' as 'available', // Type assertion to make TypeScript happy
           price: 0,
           storageTimezone: 'UTC'
         };
@@ -257,7 +257,7 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
     minute: number
   ) => {
     // Determine the status-based styling
-    let statusClass = "bg-gray-100 border-dashed border-2 border-gray-300"; // No slot
+    let statusClass = "bg-gray-50 border-dashed border-2 border-gray-300 hover:bg-gray-100 hover:border-blue-400 hover:scale-105 transition-all duration-150"; // No slot - more interactive now
     let statusText = "";
     let showDropdown = false;
     
@@ -285,6 +285,12 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
             ? "bg-gray-400 hover:bg-gray-500 border-2 border-gray-600" 
             : "bg-gray-200 hover:bg-gray-300 border border-gray-400";
           statusText = "Blocked";
+          break;
+        case 'empty':
+          statusClass = isSelected 
+            ? "bg-blue-300 hover:bg-blue-400 border-2 border-blue-600" 
+            : "bg-blue-50 hover:bg-blue-100 border-dashed border-2 border-blue-300";
+          statusText = "Empty";
           break;
         default:
           statusClass = isSelected 
@@ -399,7 +405,12 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
             )}
           </>
         ) : (
-          <div className="text-xs text-gray-400">Create</div>
+          <>
+            <div className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200">Create Slot</div>
+            {enableMultiSelect && (
+              <div className="absolute bottom-1 right-1 text-[0.6rem] text-gray-400">Click to select</div>
+            )}
+          </>
         )}
       </div>
     );
@@ -504,6 +515,16 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
 
   return (
     <div>
+      {/* Info message for empty slots when in multi-select mode */}
+      {enableMultiSelect && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+          <p className="text-blue-800 font-medium mb-1">Multi-select mode active</p>
+          <p className="text-blue-600 text-xs">
+            You can select both existing slots and empty grid cells. Empty cells will be created when you apply an action.
+          </p>
+        </div>
+      )}
+      
       <BaseCalendarGrid 
         viewMode="admin"
         renderSlotCell={renderTimeSlotCell}
@@ -515,6 +536,19 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
       {enableMultiSelect && selectedSlots.length > 0 && (
         <div className="mt-4 p-4 bg-slate-50 rounded-md border">
           <h3 className="text-sm font-medium mb-3">Bulk Actions for {selectedSlots.length} Selected Slot{selectedSlots.length !== 1 ? 's' : ''}</h3>
+          
+          {/* Selection summary */}
+          <div className="mb-3 text-xs">
+            <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded mr-2">
+              {selectedSlots.filter(s => s.id > 0).length} existing slots
+            </span>
+            {selectedSlots.some(s => s.id < 0) && (
+              <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                {selectedSlots.filter(s => s.id < 0).length} empty cells
+              </span>
+            )}
+          </div>
+          
           <div className="flex flex-wrap gap-2">
             <Button 
               variant="outline" 
