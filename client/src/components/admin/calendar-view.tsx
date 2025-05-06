@@ -577,11 +577,16 @@ const AdminCalendarView = () => {
     const today = toLatviaTime(new Date());
     
     // Use current range as base for navigation
+    // In admin view, currentDateRange.start is Sunday (1 day before Monday)
+    // So adjust by adding 1 day to get Monday as our reference point
     const currentStart = toLatviaTime(currentDateRange.start);
+    const adjustedCurrentStart = addDays(currentStart, 1); // Adjust for the -1 day offset
     
-    // Calculate first day of the week (Monday) from current date
-    const latvianDayIndex = getLatvianDayIndexFromDate(currentStart);
-    const currentMonday = addDays(currentStart, -latvianDayIndex);
+    // Calculate current Monday precisely
+    const latvianDayIndex = getLatvianDayIndexFromDate(adjustedCurrentStart);
+    const currentMonday = addDays(adjustedCurrentStart, -latvianDayIndex);
+    
+    console.log(`Current monday calculated as: ${formatInLatviaTime(currentMonday, "yyyy-MM-dd")}`);
     
     let newMonday;
     
@@ -594,10 +599,14 @@ const AdminCalendarView = () => {
       // Navigate to previous week (7 days backward)
       newMonday = addDays(currentMonday, -7);
       console.log(`Navigating to previous week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
-    } else {
+    } else if (direction === 'next') {
       // Navigate to next week (7 days forward)
       newMonday = addDays(currentMonday, 7);
       console.log(`Navigating to next week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
+    } else {
+      console.error("Invalid navigation direction:", direction);
+      isUpdatingRef.current = false;
+      return;
     }
     
     // Calculate end of week (Sunday)
@@ -613,6 +622,8 @@ const AdminCalendarView = () => {
     // Store formatted versions for lookup
     const startLatvia = formatInLatviaTime(newAdminStart, "yyyy-MM-dd");
     const endLatvia = formatInLatviaTime(newSunday, "yyyy-MM-dd");
+    
+    console.log(`Setting new date range: ${startLatvia} to ${endLatvia}`);
     
     // Store in lastDateRef to prevent duplicate updates
     lastDateRef.current = {
