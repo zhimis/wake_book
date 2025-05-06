@@ -793,11 +793,7 @@ const AdminCalendarView = () => {
         getBookingDetailsForSlot();
       }
     } else {
-      // For available or unallocated slots: Add to selection
-      
-      // Clear all current selections first 
-      // This ensures only one slot is selected at a time
-      setSelectedTimeSlots([]);
+      // For available or unallocated slots: Toggle selection
       
       // Create a copy of the time slot with added original date information
       // This ensures the UI shows the date from the current week's display
@@ -808,16 +804,39 @@ const AdminCalendarView = () => {
         originalEndTime: timeSlot.endTime
       };
       
-      // Set this single slot as the selected one
-      console.log(`Setting single selected slot: ${timeSlot.id}`);
-      setSelectedTimeSlots([slotWithOriginalDates]);
-      
-      // Show feedback toast
-      toast({
-        title: "Time Slot Selected",
-        description: `Selected slot on ${timeSlot.startTime.toLocaleDateString()} at ${timeSlot.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
-        variant: "default",
+      // Check if this slot is already selected (to toggle it off if needed)
+      const slotNumericId = typeof timeSlot.id === 'string' ? parseInt(timeSlot.id) : timeSlot.id;
+      const isAlreadySelected = selectedTimeSlots.some(slot => {
+        const selectedNumericId = typeof slot.id === 'string' ? parseInt(slot.id) : slot.id;
+        return selectedNumericId === slotNumericId;
       });
+      
+      if (isAlreadySelected) {
+        // Remove from selection if already selected
+        console.log(`Removing slot ${timeSlot.id} from selection`);
+        setSelectedTimeSlots(prev => 
+          prev.filter(slot => {
+            const selectedNumericId = typeof slot.id === 'string' ? parseInt(slot.id) : slot.id;
+            return selectedNumericId !== slotNumericId;
+          })
+        );
+        
+        toast({
+          title: "Selection Removed",
+          description: `Removed slot on ${timeSlot.startTime.toLocaleDateString()} at ${timeSlot.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+          variant: "default",
+        });
+      } else {
+        // Add to selection
+        console.log(`Adding slot ${timeSlot.id} to selection`);
+        setSelectedTimeSlots(prev => [...prev, slotWithOriginalDates]);
+        
+        toast({
+          title: "Time Slot Selected",
+          description: `Added slot on ${timeSlot.startTime.toLocaleDateString()} at ${timeSlot.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+          variant: "default",
+        });
+      }
     }
   };
   
