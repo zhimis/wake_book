@@ -17,15 +17,12 @@ const Header = () => {
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 pt-4 pb-0 flex justify-between items-center">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center">
           <Link href="/">
             <div className="flex items-center cursor-pointer">
               <img src={hiWakeLogo} alt="Hi Wake 2.0" className="h-16 w-auto" />
             </div>
           </Link>
-          
-          {/* Navigation Menu Component */}
-          <NavigationMenu isAdmin={!!user} />
         </div>
         
         <div className="flex items-center space-x-4">
@@ -48,9 +45,12 @@ const Header = () => {
           
           {!user && (
             <Link href="/admin/login">
-              <span className="hidden md:block text-black font-semibold cursor-pointer">Admin</span>
+              <span className="hidden md:block text-black font-semibold cursor-pointer mr-4">Admin</span>
             </Link>
           )}
+          
+          {/* Navigation Menu Component - moved to the right */}
+          <NavigationMenu isAdmin={!!user} />
         </div>
       </div>
     </header>
