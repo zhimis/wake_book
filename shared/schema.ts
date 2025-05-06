@@ -2,6 +2,28 @@ import { pgTable, text, serial, integer, boolean, timestamp, time, real } from "
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+/**
+ * Generate a consistent, universal ID for any time slot based on its date/time.
+ * This function ensures that any slot for the same time period will have the same ID,
+ * regardless of whether it's from the database or an empty slot being created dynamically.
+ * 
+ * @param date The date and time of the slot (start time)
+ * @param duration The duration of the slot in minutes (default: 30)
+ * @param useUTC Whether to use UTC time (default: true)
+ * @returns A string ID in the format YYYYMMDD-HHMM-DUR
+ */
+export function generateTimeSlotId(date: Date, duration: number = 30, useUTC: boolean = true): string {
+  // Extract date components based on whether we use UTC or local time
+  const year = useUTC ? date.getUTCFullYear() : date.getFullYear();
+  const month = useUTC ? date.getUTCMonth() : date.getMonth(); // 0-11
+  const day = useUTC ? date.getUTCDate() : date.getDate(); // 1-31
+  const hour = useUTC ? date.getUTCHours() : date.getHours(); // 0-23
+  const minute = useUTC ? date.getUTCMinutes() : date.getMinutes(); // 0-59
+  
+  // Format: YYYYMMDD-HHMM-DUR (duration in minutes)
+  return `${year}${(month + 1).toString().padStart(2, '0')}${day.toString().padStart(2, '0')}-${hour.toString().padStart(2, '0')}${minute.toString().padStart(2, '0')}-${duration}`;
+}
+
 // User table (admin users)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
