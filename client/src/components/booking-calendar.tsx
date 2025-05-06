@@ -164,28 +164,58 @@ const BookingCalendar = ({
   };
   
   const goToToday = () => {
+    // ENHANCED DEBUG: Log detailed info about Today button handling
+    console.log("=== TODAY BUTTON PRESSED (BOOKING-CALENDAR) ===");
+    console.log(`Component settings: isAdmin=${isAdmin}, hasCustomNav=${!!customNavigation}`);
+    
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
     
+    // Get the actual current date (server time)
+    const serverNow = new Date();
+    console.log(`Server time now: ${serverNow.toISOString()}`);
+    
     // Use current date but ensure it's consistent with our timezone handling
     const todayInLatvia = toLatviaTime(new Date());
+    console.log(`Today in Latvia timezone: ${todayInLatvia.toISOString()}`);
+    console.log(`Today in Latvia (formatted): ${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}`);
+    
+    // Get day of week as JavaScript normally sees it
+    const jsDayOfWeek = todayInLatvia.getDay(); // 0-6, 0=Sunday
+    console.log(`JavaScript day of week: ${jsDayOfWeek} (0=Sun, 6=Sat)`);
     
     // Get Latvia day of week (0=Monday, 6=Sunday)
     const latvianDayIndex = getLatvianDayIndexFromDate(todayInLatvia);
+    console.log(`Latvia day of week: ${latvianDayIndex} (0=Mon, 6=Sun)`);
     
     // Calculate Monday of this week by subtracting the day index
     const thisMonday = subDays(todayInLatvia, latvianDayIndex);
+    console.log(`Monday of current week: ${thisMonday.toISOString()}`);
+    console.log(`Monday of current week (formatted): ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`);
     
     // Update the current date to this week's Monday
     setCurrentDate(thisMonday);
+    console.log(`Set current date to: ${thisMonday.toISOString()}`);
     
     // If onDateRangeChange is provided, notify parent directly to ensure sync
     if (onDateRangeChange) {
       // Calculate end date (Sunday)
       const thisSunday = addDays(thisMonday, 6);
+      console.log(`End of week (Sunday): ${thisSunday.toISOString()}`);
+      console.log(`End of week (formatted): ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
       
       // For admin view, include the day before Monday
       const adminStartDate = isAdmin ? subDays(thisMonday, 1) : thisMonday;
+      console.log(`Admin view, using modified start date: ${adminStartDate.toISOString()}`);
+      console.log(`Admin start (formatted): ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}`);
+      
+      // Extra debug for admin view
+      if (isAdmin) {
+        console.log(`ADMIN VIEW DATE RANGE:`);
+        console.log(`Start (Sunday): ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}`);
+        console.log(`Monday: ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`);
+        console.log(`End (Sunday): ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
+      }
       
       // Ensure both calendar and parent are in sync immediately
       console.log(`BookingCalendar: Going to today (${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}) - Monday: ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`);
