@@ -594,32 +594,52 @@ const AdminCalendarView = () => {
     let newMonday;
     
     if (direction === 'today') {
-      console.log("TODAY BUTTON PRESSED - FORCING CURRENT WEEK");
+      console.log("TODAY BUTTON PRESSED - CALCULATING CURRENT WEEK");
       
-      // CRITICAL FIX - HARD CODE THE CURRENT WEEK'S MONDAY
-      // Based on the current date (May 6, 2025), the Monday of this week is May 5, 2025
-      const hardCodedMonday = new Date(2025, 4, 5); // May 5, 2025 (month is 0-based)
-      hardCodedMonday.setHours(0, 0, 0, 0);
+      // We need to properly calculate the current week's Monday based on the REAL today's date
+      const realToday = new Date(); // Get the actual current date
       
-      console.log(`HARDCODED Monday for dev testing: ${hardCodedMonday.toISOString()}`);
+      // Log the raw dates for debugging
+      console.log(`Raw today date from system: ${realToday.toISOString()}`);
       
-      // Set this as our new Monday
-      newMonday = hardCodedMonday;
+      // Convert to Latvia timezone for consistent day-of-week calculation
+      const todayInLatvia = toLatviaTime(realToday);
+      console.log(`Today in Latvia timezone: ${todayInLatvia.toISOString()}`);
       
-      // Also log some diagnostics about the actual current date calculation
-      const actualToday = toLatviaTime(new Date());
-      const jsDayOfWeek = actualToday.getDay();
+      // Get the day of week (0 = Sunday, 1 = Monday, etc.)
+      const jsDayOfWeek = todayInLatvia.getDay();
+      console.log(`JavaScript day of week: ${jsDayOfWeek} (0=Sun, 6=Sat)`);
+      
+      // Convert to Latvia day index (0 = Monday, 6 = Sunday)
       const latvianDayIndex = jsDayOfWeek === 0 ? 6 : jsDayOfWeek - 1;
+      console.log(`Latvia day index: ${latvianDayIndex} (0=Mon, 6=Sun)`);
       
-      console.log(`For reference - actual today: ${formatInLatviaTime(actualToday, "yyyy-MM-dd")}`);
-      console.log(`JavasScript day of week: ${jsDayOfWeek}`);
-      console.log(`Latvia day index: ${latvianDayIndex}`);
-      console.log(`Calculated Monday would be: ${formatInLatviaTime(addDays(actualToday, -latvianDayIndex), "yyyy-MM-dd")}`);
+      // Create a NEW date object for Monday of current week
+      // Don't modify the original date to avoid time zone issues
+      const thisWeekMonday = new Date(todayInLatvia);
       
-      // Force verification of admin date calculations
-      const adminStartDate = subDays(newMonday, 1); // Sunday
-      console.log(`Admin calendar start (Sunday): ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}`);
-      console.log(`Admin calendar end (Sunday): ${formatInLatviaTime(addDays(newMonday, 6), "yyyy-MM-dd")}`);
+      // Subtract the Latvia day index to get to Monday
+      // E.g., if today is Wednesday (Latvia index 2), subtract 2 days to get to Monday
+      thisWeekMonday.setDate(todayInLatvia.getDate() - latvianDayIndex);
+      
+      // Set to start of day to avoid time-of-day issues
+      thisWeekMonday.setHours(0, 0, 0, 0);
+      
+      console.log(`Calculated Monday of current week: ${thisWeekMonday.toISOString()}`);
+      console.log(`Formatted Latvia Monday: ${formatInLatviaTime(thisWeekMonday, "yyyy-MM-dd")}`);
+      
+      // This is our new reference date
+      newMonday = thisWeekMonday;
+      
+      // Calculate calendar view dates
+      const endOfWeek = addDays(newMonday, 6); // Sunday
+      const adminStartDate = subDays(newMonday, 1); // Sunday before Monday
+      
+      console.log(`Admin view date range:
+        Start (Sunday): ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}
+        Monday: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}
+        End (Sunday): ${formatInLatviaTime(endOfWeek, "yyyy-MM-dd")}
+      `);
     } else if (direction === 'prev') {
       // Navigate to previous week (7 days backward)
       newMonday = addDays(currentMonday, -7);
