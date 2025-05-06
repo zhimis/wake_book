@@ -182,8 +182,15 @@ export function setupAuth(app: Express) {
   app.get("/api/users", requireRole(["admin", "manager"]), async (req, res) => {
     try {
       const users = await storage.getAllUsers();
+      
+      // If user is manager, filter out admin users
+      let filteredUsers = users;
+      if (req.user.role === 'manager') {
+        filteredUsers = users.filter(user => user.role !== 'admin');
+      }
+      
       // Don't send passwords to client
-      const safeUsers = users.map(user => {
+      const safeUsers = filteredUsers.map(user => {
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
       });
