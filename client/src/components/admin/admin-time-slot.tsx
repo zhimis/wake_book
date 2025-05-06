@@ -93,25 +93,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     }
   };
 
-  // Get selected state style (using different approach to work around styling issues)
-  const getSelectedStyle = (): CSSProperties => {
-    if (isSelected && slot.status !== 'booked') {
-      return {
-        position: 'relative' as const,
-        background: '#e0f2fe', // light blue background
-        boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)', // blue shadow
-        zIndex: 10,
-        borderColor: '#3b82f6', // blue border
-        borderWidth: '2px',
-        fontWeight: 600,
-        transform: 'scale(1.05)', // slightly larger
-        transition: 'all 0.2s ease'
-      };
-    }
-    return {};
-  };
-
-  // Base style for the div
+  // Base style for the div - always applied
   const baseStyle: CSSProperties = {
     height: '56px',
     display: 'flex',
@@ -120,19 +102,13 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     flexDirection: 'column',
   };
 
-  // Combined style
-  const combinedStyle: CSSProperties = {
-    ...baseStyle,
-    ...getSelectedStyle()
-  };
-
   return (
     <div 
       className={cn(
         "relative cursor-pointer rounded-md border",
         externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
       )} 
-      style={combinedStyle}
+      style={baseStyle}
       onClick={() => onToggle(slot.id.toString(), slot.status as TimeSlotStatus)}
     >
       <div className="text-center w-full flex flex-col items-center justify-center">

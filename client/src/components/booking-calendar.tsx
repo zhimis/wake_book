@@ -595,8 +595,8 @@ const BookingCalendar = ({
   const getSlotClass = (status: TimeSlotStatus, isSelected: boolean, isPast: boolean = false) => {
     // If admin mode and selected, force use of our special CSS class
     if (isAdmin && isSelected) {
-      // Return the global admin-selected-slot class to override everything else with more subtle styling
-      return "admin-selected-slot border-2 border-red-400 bg-red-100 text-red-900 font-semibold transform scale-105 z-50 shadow-md";
+      // Return the global admin-selected-slot class to override everything else with strong blue styling
+      return "admin-selected-slot border-4 border-blue-500 bg-blue-100 text-blue-900 font-semibold transform scale-105 z-50 shadow-lg";
     }
     
     // Handle past slots differently
