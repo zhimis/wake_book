@@ -174,22 +174,46 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
         });
       }
     } else {
-      // If no slot exists, offer to create one
+      // Handle empty slots
       const actionDate = new Date(dayDate);
       actionDate.setHours(hour, minute, 0, 0);
       
-      toast({
-        title: "No time slot exists",
-        description: "Do you want to create a time slot here?",
-        action: (
-          <Button
-            size="sm"
-            onClick={() => generateSlotMutation.mutate({ date: actionDate, hour, minute })}
-          >
-            Create
-          </Button>
-        ),
-      });
+      if (enableMultiSelect) {
+        // In multi-select mode, create a temporary time slot for this empty cell
+        const tempEndTime = new Date(actionDate);
+        tempEndTime.setMinutes(tempEndTime.getMinutes() + 30); // 30 min slot
+        
+        const tempSlot: TimeSlot = {
+          id: -Math.floor(Math.random() * 1000000), // Temporary negative ID
+          startTime: actionDate.toISOString(),
+          endTime: tempEndTime.toISOString(),
+          status: 'empty',
+          price: 0,
+          storageTimezone: 'UTC'
+        };
+        
+        // Add to selection
+        const updatedSelection = [...selectedSlots, tempSlot];
+        setSelectedSlots(updatedSelection);
+        
+        if (onSlotsSelected) {
+          onSlotsSelected(updatedSelection);
+        }
+      } else {
+        // If not in multi-select mode, offer to create a new slot
+        toast({
+          title: "No time slot exists",
+          description: "Do you want to create a time slot here?",
+          action: (
+            <Button
+              size="sm"
+              onClick={() => generateSlotMutation.mutate({ date: actionDate, hour, minute })}
+            >
+              Create
+            </Button>
+          ),
+        });
+      }
     }
   }, [toast, generateSlotMutation, enableMultiSelect, selectedSlots, onSlotsSelected]);
 
@@ -384,48 +408,38 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
   const handleBulkBlock = useCallback(() => {
     if (selectedSlots.length === 0) return;
     
+    // Count how many real slots (positive ids) and empty slots (negative ids) we have
+    const realSlots = selectedSlots.filter(slot => slot.id > 0);
+    const emptySlots = selectedSlots.filter(slot => slot.id < 0);
+    
+    let actionDescription = `Are you sure you want to block ${realSlots.length} slot(s)?`;
+    if (emptySlots.length > 0) {
+      actionDescription += ` ${emptySlots.length} empty slot(s) will be created and blocked.`;
+    }
+    
     toast({
       title: "Block multiple slots?",
-      description: `Are you sure you want to block ${selectedSlots.length} slot(s)?`,
+      description: actionDescription,
       action: (
         <Button 
           variant="destructive" 
           size="sm" 
           onClick={() => {
-            // Process each slot sequentially
-            selectedSlots.forEach(slot => {
+            // Process each real slot sequentially
+            realSlots.forEach(slot => {
               if (slot.status !== 'blocked') {
                 blockSlotMutation.mutate(slot.id);
               }
             });
             
-            // Clear selection after processing
-            setSelectedSlots([]);
-            if (onSlotsSelected) onSlotsSelected([]);
-          }}
-        >
-          Confirm
-        </Button>
-      ),
-    });
-  }, [selectedSlots, blockSlotMutation, toast, onSlotsSelected]);
-
-  const handleBulkMakeAvailable = useCallback(() => {
-    if (selectedSlots.length === 0) return;
-    
-    toast({
-      title: "Make slots available?",
-      description: `Are you sure you want to make ${selectedSlots.length} slot(s) available?`,
-      action: (
-        <Button 
-          variant="default" 
-          size="sm" 
-          onClick={() => {
-            // Process each slot sequentially
-            selectedSlots.forEach(slot => {
-              if (slot.status !== 'available' && slot.status !== 'booked') {
-                makeAvailableMutation.mutate(slot.id);
-              }
+            // Create and block each empty slot
+            emptySlots.forEach(slot => {
+              const startDate = new Date(slot.startTime);
+              generateSlotMutation.mutate({
+                date: startDate,
+                hour: startDate.getHours(),
+                minute: startDate.getMinutes()
+              });
             });
             
             // Clear selection after processing
@@ -437,7 +451,55 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
         </Button>
       ),
     });
-  }, [selectedSlots, makeAvailableMutation, toast, onSlotsSelected]);
+  }, [selectedSlots, blockSlotMutation, generateSlotMutation, toast, onSlotsSelected]);
+
+  const handleBulkMakeAvailable = useCallback(() => {
+    if (selectedSlots.length === 0) return;
+    
+    // Count how many real slots (positive ids) and empty slots (negative ids) we have
+    const realSlots = selectedSlots.filter(slot => slot.id > 0);
+    const emptySlots = selectedSlots.filter(slot => slot.id < 0);
+    
+    let actionDescription = `Are you sure you want to make ${realSlots.length} slot(s) available?`;
+    if (emptySlots.length > 0) {
+      actionDescription += ` ${emptySlots.length} empty slot(s) will be created and made available.`;
+    }
+    
+    toast({
+      title: "Make slots available?",
+      description: actionDescription,
+      action: (
+        <Button 
+          variant="default" 
+          size="sm" 
+          onClick={() => {
+            // Process each real slot sequentially
+            realSlots.forEach(slot => {
+              if (slot.status !== 'available' && slot.status !== 'booked') {
+                makeAvailableMutation.mutate(slot.id);
+              }
+            });
+            
+            // Create and make available each empty slot
+            emptySlots.forEach(slot => {
+              const startDate = new Date(slot.startTime);
+              generateSlotMutation.mutate({
+                date: startDate,
+                hour: startDate.getHours(),
+                minute: startDate.getMinutes()
+              });
+            });
+            
+            // Clear selection after processing
+            setSelectedSlots([]);
+            if (onSlotsSelected) onSlotsSelected([]);
+          }}
+        >
+          Confirm
+        </Button>
+      ),
+    });
+  }, [selectedSlots, makeAvailableMutation, generateSlotMutation, toast, onSlotsSelected]);
 
   return (
     <div>
