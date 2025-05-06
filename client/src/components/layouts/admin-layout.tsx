@@ -1,5 +1,4 @@
 import React, { ReactNode } from "react";
-import Header from "@/components/header";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { 
@@ -31,8 +30,6 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-      <Header />
-      
       <div className="flex-1 flex">
         {/* Desktop sidebar */}
         <nav className="hidden md:flex w-64 flex-col border-r p-4 bg-white dark:bg-gray-800">
@@ -40,31 +37,23 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             <div className="text-sm font-semibold mb-2 text-gray-500">Admin</div>
             <ul className="space-y-1">
               <li>
-                <Link href="/admin">
-                  <a className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                    Dashboard
-                  </a>
+                <Link href="/admin" className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                  Dashboard
                 </Link>
               </li>
               <li>
-                <Link href="/admin/calendar">
-                  <a className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                    Calendar
-                  </a>
+                <Link href="/admin/calendar" className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                  Calendar
                 </Link>
               </li>
               <li>
-                <Link href="/admin/system-config">
-                  <a className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                    System Config
-                  </a>
+                <Link href="/admin/system-config" className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                  System Config
                 </Link>
               </li>
               <li>
-                <Link href="/admin/users">
-                  <a className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                    User Management
-                  </a>
+                <Link href="/admin/users" className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                  User Management
                 </Link>
               </li>
 
@@ -98,46 +87,41 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
               <div className="flex-1 overflow-auto">
                 <ul className="p-4 space-y-2">
                   <li>
-                    <Link href="/admin">
-                      <a 
-                        className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setOpen(false)}
-                      >
-                        Dashboard
-                      </a>
+                    <Link 
+                      href="/admin" 
+                      className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setOpen(false)}
+                    >
+                      Dashboard
                     </Link>
                   </li>
                   <li>
-                    <Link href="/admin/calendar">
-                      <a 
-                        className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setOpen(false)}
-                      >
-                        Calendar
-                      </a>
+                    <Link 
+                      href="/admin/calendar" 
+                      className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setOpen(false)}
+                    >
+                      Calendar
                     </Link>
                   </li>
                   <li>
-                    <Link href="/admin/system-config">
-                      <a 
-                        className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setOpen(false)}
-                      >
-                        System Config
-                      </a>
+                    <Link 
+                      href="/admin/system-config" 
+                      className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setOpen(false)}
+                    >
+                      System Config
                     </Link>
                   </li>
                   <li>
-                    <Link href="/admin/users">
-                      <a 
-                        className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setOpen(false)}
-                      >
-                        User Management
-                      </a>
+                    <Link 
+                      href="/admin/users" 
+                      className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setOpen(false)}
+                    >
+                      User Management
                     </Link>
                   </li>
-
                 </ul>
               </div>
               <div className="p-4 border-t mt-auto">
