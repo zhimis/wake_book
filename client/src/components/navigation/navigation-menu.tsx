@@ -64,38 +64,59 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
     }
   ];
 
-  // Admin navigation items (only available to admin users)
-  const adminNavigationItems: NavigationItem[] = [
-    {
-      name: "Dashboard",
-      path: "/admin/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5 mr-2" />
-    },
-    {
-      name: "Bookings",
-      path: "/admin/bookings",
-      icon: <Calendar className="h-5 w-5 mr-2" />
-    },
-    {
-      name: "Configuration",
-      path: "/admin/system-config",
-      icon: <Settings className="h-5 w-5 mr-2" />
-    },
-    {
-      name: "Users",
-      path: "/admin/users",
-      icon: <Users className="h-5 w-5 mr-2" />
-    },
-    {
-      name: "Statistics",
-      path: "/admin",
-      icon: <BarChart2 className="h-5 w-5 mr-2" />,
-      onClick: () => {
-        localStorage.setItem("adminActiveTab", "statistics");
-        navigate("/admin");
-      }
+  // Common admin navigation items (for all admin roles)
+  const dashboardItem = {
+    name: "Dashboard",
+    path: "/admin/dashboard",
+    icon: <LayoutDashboard className="h-5 w-5 mr-2" />
+  };
+  
+  const bookingsItem = {
+    name: "Bookings",
+    path: "/admin/bookings",
+    icon: <Calendar className="h-5 w-5 mr-2" />
+  };
+  
+  const configItem = {
+    name: "Configuration",
+    path: "/admin/system-config",
+    icon: <Settings className="h-5 w-5 mr-2" />
+  };
+  
+  const usersItem = {
+    name: "Users",
+    path: "/admin/users",
+    icon: <Users className="h-5 w-5 mr-2" />
+  };
+  
+  const statsItem = {
+    name: "Statistics",
+    path: "/admin",
+    icon: <BarChart2 className="h-5 w-5 mr-2" />,
+    onClick: () => {
+      localStorage.setItem("adminActiveTab", "statistics");
+      navigate("/admin");
     }
-  ];
+  };
+  
+  // Role-based navigation items
+  const getRoleNavigationItems = (role: string): NavigationItem[] => {
+    switch (role) {
+      case 'admin':
+        return [dashboardItem, bookingsItem, configItem, usersItem, statsItem];
+      case 'manager':
+        return [dashboardItem, bookingsItem, configItem, usersItem, statsItem];
+      case 'operator':
+        return [dashboardItem, bookingsItem, configItem, statsItem];
+      case 'athlete':
+        return [dashboardItem];
+      default:
+        return [dashboardItem];
+    }
+  };
+  
+  // Get navigation items based on user role (defaulting to empty array if no user)
+  const adminNavigationItems = user && user.role ? getRoleNavigationItems(user.role) : [];
 
   // Check if an item is active (currently selected)
   const isActive = (item: NavigationItem) => {
@@ -136,7 +157,7 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
             <>
               <Separator className="my-2" />
               <div className="text-xs uppercase text-muted-foreground px-4 pb-2">
-                Admin
+                {user && user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin'}
               </div>
               {adminNavigationItems.map((item) => (
                 <SheetClose key={item.name} asChild>

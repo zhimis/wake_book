@@ -7,9 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import AdminCreateBooking from "@/components/admin/admin-create-booking";
+import { useAuth } from "@/hooks/use-auth";
 
 const AdminDashboardPage = () => {
   const [location, navigate] = useLocation();
+  const { user } = useAuth();
   
   // Check if coming from URL with activeTab parameter
   useEffect(() => {
@@ -47,7 +49,14 @@ const AdminDashboardPage = () => {
     <AdminLayout>
       <div className="px-1 py-2 sm:p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <div>
+            <h1 className="text-2xl font-bold">
+              {user && user.role ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard` : 'Dashboard'}
+            </h1>
+            {user && user.firstName && (
+              <p className="text-sm text-muted-foreground">Welcome, {user.firstName}</p>
+            )}
+          </div>
           <div className="hidden md:flex space-x-2">
             <Button
               variant="outline"
@@ -152,68 +161,53 @@ const AdminDashboardPage = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Calendar View (using the public calendar component) */}
-          <div className="col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Availability Calendar</CardTitle>
-                <CardDescription>View booking availability for the current week</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BookingCalendar />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Bookings */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Bookings</CardTitle>
-                <CardDescription>Latest booking activity</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingBookings ? (
-                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {recentBookings?.slice(0, 5).map((booking: any) => (
-                      <div 
-                        key={booking.id} 
-                        className="p-2 border rounded flex justify-between items-center hover:bg-gray-50 cursor-pointer"
-                        onClick={() => navigate(`/admin/bookings?reference=${booking.reference}`)}
-                      >
-                        <div>
-                          <div className="font-medium">{booking.customerName}</div>
-                          <div className="text-xs text-muted-foreground">{new Date(booking.createdAt).toLocaleDateString()}</div>
-                        </div>
-                        <div className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {booking.reference.slice(0, 8)}
-                        </div>
+        {/* Recent Bookings Card - Full Width */}
+        <div className="grid grid-cols-1 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Bookings</CardTitle>
+              <CardDescription>Latest booking activity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingBookings ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-12 bg-gray-100 animate-pulse rounded" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {recentBookings?.slice(0, 6).map((booking: any) => (
+                    <div 
+                      key={booking.id} 
+                      className="p-3 border rounded flex justify-between items-center hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/admin/bookings?reference=${booking.reference}`)}
+                    >
+                      <div>
+                        <div className="font-medium">{booking.customerName}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(booking.createdAt).toLocaleDateString()}</div>
                       </div>
-                    ))}
-                    {(!recentBookings || recentBookings.length === 0) && (
-                      <div className="text-muted-foreground text-center py-4">No recent bookings</div>
-                    )}
-                  </div>
-                )}
-                {!isLoadingBookings && recentBookings?.length > 0 && (
-                  <Button
-                    variant="link"
-                    className="mt-2 w-full"
-                    onClick={() => navigate("/admin/bookings")}
-                  >
-                    View All Bookings
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                      <div className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {booking.reference.slice(0, 8)}
+                      </div>
+                    </div>
+                  ))}
+                  {(!recentBookings || recentBookings.length === 0) && (
+                    <div className="text-muted-foreground text-center py-4 col-span-3">No recent bookings</div>
+                  )}
+                </div>
+              )}
+              {!isLoadingBookings && recentBookings?.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="mt-4 mx-auto block"
+                  onClick={() => navigate("/admin/bookings")}
+                >
+                  View All Bookings
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AdminLayout>
