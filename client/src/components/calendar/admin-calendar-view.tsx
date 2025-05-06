@@ -183,10 +183,11 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
         const tempEndTime = new Date(actionDate);
         tempEndTime.setMinutes(tempEndTime.getMinutes() + 30); // 30 min slot
         
+        // Create a temporary time slot 
         const tempSlot: TimeSlot = {
           id: -Math.floor(Math.random() * 1000000), // Temporary negative ID
-          startTime: actionDate.toISOString(),
-          endTime: tempEndTime.toISOString(),
+          startTime: actionDate, // Store as Date object
+          endTime: tempEndTime, // Store as Date object
           status: 'empty',
           price: 0,
           storageTimezone: 'UTC'
