@@ -106,9 +106,10 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     <div 
       className={cn(
         "relative cursor-pointer border-r border-b border-gray-200",
-        isSelected ? "border-blue-500 border-4 bg-blue-100 shadow-md z-10" : "",
+        isSelected ? "admin-selected-slot" : "",
         externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
       )} 
+      data-admin-selected={isSelected ? "true" : "false"}
       style={baseStyle}
       onClick={() => onToggle(slot.id.toString(), slot.status as TimeSlotStatus)}
     >

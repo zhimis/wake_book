@@ -869,9 +869,10 @@ const BookingCalendar = ({
                               className={cn(
                                 "h-14 border-r border-b border-gray-200 flex items-center justify-center cursor-pointer transition-all duration-100",
                                 isSlotSelected(tempId) ? 
-                                  "bg-blue-100 border-blue-500 border-4 shadow-md" : 
+                                  "admin-selected-slot" : 
                                   "bg-gray-50 hover:bg-gray-100"
                               )}
+                              data-admin-selected={isSlotSelected(tempId) ? "true" : "false"}
                               onClick={handleEmptySlotClick}
                             >
                               {isAdmin && (

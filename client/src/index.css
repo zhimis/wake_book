@@ -59,40 +59,46 @@
 
 /* Custom styles for admin calendar */
 .admin-selected-slot {
-  border: 4px solid #3b82f6 !important; /* Blue border */
-  outline: 2px solid #3b82f6 !important;
-  background-color: #dbeafe !important; /* Light blue background */
-  color: #1e40af !important; /* Blue text */
+  border: 5px solid #2563eb !important; /* Darker blue border */
+  outline: 2px solid #2563eb !important;
+  background-color: #bfdbfe !important; /* Light blue background */
+  color: #1e3a8a !important; /* Darker blue text */
   font-weight: bold !important;
-  z-index: 50 !important;
-  transform: scale(1.1) !important;
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.7) !important; /* Blue shadow */
+  z-index: 100 !important;
+  transform: scale(1.15) !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.8) !important; /* Blue shadow */
   position: relative !important;
 }
 
 /* Ensure admin selected slots are very visible */
 button.admin-selected-slot,
 .admin-selected-slot button {
-  border: 4px solid #3b82f6 !important; 
-  outline: 2px solid #3b82f6 !important;
-  background-color: #dbeafe !important;
-  color: #1e40af !important;
+  border: 5px solid #2563eb !important; 
+  outline: 2px solid #2563eb !important;
+  background-color: #bfdbfe !important;
+  color: #1e3a8a !important;
   font-weight: bold !important;
-  transform: scale(1.1) !important;
-  z-index: 50 !important;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8) !important;
+  transform: scale(1.15) !important;
+  z-index: 100 !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.8) !important;
   transition: all 0.2s ease-in-out !important;
 }
 
 /* Direct targeting of the Button components */
 [data-admin-selected="true"] {
-  border: 4px solid #3b82f6 !important; 
-  outline: 2px solid #3b82f6 !important;
-  background-color: #dbeafe !important;
-  color: #1e40af !important;
+  border: 5px solid #2563eb !important; 
+  outline: 2px solid #2563eb !important;
+  background-color: #bfdbfe !important;
+  color: #1e3a8a !important;
   font-weight: bold !important;
-  transform: scale(1.1) !important;
-  z-index: 50 !important;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.8) !important;
+  transform: scale(1.15) !important;
+  z-index: 100 !important;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.8) !important;
+}
+
+/* Special effect for plus signs */
+.admin-selected-slot span svg {
+  stroke: #2563eb !important;
+  stroke-width: 3px !important;
 }
 
