@@ -809,14 +809,26 @@ const BookingCalendar = ({
       
       // Check if any booking contains a time slot on this day
       const bookingExistsForDay = bookingsData.some((booking: any) => {
-        // Each booking has timeSlots array with startTime and endTime
-        if (booking.timeSlots && Array.isArray(booking.timeSlots)) {
-          return booking.timeSlots.some((bookingSlot: { startTime: string | Date }) => {
+        // First check if the booking has any timeSlots
+        if (booking.timeSlots && Array.isArray(booking.timeSlots) && booking.timeSlots.length > 0) {
+          const hasSlotForDay = booking.timeSlots.some((bookingSlot: { startTime: string | Date }) => {
             // Convert the booking slot's date to Latvia timezone and format as YYYY-MM-DD
             const bookingDate = formatInLatviaTime(new Date(bookingSlot.startTime), 'yyyy-MM-dd');
             return bookingDate === dayDateStr;
           });
+          
+          if (hasSlotForDay) return true;
         }
+        
+        // If no timeSlots or none match, check firstSlotTime instead
+        if (booking.firstSlotTime) {
+          const bookingDate = formatInLatviaTime(new Date(booking.firstSlotTime), 'yyyy-MM-dd');
+          if (bookingDate === dayDateStr) {
+            console.log(`Found booking (via firstSlotTime) for ${dayDateStr} in isDayRestrictedByLeadTime`);
+            return true;
+          }
+        }
+        
         return false;
       });
       
