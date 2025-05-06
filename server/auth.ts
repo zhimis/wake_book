@@ -59,15 +59,24 @@ export async function comparePasswords(supplied: string, stored: string) {
  */
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
+    console.log("requireRole middleware called with roles:", roles);
+    console.log("Authentication status:", req.isAuthenticated());
+    
     if (!req.isAuthenticated()) {
+      console.log("User not authenticated");
       return res.status(401).json({ error: "Not authenticated" });
     }
 
+    console.log("User in requireRole middleware:", req.user);
     const userRole = req.user.role;
+    console.log("User role:", userRole, "Allowed roles:", roles);
+    
     if (!roles.includes(userRole)) {
+      console.log("Insufficient permissions. User role:", userRole, "Required roles:", roles);
       return res.status(403).json({ error: "Insufficient permissions" });
     }
 
+    console.log("Role check passed");
     next();
   };
 }
@@ -170,7 +179,7 @@ export function setupAuth(app: Express) {
   })();
 
   // User management endpoints (protected)
-  app.get("/api/users", requireRole(["admin"]), async (req, res) => {
+  app.get("/api/users", requireRole(["admin", "manager"]), async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       // Don't send passwords to client
@@ -185,8 +194,8 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Create new user (admin only)
-  app.post("/api/users", requireRole(["admin"]), async (req, res) => {
+  // Create new user (admin or manager)
+  app.post("/api/users", requireRole(["admin", "manager"]), async (req, res) => {
     try {
       // Validate the input
       const createUserSchema = insertUserSchema
@@ -196,6 +205,11 @@ export function setupAuth(app: Express) {
         });
         
       const validatedData = createUserSchema.parse(req.body);
+      
+      // If user is a manager and tries to create an admin, prevent it
+      if (req.user.role === 'manager' && validatedData.role === 'admin') {
+        return res.status(403).json({ error: "Managers cannot create admin users" });
+      }
       
       // Check if email already exists
       const existingUser = await storage.getUserByEmail(validatedData.email);
