@@ -91,12 +91,8 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
   
   const statsItem = {
     name: "Statistics",
-    path: "/admin",
-    icon: <BarChart2 className="h-5 w-5 mr-2" />,
-    onClick: () => {
-      localStorage.setItem("adminActiveTab", "statistics");
-      navigate("/admin");
-    }
+    path: "/admin/statistics",
+    icon: <BarChart2 className="h-5 w-5 mr-2" />
   };
   
   // Role-based navigation items
@@ -120,8 +116,8 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
 
   // Check if an item is active (currently selected)
   const isActive = (item: NavigationItem) => {
-    // For statistics tab on admin page
-    if (item.name === "Statistics" && location === "/admin") {
+    // For statistics tab
+    if (item.name === "Statistics" && (location === "/admin/statistics" || (location === "/admin" && localStorage.getItem("adminActiveTab") === "statistics"))) {
       return true;
     }
     
