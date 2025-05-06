@@ -105,7 +105,7 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   return (
     <div 
       className={cn(
-        "relative cursor-pointer rounded-md border",
+        "relative cursor-pointer border-r border-b border-gray-200",
         externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
       )} 
       style={baseStyle}

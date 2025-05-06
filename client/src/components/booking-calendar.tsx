@@ -781,15 +781,15 @@ const BookingCalendar = ({
         ) : (
           <>
             {/* Calendar Grid */}
-            <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-2">
+            <div className="grid grid-cols-[auto_repeat(7,1fr)] gap-0 border border-gray-200 rounded">
               {/* Column Headers */}
-              <div className="p-2"></div>
+              <div className="p-2 border-r border-gray-200"></div>
               {days.map((day, i) => (
                 <div 
                   key={i}
                   className={cn(
-                    "p-2 text-center font-medium text-xs",
-                    isToday(day.date) && "bg-blue-50 rounded-sm"
+                    "p-2 text-center font-medium text-xs border-b border-r border-gray-200",
+                    isToday(day.date) && "bg-blue-50"
                   )}
                 >
                   <div className={isToday(day.date) ? "text-blue-500" : "text-muted-foreground"}>
@@ -813,7 +813,7 @@ const BookingCalendar = ({
                 return (
                   <React.Fragment key={timeStr}>
                     {/* Time Label */}
-                    <div className="p-2 text-xs font-medium text-muted-foreground flex items-center justify-end h-14">
+                    <div className="p-2 text-xs font-medium text-muted-foreground flex items-center justify-end h-14 border-r border-b border-gray-200">
                       {formatTimeFromComponents(hour, minute)}
                     </div>
                     
@@ -859,8 +859,8 @@ const BookingCalendar = ({
                           return (
                             <div 
                               key={dayIndex} 
-                              className="h-14 border border-dashed border-gray-200 rounded-md 
-                                        bg-gray-50 hover:bg-gray-100 hover:border-blue-300 
+                              className="h-14 border-r border-b border-gray-200
+                                        bg-gray-50 hover:bg-gray-100 
                                         transition-colors duration-100 cursor-pointer
                                         flex items-center justify-center"
                               onClick={handleEmptySlotClick}
@@ -878,7 +878,7 @@ const BookingCalendar = ({
                         }
                         
                         // For regular users or non-interactive admin view, show empty cell
-                        return <div key={dayIndex} className="h-14 border border-dashed border-gray-100 rounded-md"></div>;
+                        return <div key={dayIndex} className="h-14 border-r border-b border-gray-200"></div>;
                       }
                       
                       // Determine if this slot is "selected" (i.e., in the booking context's selection or admin's selection)
@@ -901,7 +901,7 @@ const BookingCalendar = ({
                           <div
                             key={dayIndex}
                             className={cn(
-                              "h-14 rounded-md border flex flex-col justify-center items-center p-1 relative cursor-pointer",
+                              "h-14 border-r border-b border-gray-200 flex flex-col justify-center items-center p-1 relative cursor-pointer",
                               getSlotClass(slot.status, isSelected, !!slot.isPast)
                             )}
                             onClick={() => handleSlotToggle(slot.id, slot.status)}
