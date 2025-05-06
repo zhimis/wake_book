@@ -575,37 +575,48 @@ const AdminCalendarView = () => {
     
     // Get today's date in Latvia timezone
     const today = toLatviaTime(new Date());
+    console.log(`Current date (Latvia): ${formatInLatviaTime(today, "EEE, MMM d, yyyy HH:mm")}`);
     
-    // Use current range as base for navigation
-    const currentStart = toLatviaTime(currentDateRange.start);
-    
-    // Calculate first day of the week (Monday) from current date
-    const latvianDayIndex = getLatvianDayIndexFromDate(currentStart);
-    const currentMonday = addDays(currentStart, -latvianDayIndex);
-    
+    // Get the current week's Monday as reference
     let newMonday;
     
     if (direction === 'today') {
-      // Go to current week (calculate Monday of current week)
+      // Get today's Latvian day index (0=Monday, 6=Sunday)
       const todayLatvianDayIndex = getLatvianDayIndexFromDate(today);
+      
+      // Calculate Monday of current week for today
       newMonday = addDays(today, -todayLatvianDayIndex);
-      console.log(`Going to today's week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
-    } else if (direction === 'prev') {
-      // Navigate to previous week (7 days backward)
-      newMonday = addDays(currentMonday, -7);
-      console.log(`Navigating to previous week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
+      console.log(`Today's day index: ${todayLatvianDayIndex}, Monday of current week: ${formatInLatviaTime(newMonday, "EEE, MMM d, yyyy")}`);
     } else {
-      // Navigate to next week (7 days forward)
-      newMonday = addDays(currentMonday, 7);
-      console.log(`Navigating to next week: ${formatInLatviaTime(newMonday, "yyyy-MM-dd")}`);
+      // For prev/next, use the current range's start date to find the current Monday
+      const currentStart = toLatviaTime(currentDateRange.start);
+      const latvianDayIndex = getLatvianDayIndexFromDate(currentStart);
+      
+      // Adjust to get to Monday of current week
+      // If we're showing the previous day too, adjust accordingly
+      const currentMonday = addDays(currentStart, latvianDayIndex === 0 ? 0 : -latvianDayIndex + 1);
+      
+      console.log(`Current week's Monday: ${formatInLatviaTime(currentMonday, "EEE, MMM d, yyyy")}`);
+      
+      if (direction === 'prev') {
+        // Navigate to previous week (7 days backward)
+        newMonday = addDays(currentMonday, -7);
+        console.log(`Going to previous week's Monday: ${formatInLatviaTime(newMonday, "EEE, MMM d, yyyy")}`);
+      } else {
+        // Navigate to next week (7 days forward)
+        newMonday = addDays(currentMonday, 7);
+        console.log(`Going to next week's Monday: ${formatInLatviaTime(newMonday, "EEE, MMM d, yyyy")}`);
+      }
     }
     
-    // Calculate end of week (Sunday)
+    // Calculate the last day of the week (Sunday)
     const newSunday = addDays(newMonday, 6);
+    console.log(`Week Sunday: ${formatInLatviaTime(newSunday, "EEE, MMM d, yyyy")}`);
     
-    // For admin view, we want to show yesterday through the following week
-    // So adjust the start date to be 1 day before Monday
-    const newAdminStart = addDays(newMonday, -1);
+    // For admin view, we want to include Sunday in the calendar
+    // In this case, we want the admin week to start on Monday
+    const newAdminStart = newMonday;
+    console.log(`Admin view start: ${formatInLatviaTime(newAdminStart, "EEE, MMM d, yyyy")}`);
     
     // Clear the lastDateRef to allow a new initial update from the calendar
     lastDateRef.current = null;
@@ -620,12 +631,20 @@ const AdminCalendarView = () => {
       end: endLatvia
     };
     
+    // Clear any selected slots when navigating
+    setSelectedTimeSlots([]);
+    
     // Update the date range state with the new dates
     // Convert back to UTC for storage
     setCurrentDateRange({
       start: fromLatviaTime(newAdminStart),
       end: fromLatviaTime(newSunday)
     });
+    
+    // Reset the updating flag in the next event loop
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 100);
   };
   
   // Handle date range changes from the BookingCalendar with proper debouncing
