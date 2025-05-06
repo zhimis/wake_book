@@ -839,21 +839,40 @@ const BookingCalendar = ({
                           const endDate = new Date(slotDate);
                           endDate.setMinutes(endDate.getMinutes() + 30);
                           
-                          // Create a more reliable and unique negative ID for empty slots
-                          // Using day, hour, minute as components in a deterministic formula
+                          // Create a truly unique negative ID for each empty slot 
+                          // We need to ensure the IDs are unique based on exact time and day
                           const tempId = -1 * ((dayIndex + 1) * 10000 + (hour + 1) * 100 + (minute + 1)); // Negative number
                           
                           // The cell key used for React rendering must be unique
                           // This ensures React doesn't reuse DOM elements incorrectly
                           const cellKey = `empty-${dayIndex}-${hour}-${minute}`;
                           
-                          // Check if this specific empty slot is selected (exact ID match)
+                          // For checking selection of empty slots, we need to do a more precise check
+                          // Since the calendar may recreate these slots with new IDs on rerenders
+                          // We use a time-based comparison for empty slots
                           const isEmptySlotSelected = adminSelectedSlots.some(slot => {
-                            const match = slot.id === tempId;
-                            if (match) {
-                              console.log(`MATCHED: Empty slot ${cellKey} with ID ${tempId} is selected`);
+                            // If this is a regular slot with a positive ID, just match IDs
+                            if (slot.id > 0) return false;
+                            
+                            // For empty slots, match the specific day, hour, and minute
+                            const slotHour = new Date(slot.startTime).getHours();
+                            const slotMinute = new Date(slot.startTime).getMinutes();
+                            
+                            // Get the day index for the slot date
+                            const slotDate = new Date(slot.startTime);
+                            const slotDayIndex = getLatvianDayIndexFromDate(slotDate);
+                            
+                            // Check if this is the exact same slot by time components
+                            const exactMatch = 
+                              slotDayIndex === days[dayIndex].latvianDayIndex &&
+                              slotHour === hour &&
+                              slotMinute === minute;
+                            
+                            if (exactMatch) {
+                              console.log(`MATCHED EMPTY SLOT: ${cellKey} matches slot with ID ${slot.id} at ${slotHour}:${slotMinute}`);
                             }
-                            return match;
+                            
+                            return exactMatch;
                           });
                           
                           // Define a function to handle click on the empty slot
