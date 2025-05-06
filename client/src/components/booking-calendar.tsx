@@ -815,7 +815,7 @@ const BookingCalendar = ({
                 const slotsForTime = getTimeSlotsForTime(hour, minute);
                 
                 return (
-                  <React.Fragment key={timeStr}>
+                  <div key={timeStr} className="contents">
                     {/* Time Label */}
                     <div className="p-2 text-xs font-medium text-muted-foreground flex items-center justify-end h-14 border-r border-b border-gray-200">
                       {formatTimeFromComponents(hour, minute)}
@@ -918,7 +918,7 @@ const BookingCalendar = ({
                         );
                       }
                     })}
-                  </React.Fragment>
+                  </div>
                 );
               })}
             </div>
