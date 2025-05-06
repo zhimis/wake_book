@@ -800,9 +800,9 @@ const AdminCalendarView = () => {
       // For available or unallocated slots: Add to selection
       // Check if this slot is already selected
       // Note: For unallocated slots with negative IDs or ID strings starting with '-', need to compare by time
-      const isNegativeId = 
-        (typeof timeSlot.id === 'number' && timeSlot.id < 0) || 
-        (typeof timeSlot.id === 'string' && timeSlot.id.startsWith('-'));
+      // Convert to string first to simplify type checking
+      const idStr = String(timeSlot.id);
+      const isNegativeId = idStr.startsWith('-');
         
       const isSelected = isNegativeId
         ? selectedTimeSlots.some(slot => 
@@ -1047,10 +1047,9 @@ const AdminCalendarView = () => {
   };
   
   const onMakeAvailableSubmit = (data: MakeAvailableFormData) => {
-    // Identify which time slots are unallocated (have negative IDs, either numeric or string)
+    // Identify which time slots are unallocated (have negative IDs)
     const unallocatedSlots = selectedTimeSlots.filter(slot => 
-      (typeof slot.id === 'number' && slot.id < 0) || 
-      (typeof slot.id === 'string' && slot.id.startsWith('-'))
+      String(slot.id).startsWith('-')
     );
     
     // Prepare the data to send to the server
