@@ -821,7 +821,7 @@ const AdminCalendarView = () => {
       // Note: For unallocated slots with negative IDs or ID strings starting with '-', need to compare by time
       const isNegativeId = 
         (typeof timeSlot.id === 'number' && timeSlot.id < 0) || 
-        (typeof timeSlot.id === 'string' && timeSlot.id.toString().startsWith('-'));
+        (typeof timeSlot.id === 'string' && timeSlot.id.startsWith('-'));
         
       const isSelected = isNegativeId
         ? selectedTimeSlots.some(slot => 
@@ -1113,12 +1113,11 @@ const AdminCalendarView = () => {
                 onAdminSlotSelect={handleTimeSlotSelect}
                 adminSelectedSlots={selectedTimeSlots}
                 initialDate={currentDateRange.start} // Pass current date directly to calendar component
-                /* Use our custom navigation functions only for prev/next to ensure consistent state,
-                   but let the BookingCalendar handle Today directly since our implementation causes issues */
+                /* Use our custom navigation functions for consistent state management */
                 customNavigation={{
                   goToPrevious: () => handleNavigateDates('prev'),
-                  goToNext: () => handleNavigateDates('next')
-                  // No goToToday - let BookingCalendar use its internal implementation
+                  goToNext: () => handleNavigateDates('next'),
+                  goToToday: () => handleNavigateDates('today')
                 }}
               />
               
