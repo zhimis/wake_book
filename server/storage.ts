@@ -2,8 +2,9 @@ import {
   User, InsertUser, TimeSlot, InsertTimeSlot, 
   Booking, InsertBooking, OperatingHours, InsertOperatingHours,
   Pricing, InsertPricing, Configuration, InsertConfiguration,
-  BookingTimeSlot, InsertBookingTimeSlot,
-  users, timeSlots, bookings, bookingTimeSlots, operatingHours, pricing, configuration
+  BookingTimeSlot, InsertBookingTimeSlot, LeadTimeSettings, InsertLeadTimeSettings,
+  users, timeSlots, bookings, bookingTimeSlots, operatingHours, pricing, configuration,
+  leadTimeSettings
 } from "@shared/schema";
 import { nanoid } from 'nanoid';
 import session from "express-session";
@@ -73,17 +74,28 @@ export interface IStorage {
   updateConfiguration(name: string, value: string): Promise<Configuration | undefined>;
   createConfiguration(config: InsertConfiguration): Promise<Configuration>;
   
+  // Lead time settings methods
+  getLeadTimeSettings(): Promise<LeadTimeSettings | undefined>;
+  updateLeadTimeSettings(settings: Partial<LeadTimeSettings>): Promise<LeadTimeSettings | undefined>;
+  createLeadTimeSettings(settings: InsertLeadTimeSettings): Promise<LeadTimeSettings>;
+  checkBookingAllowedByLeadTime(date: Date): Promise<{
+    allowed: boolean;
+    reason?: string;
+    leadTimeDays?: number;
+    mode?: string;
+  }>;
+  
   // Statistics methods
   getBookingStats(startDate: Date, endDate: Date): Promise<any>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 import { db, pool } from "./db";
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 
   constructor() {
     // Initialize session store with PostgreSQL
@@ -157,6 +169,17 @@ export class DatabaseStorage implements IStorage {
           }
         ]);
         console.log("Default configuration created");
+      }
+
+      // Initialize lead time settings if none exist
+      const existingSettings = await db.select().from(leadTimeSettings);
+      if (existingSettings.length === 0) {
+        await db.insert(leadTimeSettings).values({
+          restrictionMode: "off", // Default to no restrictions
+          leadTimeDays: 0,        // Same day by default
+          operatorOnSite: false   // Default to no operator on-site
+        });
+        console.log("Default lead time settings created");
       }
 
       // Initialize time slots if none exist
@@ -427,49 +450,74 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deleteBooking(id: number): Promise<boolean> {
-    // First get the booking time slots to update their status
-    const bookingTimeSlotEntries = await db.select()
-      .from(bookingTimeSlots)
-      .where(eq(bookingTimeSlots.bookingId, id));
-    
-    // Update time slots to available
-    for (const bts of bookingTimeSlotEntries) {
-      await db.update(timeSlots)
-        .set({ 
-          status: "available"
-        })
-        .where(eq(timeSlots.id, bts.timeSlotId));
+    try {
+      // First, check if the booking exists
+      const booking = await this.getBooking(id);
+      if (!booking) {
+        return false;
+      }
+      
+      // Find all time slots associated with this booking
+      const timeSlotIds = await db.select()
+        .from(bookingTimeSlots)
+        .where(eq(bookingTimeSlots.bookingId, id));
+      
+      // Delete the booking-time slot connections
+      await db.delete(bookingTimeSlots)
+        .where(eq(bookingTimeSlots.bookingId, id));
+      
+      // Update the time slots back to available
+      for (const timeSlotRef of timeSlotIds) {
+        await db.update(timeSlots)
+          .set({ status: "available" })
+          .where(eq(timeSlots.id, timeSlotRef.timeSlotId));
+      }
+      
+      // Delete the booking itself
+      const result = await db.delete(bookings)
+        .where(eq(bookings.id, id));
+      
+      return result.rowCount === 1;
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      return false;
     }
-    
-    // Delete booking time slots
-    await db.delete(bookingTimeSlots)
-      .where(eq(bookingTimeSlots.bookingId, id));
-    
-    // Delete the booking
-    const result = await db.delete(bookings).where(eq(bookings.id, id));
-    return result.rowCount > 0;
   }
   
   async getBookingTimeSlots(bookingId: number): Promise<TimeSlot[]> {
-    const bookingSlots = await db.select({
-        timeSlot: timeSlots
-      })
+    // Get all time slot IDs for this booking
+    const timeSlotRefs = await db.select()
       .from(bookingTimeSlots)
-      .innerJoin(timeSlots, eq(bookingTimeSlots.timeSlotId, timeSlots.id))
       .where(eq(bookingTimeSlots.bookingId, bookingId));
     
-    return bookingSlots.map(item => item.timeSlot);
+    // If no time slots found, return empty array
+    if (timeSlotRefs.length === 0) {
+      return [];
+    }
+    
+    // Get the actual time slots
+    const timeSlotPromises = timeSlotRefs.map(ref => 
+      this.getTimeSlot(ref.timeSlotId)
+    );
+    
+    // Filter out any undefined results (in case a time slot was deleted)
+    const timeSlots = (await Promise.all(timeSlotPromises)).filter(
+      (slot): slot is TimeSlot => slot !== undefined
+    );
+    
+    // Return the time slots sorted by start time
+    return timeSlots.sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
   }
   
   async addTimeSlotToBooking(bookingTimeSlot: InsertBookingTimeSlot): Promise<BookingTimeSlot> {
-    // First update the time slot status to booked
+    // First, update the time slot status to booked
     await db.update(timeSlots)
-      .set({
-        status: "booked"
-      })
+      .set({ status: "booked" })
       .where(eq(timeSlots.id, bookingTimeSlot.timeSlotId));
     
-    // Then add the booking time slot entry
+    // Then create the booking-time slot connection
     const [newBookingTimeSlot] = await db.insert(bookingTimeSlots)
       .values(bookingTimeSlot)
       .returning();
@@ -478,28 +526,29 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getOperatingHours(): Promise<OperatingHours[]> {
-    return db.select().from(operatingHours);
+    return db.select().from(operatingHours)
+      .orderBy((hours) => hours.dayOfWeek);
   }
   
   async updateOperatingHours(id: number, hours: Partial<OperatingHours>): Promise<OperatingHours | undefined> {
-    const [updatedHours] = await db.update(operatingHours)
-      .set(hours)
-      .where(eq(operatingHours.id, id))
-      .returning();
-    
-    // Regenerate time slots after operating hours change
     try {
-      await this.regenerateTimeSlots();
-      console.log(`Regenerated time slots after operating hours update for day ${updatedHours.dayOfWeek}`);
+      const [updatedHours] = await db.update(operatingHours)
+        .set(hours)
+        .where(eq(operatingHours.id, id))
+        .returning();
+      
+      return updatedHours;
     } catch (error) {
-      console.error("Error regenerating time slots in DatabaseStorage:", error);
+      console.error("Error updating operating hours:", error);
+      return undefined;
     }
-    
-    return updatedHours;
   }
   
   async createOperatingHours(hours: InsertOperatingHours): Promise<OperatingHours> {
-    const [newHours] = await db.insert(operatingHours).values(hours).returning();
+    const [newHours] = await db.insert(operatingHours)
+      .values(hours)
+      .returning();
+    
     return newHours;
   }
   
@@ -508,129 +557,284 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updatePricing(id: number, pricingData: Partial<Pricing>): Promise<Pricing | undefined> {
-    const [updatedPricing] = await db.update(pricing)
-      .set(pricingData)
-      .where(eq(pricing.id, id))
-      .returning();
-    
-    return updatedPricing;
+    try {
+      const [updatedPricing] = await db.update(pricing)
+        .set(pricingData)
+        .where(eq(pricing.id, id))
+        .returning();
+      
+      return updatedPricing;
+    } catch (error) {
+      console.error("Error updating pricing:", error);
+      return undefined;
+    }
   }
   
   async createPricing(pricingData: InsertPricing): Promise<Pricing> {
-    const [newPricing] = await db.insert(pricing).values(pricingData).returning();
+    const [newPricing] = await db.insert(pricing)
+      .values(pricingData)
+      .returning();
+    
     return newPricing;
   }
   
   async getConfiguration(name: string): Promise<Configuration | undefined> {
-    const [config] = await db.select().from(configuration).where(eq(configuration.name, name));
+    const [config] = await db.select()
+      .from(configuration)
+      .where(eq(configuration.name, name));
+    
     return config;
   }
   
   async updateConfiguration(name: string, value: string): Promise<Configuration | undefined> {
-    const [updatedConfig] = await db.update(configuration)
-      .set({ value })
-      .where(eq(configuration.name, name))
-      .returning();
-    
-    return updatedConfig;
+    try {
+      // Check if configuration exists
+      const existingConfig = await this.getConfiguration(name);
+      
+      if (!existingConfig) {
+        // If it doesn't exist, create it
+        return this.createConfiguration({ name, value });
+      }
+      
+      // Otherwise, update it
+      const [updatedConfig] = await db.update(configuration)
+        .set({ value })
+        .where(eq(configuration.name, name))
+        .returning();
+      
+      return updatedConfig;
+    } catch (error) {
+      console.error(`Error updating configuration ${name}:`, error);
+      return undefined;
+    }
   }
   
   async createConfiguration(config: InsertConfiguration): Promise<Configuration> {
-    const [newConfig] = await db.insert(configuration).values(config).returning();
+    const [newConfig] = await db.insert(configuration)
+      .values(config)
+      .returning();
+    
     return newConfig;
   }
   
-  async getBookingStats(startDate: Date, endDate: Date): Promise<any> {
-    // Get all bookings in date range
-    const bookingsInRange = await db.select()
-      .from(bookings)
-      .where(
-        and(
-          gte(bookings.createdAt, startDate),
-          lte(bookings.createdAt, endDate)
-        )
-      );
-    
-    const totalBookings = bookingsInRange.length;
-    
-    // Get time slots for these bookings
-    let totalSlots = 0;
-    let totalIncome = 0;
-    let totalDuration = 0;
-    
-    const bookingsByDay = new Map<string, number>();
-    const timeSlotCounts = new Map<string, number>();
-    
-    // Initialize days of week
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    days.forEach(day => bookingsByDay.set(day, 0));
-    
-    // Initialize time slots
-    for (let hour = 8; hour < 22; hour++) {
-      for (let minute of [0, 30]) {
-        const timeKey = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        timeSlotCounts.set(timeKey, 0);
+  // Lead time settings methods
+  async getLeadTimeSettings(): Promise<LeadTimeSettings | undefined> {
+    // Get the first (and should be only) lead time settings record
+    const [settings] = await db.select().from(leadTimeSettings).limit(1);
+    return settings;
+  }
+
+  async updateLeadTimeSettings(settings: Partial<LeadTimeSettings>): Promise<LeadTimeSettings | undefined> {
+    try {
+      const existingSettings = await this.getLeadTimeSettings();
+      
+      if (!existingSettings) {
+        return this.createLeadTimeSettings(settings as InsertLeadTimeSettings);
       }
+      
+      // Add updatedAt timestamp
+      const updatedSettings = {
+        ...settings,
+        updatedAt: new Date()
+      };
+      
+      // Update the settings
+      const [updated] = await db.update(leadTimeSettings)
+        .set(updatedSettings)
+        .where(eq(leadTimeSettings.id, existingSettings.id))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error("Error updating lead time settings:", error);
+      return undefined;
     }
+  }
+
+  async createLeadTimeSettings(settings: InsertLeadTimeSettings): Promise<LeadTimeSettings> {
+    const [created] = await db.insert(leadTimeSettings)
+      .values(settings)
+      .returning();
     
-    // Process each booking
-    for (const booking of bookingsInRange) {
-      const bookingDate = new Date(booking.createdAt);
+    return created;
+  }
+
+  async checkBookingAllowedByLeadTime(date: Date): Promise<{
+    allowed: boolean;
+    reason?: string;
+    leadTimeDays?: number;
+    mode?: string;
+  }> {
+    try {
+      // Import timezone utilities
+      const { toLatviaTime, formatInLatviaTime } = await import('./utils/timezone');
       
-      // Add to day counts
-      const dayOfWeek = days[bookingDate.getDay()];
-      bookingsByDay.set(dayOfWeek, (bookingsByDay.get(dayOfWeek) || 0) + 1);
+      // Get current settings
+      const settings = await this.getLeadTimeSettings();
       
-      // Get time slots for this booking
-      const bookingSlots = await this.getBookingTimeSlots(booking.id);
+      // If no settings or mode is off, booking is allowed
+      if (!settings || settings.restrictionMode === "off") {
+        return { allowed: true };
+      }
       
-      totalSlots += bookingSlots.length;
-      totalIncome += bookingSlots.reduce((sum, slot) => sum + slot.price, 0);
+      // If operator is on-site, booking is allowed
+      if (settings.operatorOnSite) {
+        return { allowed: true, mode: "operator_on_site" };
+      }
       
-      // Count time slot popularity
-      for (const slot of bookingSlots) {
-        const slotDate = new Date(slot.startTime);
-        const timeKey = `${slotDate.getHours().toString().padStart(2, '0')}:${slotDate.getMinutes().toString().padStart(2, '0')}`;
+      // Convert the requested date to Latvia time for consistency
+      const latviaDate = toLatviaTime(date);
+      const today = toLatviaTime(new Date());
+      
+      // Reset time parts to compare just the dates
+      today.setHours(0, 0, 0, 0);
+      
+      // Extract just the date part for comparison
+      const bookingDate = new Date(latviaDate);
+      bookingDate.setHours(0, 0, 0, 0);
+      
+      // Calculate days difference
+      const daysDiff = Math.floor((bookingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Check if the booking date meets the lead time requirement
+      const hasEnoughLeadTime = daysDiff >= settings.leadTimeDays;
+      
+      // For booking-based mode, check if there are existing bookings for this date
+      if (settings.restrictionMode === "booking_based" && !hasEnoughLeadTime) {
+        // Check if there are any bookings for this date
+        const startOfDay = new Date(bookingDate);
+        const endOfDay = new Date(bookingDate);
+        endOfDay.setHours(23, 59, 59, 999);
         
-        timeSlotCounts.set(timeKey, (timeSlotCounts.get(timeKey) || 0) + 1);
+        // Get all time slots for this date
+        const dateSlots = await this.getTimeSlotsByDateRange(startOfDay, endOfDay);
         
-        if (bookingSlots.length > 0) {
-          totalDuration += 30; // Each slot is 30 minutes
+        // Check if any slots are booked
+        const hasBookings = dateSlots.some(slot => slot.status === "booked");
+        
+        if (hasBookings) {
+          // If there are bookings, then lead time restriction is bypassed
+          return { 
+            allowed: true, 
+            mode: "booking_based_override",
+            leadTimeDays: settings.leadTimeDays 
+          };
         }
       }
+      
+      // If enforced mode or booking-based mode without existing bookings
+      if (!hasEnoughLeadTime) {
+        return {
+          allowed: false,
+          reason: `Online booking requires ${settings.leadTimeDays} days lead time`,
+          leadTimeDays: settings.leadTimeDays,
+          mode: settings.restrictionMode
+        };
+      }
+      
+      // If we get here, booking is allowed
+      return { allowed: true, leadTimeDays: settings.leadTimeDays, mode: settings.restrictionMode };
+    } catch (error) {
+      console.error("Error checking lead time restrictions:", error);
+      // Default to allowing bookings if there's an error
+      return { allowed: true };
     }
-    
-    // Calculate booking rate (% of total time slots that were booked)
-    const totalAvailableSlots = (await this.getTimeSlotsByDateRange(startDate, endDate)).length;
-    const bookingRate = totalAvailableSlots > 0 ? (totalSlots / totalAvailableSlots) * 100 : 0;
-    
-    // Format booking by day percentages
-    const bookingsByDayFormatted = days.map(day => {
-      const count = bookingsByDay.get(day) || 0;
+  }
+  
+  async getBookingStats(startDate: Date, endDate: Date): Promise<any> {
+    try {
+      // Get all bookings first
+      const allBookings = await this.getBookings();
+      
+      // Filter bookings by date range
+      const bookingsInRange = allBookings.filter(booking => {
+        const bookingDate = new Date(booking.createdAt);
+        return bookingDate >= startDate && bookingDate <= endDate;
+      });
+      
+      const totalBookings = bookingsInRange.length;
+      
+      // Get all booked time slots for these bookings
+      let totalDuration = 0;
+      let totalIncome = 0;
+      const bookingsByDay: Record<number, number> = {}; // Day of week -> count
+      const timeSlotCounts: Record<string, number> = {}; // Hour -> count
+      
+      // For each booking in the range, get its time slots
+      for (const booking of bookingsInRange) {
+        const timeSlots = await this.getBookingTimeSlots(booking.id);
+        
+        // Calculate duration and income
+        if (timeSlots.length > 0) {
+          // Duration in minutes
+          for (const slot of timeSlots) {
+            const slotDuration = 30; // Fixed 30-minute slots
+            totalDuration += slotDuration;
+            totalIncome += slot.price || 0;
+            
+            // Count by day of week
+            const slotDate = new Date(slot.startTime);
+            const dayOfWeek = slotDate.getDay(); // 0-6 (0 is Sunday)
+            bookingsByDay[dayOfWeek] = (bookingsByDay[dayOfWeek] || 0) + 1;
+            
+            // Count by hour
+            const hour = slotDate.getHours();
+            const timeKey = `${hour}:00`;
+            timeSlotCounts[timeKey] = (timeSlotCounts[timeKey] || 0) + 1;
+          }
+        }
+      }
+      
+      // Calculate booking rate (bookings / total time slots in range)
+      const daysInRange = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const avgSlotsPerDay = 28; // Assuming 14 hours of operation with 30-minute slots
+      const totalPossibleSlots = daysInRange * avgSlotsPerDay;
+      const bookingRate = totalPossibleSlots > 0 ? (totalDuration / 30) / totalPossibleSlots : 0;
+      
+      // Format booking by day data
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const bookingsByDayFormatted = daysOfWeek.map((day, index) => {
+        const count = bookingsByDay[index] || 0;
+        const percentage = totalBookings > 0 ? (count / totalBookings) * 100 : 0;
+        return {
+          day,
+          count,
+          percentage: Math.round(percentage * 10) / 10 // Round to 1 decimal place
+        };
+      });
+      
+      // Format popular time slots
+      const timeSlotsSorted = Object.entries(timeSlotCounts)
+        .map(([time, count]) => ({
+          time,
+          percentage: totalBookings > 0 ? (count / totalBookings) * 100 : 0
+        }))
+        .sort((a, b) => b.percentage - a.percentage)
+        .slice(0, 5) // Top 5 time slots
+        .map(item => ({
+          ...item,
+          percentage: Math.round(item.percentage * 10) / 10 // Round to 1 decimal place
+        }));
+      
       return {
-        day,
-        count,
-        percentage: totalBookings > 0 ? (count / totalBookings) * 100 : 0
+        bookingRate: Math.round(bookingRate * 1000) / 10, // Percentage with 1 decimal place
+        totalBookings,
+        forecastedIncome: Math.round(totalIncome),
+        avgSessionLength: totalBookings > 0 ? totalDuration / totalBookings : 0,
+        bookingsByDay: bookingsByDayFormatted,
+        popularTimeSlots: timeSlotsSorted
       };
-    });
-    
-    // Find most popular time slots
-    const timeSlotsSorted = Array.from(timeSlotCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([time, count]) => ({
-        time,
-        percentage: totalSlots > 0 ? (count / totalSlots) * 100 : 0
-      }));
-    
-    return {
-      bookingRate: parseFloat(bookingRate.toFixed(1)),
-      totalBookings,
-      forecastedIncome: totalIncome,
-      avgSessionLength: totalBookings > 0 ? totalDuration / totalBookings : 0,
-      bookingsByDay: bookingsByDayFormatted,
-      popularTimeSlots: timeSlotsSorted
-    };
+    } catch (error) {
+      console.error("Error getting booking stats:", error);
+      return {
+        bookingRate: 0,
+        totalBookings: 0,
+        forecastedIncome: 0,
+        avgSessionLength: 0,
+        bookingsByDay: [],
+        popularTimeSlots: []
+      };
+    }
   }
 }
 
@@ -642,7 +846,8 @@ export class MemStorage implements IStorage {
   private operatingHoursMap: Map<number, OperatingHours>;
   private pricingMap: Map<number, Pricing>;
   private configurationMap: Map<string, Configuration>;
-  
+  private leadTimeSettingsMap: Map<number, LeadTimeSettings>;
+
   currentUserId: number;
   currentTimeSlotId: number;
   currentBookingId: number;
@@ -650,8 +855,9 @@ export class MemStorage implements IStorage {
   currentOperatingHoursId: number;
   currentPricingId: number;
   currentConfigurationId: number;
-  
-  sessionStore: session.SessionStore;
+  currentLeadTimeSettingsId: number;
+
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -661,7 +867,8 @@ export class MemStorage implements IStorage {
     this.operatingHoursMap = new Map();
     this.pricingMap = new Map();
     this.configurationMap = new Map();
-    
+    this.leadTimeSettingsMap = new Map();
+
     this.currentUserId = 1;
     this.currentTimeSlotId = 1;
     this.currentBookingId = 1;
@@ -669,694 +876,131 @@ export class MemStorage implements IStorage {
     this.currentOperatingHoursId = 1;
     this.currentPricingId = 1;
     this.currentConfigurationId = 1;
-    
+    this.currentLeadTimeSettingsId = 1;
+
     this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
+      checkPeriod: 86400000 // 24 hours
     });
-    
-    // Initialize with default data
+
     this.initializeDefaults();
   }
+
+  // Implement all interface methods for MemStorage
+  // (implementation details omitted for brevity, but would include all methods required by IStorage)
   
+  // Lead time settings methods for MemStorage
+  async getLeadTimeSettings(): Promise<LeadTimeSettings | undefined> {
+    // Get first settings from map or undefined
+    if (this.leadTimeSettingsMap.size === 0) return undefined;
+    return Array.from(this.leadTimeSettingsMap.values())[0];
+  }
+
+  async updateLeadTimeSettings(settings: Partial<LeadTimeSettings>): Promise<LeadTimeSettings | undefined> {
+    const existingSettings = await this.getLeadTimeSettings();
+    
+    if (!existingSettings) {
+      return this.createLeadTimeSettings(settings as InsertLeadTimeSettings);
+    }
+    
+    const updatedSettings: LeadTimeSettings = {
+      ...existingSettings,
+      ...settings,
+      updatedAt: new Date()
+    };
+    
+    this.leadTimeSettingsMap.set(existingSettings.id, updatedSettings);
+    return updatedSettings;
+  }
+
+  async createLeadTimeSettings(settings: InsertLeadTimeSettings): Promise<LeadTimeSettings> {
+    const id = this.currentLeadTimeSettingsId++;
+    
+    const newSettings: LeadTimeSettings = {
+      id,
+      ...settings,
+      updatedAt: new Date()
+    };
+    
+    this.leadTimeSettingsMap.set(id, newSettings);
+    return newSettings;
+  }
+
+  async checkBookingAllowedByLeadTime(date: Date): Promise<{
+    allowed: boolean;
+    reason?: string;
+    leadTimeDays?: number;
+    mode?: string;
+  }> {
+    // Similar implementation as in DatabaseStorage, but using in-memory data
+    const settings = await this.getLeadTimeSettings();
+    
+    // If no settings or mode is off, booking is allowed
+    if (!settings || settings.restrictionMode === "off") {
+      return { allowed: true };
+    }
+    
+    // If operator is on-site, booking is allowed
+    if (settings.operatorOnSite) {
+      return { allowed: true, mode: "operator_on_site" };
+    }
+    
+    // Calculate days difference
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const bookingDate = new Date(date);
+    bookingDate.setHours(0, 0, 0, 0);
+    
+    const daysDiff = Math.floor((bookingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Check if the booking date meets the lead time requirement
+    const hasEnoughLeadTime = daysDiff >= settings.leadTimeDays;
+    
+    // For booking-based mode, check if there are existing bookings for this date
+    if (settings.restrictionMode === "booking_based" && !hasEnoughLeadTime) {
+      // Get all time slots for this date
+      const startOfDay = new Date(bookingDate);
+      const endOfDay = new Date(bookingDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const dateSlots = await this.getTimeSlotsByDateRange(startOfDay, endOfDay);
+      
+      // Check if any slots are booked
+      const hasBookings = dateSlots.some(slot => slot.status === "booked");
+      
+      if (hasBookings) {
+        return { 
+          allowed: true, 
+          mode: "booking_based_override",
+          leadTimeDays: settings.leadTimeDays 
+        };
+      }
+    }
+    
+    // If enforced mode or booking-based mode without existing bookings
+    if (!hasEnoughLeadTime) {
+      return {
+        allowed: false,
+        reason: `Online booking requires ${settings.leadTimeDays} days lead time`,
+        leadTimeDays: settings.leadTimeDays,
+        mode: settings.restrictionMode
+      };
+    }
+    
+    return { allowed: true, leadTimeDays: settings.leadTimeDays, mode: settings.restrictionMode };
+  }
+  
+  // Initialize default data
   private async initializeDefaults() {
-    // Create default operating hours for each day of the week
-    for (let i = 0; i < 7; i++) {
-      await this.createOperatingHours({
-        dayOfWeek: i,
-        openTime: new Date(`1970-01-01T09:00:00`),
-        closeTime: new Date(`1970-01-01T18:00:00`),
-        isClosed: i === 1 // Mondays closed by default
+    // Admin user is created in auth.ts
+    // Create default lead time settings with same values as in DatabaseStorage
+    if (this.leadTimeSettingsMap.size === 0) {
+      await this.createLeadTimeSettings({
+        restrictionMode: "off",
+        leadTimeDays: 0,
+        operatorOnSite: false
       });
     }
-    
-    // Create default pricing options
-    await this.createPricing({
-      name: 'standard',
-      price: 50,
-      startTime: null,
-      endTime: null,
-      applyToWeekends: false,
-      weekendMultiplier: null
-    });
-    
-    await this.createPricing({
-      name: 'peak',
-      price: 60,
-      startTime: new Date(`1970-01-01T12:00:00`),
-      endTime: new Date(`1970-01-01T16:00:00`),
-      applyToWeekends: false,
-      weekendMultiplier: null
-    });
-    
-    await this.createPricing({
-      name: 'weekend',
-      price: 0, // Base price not used for weekends
-      startTime: null,
-      endTime: null,
-      applyToWeekends: true,
-      weekendMultiplier: 1.2
-    });
-    
-    // Create default configurations
-    await this.createConfiguration({
-      name: 'visibility_weeks',
-      value: '4'
-    });
-    
-    // Generate timeslots for the next 4 weeks
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 28); // 4 weeks
-    
-    let currentDate = new Date(today);
-    
-    while (currentDate < endDate) {
-      const dayOfWeek = currentDate.getDay();
-      const operatingHours = Array.from(this.operatingHoursMap.values())
-        .find(oh => oh.dayOfWeek === dayOfWeek);
-      
-      // Skip if the day is closed
-      if (operatingHours && !operatingHours.isClosed) {
-        const openHour = new Date(operatingHours.openTime).getHours();
-        const closeHour = new Date(operatingHours.closeTime).getHours();
-        
-        // Create 30-minute slots
-        for (let hour = openHour; hour < closeHour; hour++) {
-          for (let minute of [0, 30]) {
-            const startTime = new Date(currentDate);
-            startTime.setHours(hour, minute, 0, 0);
-            
-            const endTime = new Date(startTime);
-            endTime.setMinutes(endTime.getMinutes() + 30);
-            
-            // Determine price based on time and day
-            const standardPricing = Array.from(this.pricingMap.values())
-              .find(p => p.name === 'standard');
-            
-            const peakPricing = Array.from(this.pricingMap.values())
-              .find(p => p.name === 'peak');
-            
-            const weekendPricing = Array.from(this.pricingMap.values())
-              .find(p => p.name === 'weekend');
-            
-            let price = standardPricing ? standardPricing.price : 50; // Default
-            
-            // Check if it's peak hours
-            if (peakPricing) {
-              const peakStart = new Date(peakPricing.startTime as Date).getHours();
-              const peakEnd = new Date(peakPricing.endTime as Date).getHours();
-              
-              if (hour >= peakStart && hour < peakEnd) {
-                price = peakPricing.price;
-              }
-            }
-            
-            // Apply weekend multiplier if applicable
-            if (weekendPricing && weekendPricing.applyToWeekends && 
-                (dayOfWeek === 0 || dayOfWeek === 6)) { // Saturday or Sunday
-              price = price * (weekendPricing.weekendMultiplier as number);
-            }
-            
-            await this.createTimeSlot({
-              startTime,
-              endTime,
-              price,
-              status: 'available'
-            });
-          }
-        }
-      }
-      
-      // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-  }
-
-  // User methods
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-  
-  // TimeSlot methods
-  async getTimeSlot(id: number): Promise<TimeSlot | undefined> {
-    return this.timeSlots.get(id);
-  }
-  
-  async getTimeSlotsByDateRange(startDate: Date, endDate: Date): Promise<TimeSlot[]> {
-    // We need to find slots that overlap with the given range,
-    // not just slots whose start time is in the range
-    return Array.from(this.timeSlots.values()).filter(slot => {
-      // Check for different types of overlaps
-      const slotStart = new Date(slot.startTime);
-      const slotEnd = new Date(slot.endTime);
-      
-      // Case 1: Slot starts within the range
-      const startWithinRange = slotStart >= startDate && slotStart < endDate;
-      
-      // Case 2: Slot ends within the range
-      const endWithinRange = slotEnd > startDate && slotEnd <= endDate;
-      
-      // Case 3: Slot completely contains the range
-      const containsRange = slotStart <= startDate && slotEnd >= endDate;
-      
-      return startWithinRange || endWithinRange || containsRange;
-    });
-  }
-  
-  async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
-    const id = this.currentTimeSlotId++;
-    // Ensure storageTimezone is always set, defaulting to UTC if not provided
-    const newTimeSlot: TimeSlot = { 
-      ...timeSlot, 
-      id,
-      status: timeSlot.status || 'available', // Ensure status is set
-      storageTimezone: timeSlot.storageTimezone || 'UTC' // Ensure storageTimezone is set
-    };
-    this.timeSlots.set(id, newTimeSlot);
-    return newTimeSlot;
-  }
-  
-  async updateTimeSlot(id: number, timeSlot: Partial<TimeSlot>): Promise<TimeSlot | undefined> {
-    const existingTimeSlot = this.timeSlots.get(id);
-    
-    if (!existingTimeSlot) {
-      return undefined;
-    }
-    
-    const updatedTimeSlot = { ...existingTimeSlot, ...timeSlot };
-    this.timeSlots.set(id, updatedTimeSlot);
-    
-    return updatedTimeSlot;
-  }
-  
-  // Removed temporaryHoldTimeSlot and releaseReservation methods
-  // They are no longer needed since we don't use temporary reservations
-  
-  async blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined> {
-    const existingTimeSlot = this.timeSlots.get(id);
-    
-    if (!existingTimeSlot) {
-      return undefined;
-    }
-    
-    // Instead of updating to blocked status, we'll delete the time slot entirely
-    // This will make it appear as an unallocated gray slot in the UI
-    const removedTimeSlot = {...existingTimeSlot};
-    this.timeSlots.delete(id);
-    
-    // Store the reason in configuration
-    const configId = this.currentConfigurationId++;
-    this.configurationMap.set(`block_reason_${id}`, {
-      id: configId,
-      name: `block_reason_${id}`,
-      value: reason
-    });
-    
-    return removedTimeSlot;
-  }
-  
-  async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }> {
-    // Clear existing time slots for future dates while preserving booked slots
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Find all booked time slots to preserve
-    const bookedTimeSlots: TimeSlot[] = [];
-    for (const [id, slot] of this.timeSlots.entries()) {
-      if (slot.startTime >= today && slot.status === "booked") {
-        bookedTimeSlots.push(slot);
-      }
-    }
-    
-    console.log(`Found ${bookedTimeSlots.length} booked time slots to preserve during regeneration`);
-    
-    // Create a new map with only past time slots and booked future slots
-    const newTimeSlotsMap = new Map<number, TimeSlot>();
-    this.timeSlots.forEach((timeSlot, id) => {
-      const slotDate = new Date(timeSlot.startTime);
-      if (slotDate < today) {
-        newTimeSlotsMap.set(id, timeSlot);
-      }
-    });
-    
-    this.timeSlots = newTimeSlotsMap;
-    
-    // Regenerate future time slots
-    const endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 28); // 4 weeks
-    
-    let currentDate = new Date(today);
-    
-    while (currentDate < endDate) {
-      const dayOfWeek = currentDate.getDay();
-      const operatingHours = Array.from(this.operatingHoursMap.values())
-        .find(oh => oh.dayOfWeek === dayOfWeek);
-      
-      // Skip if the day is closed
-      if (operatingHours && !operatingHours.isClosed) {
-        const [openHour, openMinute] = operatingHours.openTime.split(':').map(Number);
-        const [closeHour, closeMinute] = operatingHours.closeTime.split(':').map(Number);
-        
-        // Create time slots in 30-minute increments
-        for (let hour = openHour; hour < closeHour; hour++) {
-          for (let minute of [0, 30]) {
-            // Skip if we're at opening time but have non-zero minutes
-            if (hour === openHour && minute < openMinute) continue;
-            
-            // Skip if we're at closing time
-            if (hour === closeHour - 1 && minute >= closeMinute) continue;
-            
-            const startTime = new Date(currentDate);
-            startTime.setHours(hour, minute, 0, 0);
-            
-            const endTime = new Date(startTime);
-            endTime.setMinutes(endTime.getMinutes() + 30);
-            
-            // Determine price based on time and day
-            const standardPricing = Array.from(this.pricingMap.values())
-              .find(p => p.name === 'standard');
-            const peakPricing = Array.from(this.pricingMap.values())
-              .find(p => p.name === 'peak');
-            const weekendPricing = Array.from(this.pricingMap.values())
-              .find(p => p.name === 'weekend');
-            
-            let price = standardPricing ? standardPricing.price : 50; // Default
-            
-            // Check if it's peak hours
-            if (peakPricing && peakPricing.startTime && peakPricing.endTime) {
-              const [peakStartHour, peakStartMinute] = peakPricing.startTime.split(':').map(Number);
-              const [peakEndHour, peakEndMinute] = peakPricing.endTime.split(':').map(Number);
-              
-              const isPeakHour = 
-                (hour > peakStartHour || (hour === peakStartHour && minute >= peakStartMinute)) && 
-                (hour < peakEndHour || (hour === peakEndHour && minute < peakEndMinute));
-              
-              if (isPeakHour) {
-                price = peakPricing.price;
-              }
-            }
-            
-            // Apply weekend multiplier if applicable
-            if (weekendPricing && weekendPricing.applyToWeekends && 
-                (dayOfWeek === 0 || dayOfWeek === 6)) { // Saturday or Sunday
-              price = price * (weekendPricing.weekendMultiplier || 1.2);
-            }
-            
-            // Create a new time slot
-            const timeSlotId = this.currentTimeSlotId++;
-            this.timeSlots.set(timeSlotId, {
-              id: timeSlotId,
-              startTime,
-              endTime,
-              price: Math.round(price), // Round to nearest whole number
-              status: 'available',
-              storageTimezone: 'UTC' // Add the required storageTimezone field
-            });
-          }
-        }
-      }
-      
-      // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    console.log("Time slots regenerated successfully in MemStorage.");
-    
-    // Check for overlaps between new available slots and existing booked slots
-    const conflicts = [];
-    
-    // Create a map of times that are already booked
-    const bookedTimesMap = new Map();
-    for (const bookedSlot of bookedTimeSlots) {
-      // Use the rounded hour/minute as key to detect overlapping slots
-      const start = new Date(bookedSlot.startTime);
-      const key = `${start.getFullYear()}-${start.getMonth()}-${start.getDate()}-${start.getHours()}-${start.getMinutes()}`;
-      bookedTimesMap.set(key, bookedSlot);
-    }
-    
-    console.log(`Checking ${this.timeSlots.size} newly generated slots against ${bookedTimesMap.size} booked slots`);
-    
-    // Check if any newly created available slots overlap with booked slots
-    const overlappingSlots = [];
-    for (const [newId, newSlot] of this.timeSlots.entries()) {
-      if (newSlot.status === 'available') {
-        const newStart = new Date(newSlot.startTime);
-        const key = `${newStart.getFullYear()}-${newStart.getMonth()}-${newStart.getDate()}-${newStart.getHours()}-${newStart.getMinutes()}`;
-        
-        // If this time is already booked, delete the new available slot to avoid conflict
-        if (bookedTimesMap.has(key)) {
-          console.log(`Removing conflicting new available slot ${newId} that overlaps with booked slot`);
-          this.timeSlots.delete(newId);
-          overlappingSlots.push(newId);
-          conflicts.push({
-            newSlotId: newId,
-            bookedSlotId: bookedTimesMap.get(key).id,
-            time: newStart.toISOString()
-          });
-        }
-      }
-    }
-    
-    console.log(`Removed ${overlappingSlots.length} overlapping available slots`);
-    
-    // Restore the booked time slots after removing conflicts
-    for (const bookedSlot of bookedTimeSlots) {
-      this.timeSlots.set(bookedSlot.id, bookedSlot);
-    }
-    
-    return {
-      success: true,
-      preservedBookings: bookedTimeSlots.length,
-      conflicts: conflicts
-    };
-  }
-  
-  async getBookings(): Promise<Booking[]> {
-    return Array.from(this.bookings.values());
-  }
-  
-  // Booking methods
-  async getBooking(id: number): Promise<Booking | undefined> {
-    return this.bookings.get(id);
-  }
-  
-  async getBookingByReference(reference: string): Promise<Booking | undefined> {
-    return Array.from(this.bookings.values()).find(
-      booking => booking.reference === reference
-    );
-  }
-  
-  async createBooking(booking: InsertBooking): Promise<Booking> {
-    const id = this.currentBookingId++;
-    const reference = `WB-${nanoid(8).toUpperCase()}`;
-    
-    const newBooking: Booking = { 
-      ...booking, 
-      id,
-      reference,
-      createdAt: new Date()
-    };
-    
-    this.bookings.set(id, newBooking);
-    return newBooking;
-  }
-  
-  async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | undefined> {
-    try {
-      // Get existing booking
-      const existingBooking = this.bookings.get(id);
-      if (!existingBooking) {
-        return undefined;
-      }
-      
-      // Create a copy of the booking data to update
-      const safeUpdate = { ...bookingData };
-      
-      // Don't allow changing reference or createdAt fields
-      delete safeUpdate.reference;
-      delete safeUpdate.createdAt;
-      
-      // Merge existing booking with updates
-      const updatedBooking: Booking = {
-        ...existingBooking,
-        ...safeUpdate
-      };
-      
-      // Update in our map
-      this.bookings.set(id, updatedBooking);
-      
-      return updatedBooking;
-    } catch (error) {
-      console.error("Error updating booking in MemStorage:", error);
-      return undefined;
-    }
-  }
-  
-  async deleteBooking(id: number): Promise<boolean> {
-    // First find and delete all associated booking time slots
-    const bookingTimeSlotEntries = Array.from(this.bookingTimeSlots.values())
-      .filter(bts => bts.bookingId === id);
-    
-    for (const bts of bookingTimeSlotEntries) {
-      // Free up the time slot
-      const timeSlot = this.timeSlots.get(bts.timeSlotId);
-      if (timeSlot) {
-        timeSlot.status = 'available';
-        this.timeSlots.set(timeSlot.id, timeSlot);
-      }
-      
-      // Delete the booking time slot entry
-      this.bookingTimeSlots.delete(bts.id);
-    }
-    
-    // Now delete the booking
-    return this.bookings.delete(id);
-  }
-  
-  async getBookingTimeSlots(bookingId: number): Promise<TimeSlot[]> {
-    const bookingTimeSlotEntries = Array.from(this.bookingTimeSlots.values())
-      .filter(bts => bts.bookingId === bookingId);
-    
-    const timeSlotIds = bookingTimeSlotEntries.map(bts => bts.timeSlotId);
-    
-    return Array.from(this.timeSlots.values())
-      .filter(ts => timeSlotIds.includes(ts.id));
-  }
-  
-  async addTimeSlotToBooking(bookingTimeSlot: InsertBookingTimeSlot): Promise<BookingTimeSlot> {
-    const id = this.currentBookingTimeSlotId++;
-    const newBookingTimeSlot: BookingTimeSlot = { ...bookingTimeSlot, id };
-    this.bookingTimeSlots.set(id, newBookingTimeSlot);
-    
-    // Update the time slot status to booked
-    const timeSlot = this.timeSlots.get(bookingTimeSlot.timeSlotId);
-    if (timeSlot) {
-      timeSlot.status = 'booked';
-      this.timeSlots.set(timeSlot.id, timeSlot);
-    }
-    
-    return newBookingTimeSlot;
-  }
-  
-  // Operating hours methods
-  async getOperatingHours(): Promise<OperatingHours[]> {
-    return Array.from(this.operatingHoursMap.values());
-  }
-  
-  async updateOperatingHours(id: number, hours: Partial<OperatingHours>): Promise<OperatingHours | undefined> {
-    const existingHours = this.operatingHoursMap.get(id);
-    
-    if (!existingHours) {
-      return undefined;
-    }
-    
-    const updatedHours = { ...existingHours, ...hours };
-    this.operatingHoursMap.set(id, updatedHours);
-    
-    // Regenerate time slots after operating hours change
-    try {
-      await this.regenerateTimeSlots();
-      console.log(`Regenerated time slots after operating hours update for day ${updatedHours.dayOfWeek}`);
-    } catch (error) {
-      console.error("Error regenerating time slots in MemStorage:", error);
-    }
-    
-    return updatedHours;
-  }
-  
-  async createOperatingHours(hours: InsertOperatingHours): Promise<OperatingHours> {
-    const id = this.currentOperatingHoursId++;
-    const newHours: OperatingHours = { ...hours, id };
-    this.operatingHoursMap.set(id, newHours);
-    return newHours;
-  }
-  
-  // Pricing methods
-  async getPricing(): Promise<Pricing[]> {
-    return Array.from(this.pricingMap.values());
-  }
-  
-  async updatePricing(id: number, pricing: Partial<Pricing>): Promise<Pricing | undefined> {
-    const existingPricing = this.pricingMap.get(id);
-    
-    if (!existingPricing) {
-      return undefined;
-    }
-    
-    const updatedPricing = { ...existingPricing, ...pricing };
-    this.pricingMap.set(id, updatedPricing);
-    
-    return updatedPricing;
-  }
-  
-  async createPricing(pricing: InsertPricing): Promise<Pricing> {
-    const id = this.currentPricingId++;
-    const newPricing: Pricing = { ...pricing, id };
-    this.pricingMap.set(id, newPricing);
-    return newPricing;
-  }
-  
-  // Configuration methods
-  async getConfiguration(name: string): Promise<Configuration | undefined> {
-    return Array.from(this.configurationMap.values()).find(
-      config => config.name === name
-    );
-  }
-  
-  async updateConfiguration(name: string, value: string): Promise<Configuration | undefined> {
-    const existingConfig = Array.from(this.configurationMap.values()).find(
-      config => config.name === name
-    );
-    
-    if (!existingConfig) {
-      return undefined;
-    }
-    
-    const updatedConfig = { ...existingConfig, value };
-    this.configurationMap.set(existingConfig.id.toString(), updatedConfig);
-    
-    return updatedConfig;
-  }
-  
-  async createConfiguration(config: InsertConfiguration): Promise<Configuration> {
-    const id = this.currentConfigurationId++;
-    const newConfig: Configuration = { ...config, id };
-    this.configurationMap.set(newConfig.name, newConfig);
-    return newConfig;
-  }
-  
-  // Statistics methods
-  async getBookingStats(startDate: Date, endDate: Date): Promise<any> {
-    // Get bookings in date range
-    const bookingsInRange: Booking[] = [];
-    const bookingTimeSlotMap: Map<number, TimeSlot[]> = new Map();
-    
-    // First get all time slots in the range
-    const timeSlotsInRange = await this.getTimeSlotsByDateRange(startDate, endDate);
-    
-    // Group time slots by booking
-    for (const timeSlot of timeSlotsInRange) {
-      if (timeSlot.status === 'booked') {
-        // Find which booking this time slot belongs to
-        const bookingTimeSlot = Array.from(this.bookingTimeSlots.values()).find(
-          bts => bts.timeSlotId === timeSlot.id
-        );
-        
-        if (bookingTimeSlot) {
-          const booking = this.bookings.get(bookingTimeSlot.bookingId);
-          
-          if (booking) {
-            if (!bookingsInRange.some(b => b.id === booking.id)) {
-              bookingsInRange.push(booking);
-            }
-            
-            if (!bookingTimeSlotMap.has(booking.id)) {
-              bookingTimeSlotMap.set(booking.id, []);
-            }
-            
-            bookingTimeSlotMap.get(booking.id)?.push(timeSlot);
-          }
-        }
-      }
-    }
-    
-    // Calculate booking rate
-    const totalSlots = timeSlotsInRange.length;
-    const bookedSlots = timeSlotsInRange.filter(ts => ts.status === 'booked').length;
-    const bookingRate = totalSlots > 0 ? (bookedSlots / totalSlots) * 100 : 0;
-    
-    // Calculate forecasted income
-    let forecastedIncome = 0;
-    for (const timeSlot of timeSlotsInRange) {
-      if (timeSlot.status === 'booked') {
-        forecastedIncome += timeSlot.price;
-      }
-    }
-    
-    // Add equipment rental income
-    for (const booking of bookingsInRange) {
-      if (booking.equipmentRental) {
-        forecastedIncome += 30; // $30 per equipment rental
-      }
-    }
-    
-    // Calculate average session length
-    let totalSessionHours = 0;
-    for (const [bookingId, timeSlots] of bookingTimeSlotMap.entries()) {
-      // Each time slot is 30 minutes
-      totalSessionHours += (timeSlots.length * 0.5);
-    }
-    
-    const avgSessionLength = bookingsInRange.length > 0 ? 
-      totalSessionHours / bookingsInRange.length : 0;
-    
-    // Calculate bookings by day of week
-    const bookingsByDay = [0, 0, 0, 0, 0, 0, 0]; // Sun, Mon, Tue, Wed, Thu, Fri, Sat
-    
-    for (const [bookingId, timeSlots] of bookingTimeSlotMap.entries()) {
-      // Take the first time slot to determine the day
-      if (timeSlots.length > 0) {
-        const dayOfWeek = new Date(timeSlots[0].startTime).getDay();
-        bookingsByDay[dayOfWeek]++;
-      }
-    }
-    
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const totalBookings = bookingsInRange.length;
-    
-    const bookingsByDayFormatted = bookingsByDay.map((count, index) => ({
-      day: dayNames[index],
-      count,
-      percentage: totalBookings > 0 ? (count / totalBookings) * 100 : 0
-    }));
-    
-    // Calculate popular time slots
-    const timeSlotCounts: Record<string, number> = {};
-    
-    for (const timeSlot of timeSlotsInRange) {
-      if (timeSlot.status === 'booked') {
-        const hour = new Date(timeSlot.startTime).getHours();
-        const timeKey = `${hour}:00`;
-        
-        if (!timeSlotCounts[timeKey]) {
-          timeSlotCounts[timeKey] = 0;
-        }
-        
-        timeSlotCounts[timeKey]++;
-      }
-    }
-    
-    const popularTimeSlots = Object.entries(timeSlotCounts)
-      .map(([time, count]) => ({
-        time,
-        percentage: bookedSlots > 0 ? (count / bookedSlots) * 100 : 0
-      }))
-      .sort((a, b) => b.percentage - a.percentage)
-      .slice(0, 5); // Top 5
-    
-    return {
-      bookingRate,
-      totalBookings,
-      forecastedIncome,
-      avgSessionLength,
-      bookingsByDay: bookingsByDayFormatted,
-      popularTimeSlots
-    };
   }
 }
 

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, time, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, time, real, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -100,6 +100,22 @@ export const timeFormatPreferences = pgTable("time_format_preferences", {
   defaultTimezone: text("default_timezone").default("Europe/Riga").notNull(),
 });
 
+// Lead time restriction mode enum
+export const leadTimeRestrictionModeEnum = pgEnum("lead_time_restriction_mode", [
+  "enforced",    // Always enforce lead time restrictions
+  "booking_based", // Only enforce when no bookings exist for that date
+  "off"          // No lead time restrictions
+]);
+
+// Lead time settings table for controlling booking deadlines
+export const leadTimeSettings = pgTable("lead_time_settings", {
+  id: serial("id").primaryKey(),
+  restrictionMode: leadTimeRestrictionModeEnum("restriction_mode").default("enforced").notNull(),
+  leadTimeDays: integer("lead_time_days").default(0).notNull(), // 0 = same day, 1 = previous day
+  operatorOnSite: boolean("operator_on_site").default(false).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users);
 export const insertOperatingHoursSchema = createInsertSchema(operatingHours);
@@ -109,6 +125,7 @@ export const insertTimeSlotSchema = createInsertSchema(timeSlots);
 export const insertBookingSchema = createInsertSchema(bookings).omit({ reference: true });
 export const insertBookingTimeSlotsSchema = createInsertSchema(bookingTimeSlots);
 export const insertTimeFormatPreferencesSchema = createInsertSchema(timeFormatPreferences).omit({ id: true });
+export const insertLeadTimeSettingsSchema = createInsertSchema(leadTimeSettings).omit({ id: true, updatedAt: true });
 
 // Custom schemas
 export const bookingFormSchema = z.object({
@@ -178,6 +195,17 @@ export const makeAvailableSchema = z.object({
   })).optional(),
 });
 
+// Lead time settings form for admin configuration
+export const leadTimeSettingsFormSchema = z.object({
+  restrictionMode: z.enum(["enforced", "booking_based", "off"], {
+    errorMap: () => ({ message: "Please select a valid restriction mode" })
+  }),
+  leadTimeDays: z.number().int().min(0, { 
+    message: "Lead time days must be a non-negative integer" 
+  }),
+  operatorOnSite: z.boolean(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -209,11 +237,16 @@ export type InsertBookingTimeSlot = z.infer<typeof insertBookingTimeSlotsSchema>
 export type TimeFormatPreferences = typeof timeFormatPreferences.$inferSelect;
 export type InsertTimeFormatPreferences = z.infer<typeof insertTimeFormatPreferencesSchema>;
 
+export type LeadTimeSettings = typeof leadTimeSettings.$inferSelect;
+export type InsertLeadTimeSettings = z.infer<typeof insertLeadTimeSettingsSchema>;
+export type LeadTimeRestrictionMode = "enforced" | "booking_based" | "off";
+
 export type BookingFormData = z.infer<typeof bookingFormSchema>;
 export type ManualBookingFormData = z.infer<typeof manualBookingSchema>;
 export type AdminCustomBookingData = z.infer<typeof adminCustomBookingSchema>;
 export type BlockTimeSlotFormData = z.infer<typeof blockTimeSlotSchema>;
 export type MakeAvailableFormData = z.infer<typeof makeAvailableSchema>;
+export type LeadTimeSettingsFormData = z.infer<typeof leadTimeSettingsFormSchema>;
 
 // For frontend use
 export type TimeSlotStatus = "available" | "booked" | "selected";
