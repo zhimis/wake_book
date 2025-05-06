@@ -224,36 +224,36 @@ const BookingCalendar = ({
   // Function to check if a UI slot is selected 
   const isSlotSelected = (uiSlotId: string | number): boolean => {
     // Provide detailed logging for troubleshooting selection issues
-    console.log(`Checking if slot with ID ${uiSlotId} is selected`);
+    // console.log(`Checking if slot with ID ${uiSlotId} is selected`); // Commented to reduce console noise
     
     // Make sure we have a number for comparison
     // We need to be very careful about type conversion here as JS equality can be tricky
     const numericId = typeof uiSlotId === 'string' ? parseInt(uiSlotId) : uiSlotId;
     
     // For admin mode, check if the slot is in the admin's selected slots
-    if (isAdmin && adminSelectedSlots) {
+    if (isAdmin && adminSelectedSlots && adminSelectedSlots.length > 0) {
+      // Get the first (and only) selected slot when in single-selection mode
+      const selectedSlot = adminSelectedSlots[0];
+      
       // Handle negative IDs (empty slots) specially
       if (numericId < 0) {
-        const isFound = adminSelectedSlots.some(slot => slot.id === numericId);
-        console.log(`Admin empty slot ${numericId} selected? ${isFound}`);
+        const isFound = selectedSlot.id === numericId;
+        if (isFound) {
+          console.log(`Admin empty slot ${numericId} is selected!`);
+        }
         return isFound;
       }
       
-      // For regular slots, do a strict ID comparison
-      // We use triple equals to ensure exact type matching
-      const selected = adminSelectedSlots.some(slot => {
-        const slotNumericId = typeof slot.id === 'string' ? parseInt(slot.id) : slot.id;
-        const isMatch = slotNumericId === numericId;
-        
-        // Debug output
-        if (isMatch) {
-          console.log(`Found match! Slot ${numericId} is selected (matches with ${slotNumericId})`);
-        }
-        
-        return isMatch;
-      });
+      // For regular slots, do a strict ID comparison with triple equals
+      const slotNumericId = typeof selectedSlot.id === 'string' ? parseInt(selectedSlot.id) : selectedSlot.id;
+      const isMatch = slotNumericId === numericId;
       
-      return selected;
+      // Debug output for matches
+      if (isMatch) {
+        console.log(`Found match! Slot ${numericId} is selected (matches with ${slotNumericId})`);
+      }
+      
+      return isMatch;
     }
     
     // For regular mode, use the booking context
