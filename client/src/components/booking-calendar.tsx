@@ -750,7 +750,9 @@ const BookingCalendar = ({
             </Button>
             <Button 
               variant="outline" 
-              onClick={customNavigation ? customNavigation.goToToday : goToToday}
+              onClick={customNavigation && customNavigation.goToToday !== undefined 
+                ? customNavigation.goToToday || goToToday  // Use goToToday if null is passed
+                : goToToday}
               className="h-8 px-2 text-xs"
               title="Go to today"
             >
