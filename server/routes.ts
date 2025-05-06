@@ -1109,6 +1109,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Management Endpoints
+  
+  // Get all users (requires authentication)
+  app.get("/api/users", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check if the user has appropriate role (admin or manager)
+      const user = req.user as any;
+      if (user.role !== 'admin' && user.role !== 'manager') {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+      
+      const users = await storage.getAllUsers();
+      
+      // Filter sensitive information before sending response
+      const filteredUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+        isActive: user.isActive,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt
+      }));
+      
+      res.json(filteredUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+  
+  // Create a new user (requires admin authentication)
+  app.post("/api/users", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check if the user has appropriate role (admin only)
+      const currentUser = req.user as any;
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+      
+      const schema = z.object({
+        username: z.string().min(3, "Username must be at least 3 characters"),
+        email: z.string().email("Must be a valid email address"),
+        password: z.string().min(8, "Password must be at least 8 characters"),
+        firstName: z.string().min(2, "First name must be at least 2 characters"),
+        lastName: z.string().min(2, "Last name must be at least 2 characters"),
+        role: z.enum(['admin', 'manager', 'operator', 'athlete'], {
+          errorMap: () => ({ message: "Invalid role. Must be admin, manager, operator, or athlete" })
+        }),
+        phoneNumber: z.string().optional()
+      });
+      
+      const userData = schema.parse(req.body);
+      
+      // Check if user with this email already exists
+      const existingEmailUser = await storage.getUserByEmail(userData.email);
+      if (existingEmailUser) {
+        return res.status(400).json({ error: "A user with this email already exists" });
+      }
+      
+      // Check if user with this username already exists
+      const existingUsernameUser = await storage.getUserByUsername(userData.username);
+      if (existingUsernameUser) {
+        return res.status(400).json({ error: "A user with this username already exists" });
+      }
+      
+      // Hash the password before storing it
+      const { hashPassword } = require('./auth');
+      const hashedPassword = await hashPassword(userData.password);
+      
+      // Create the user
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword,
+        isActive: true,
+        createdAt: new Date()
+      });
+      
+      // Filter out sensitive data before responding
+      const { password, ...userWithoutPassword } = user;
+      
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+  
+  // Reset a user's password (requires admin authentication)
+  app.post("/api/users/:id/reset-password", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Check if the user has appropriate role (admin only)
+      const currentUser = req.user as any;
+      if (currentUser.role !== 'admin') {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+      
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      
+      const schema = z.object({
+        password: z.string().min(8, "Password must be at least 8 characters")
+      });
+      
+      const { password } = schema.parse(req.body);
+      
+      // Get the user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Hash the password
+      const { hashPassword } = require('./auth');
+      const hashedPassword = await hashPassword(password);
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(userId, {
+        password: hashedPassword
+      });
+      
+      // Filter out sensitive data before responding
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

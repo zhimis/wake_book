@@ -13,9 +13,10 @@ import { Link } from "wouter";
 
 interface AdminLayoutProps {
   children: ReactNode;
+  pageTitle?: string; // Optional page title
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   const { user, logoutMutation } = useAuth();
   const [, navigate] = useLocation();
   const [open, setOpen] = React.useState(false);
@@ -56,6 +57,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <Link href="/admin/system-config">
                   <a className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
                     System Config
+                  </a>
+                </Link>
+              </li>
+              <li>
+                <Link href="/admin/users">
+                  <a className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                    User Management
                   </a>
                 </Link>
               </li>
@@ -116,6 +124,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         onClick={() => setOpen(false)}
                       >
                         System Config
+                      </a>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/admin/users">
+                      <a 
+                        className="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                        onClick={() => setOpen(false)}
+                      >
+                        User Management
                       </a>
                     </Link>
                   </li>
