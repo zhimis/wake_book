@@ -65,6 +65,7 @@ type CreateUserFormValues = z.infer<typeof createUserSchema>;
 export default function AdminUsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -289,7 +290,9 @@ export default function AdminUsersPage() {
                         </FormControl>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="admin">Admin</SelectItem>
+                            {currentUser?.role === "admin" && (
+                              <SelectItem value="admin">Admin</SelectItem>
+                            )}
                             <SelectItem value="manager">Manager</SelectItem>
                             <SelectItem value="operator">Operator</SelectItem>
                             <SelectItem value="athlete">Athlete</SelectItem>
@@ -416,16 +419,19 @@ export default function AdminUsersPage() {
                       {user.lastLogin ? formatDate(user.lastLogin) : "Never"}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUserId(user.id);
-                          setResetPasswordOpen(true);
-                        }}
-                      >
-                        Reset Password
-                      </Button>
+                      {/* Hide reset password button for managers trying to reset admin passwords */}
+                      {!(currentUser?.role === "manager" && user.role === "admin") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUserId(user.id);
+                            setResetPasswordOpen(true);
+                          }}
+                        >
+                          Reset Password
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
