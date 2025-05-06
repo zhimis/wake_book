@@ -208,24 +208,27 @@ const AdminCalendarView = () => {
     // Get today in Latvia timezone
     const latviaToday = toLatviaTime(new Date());
     
-    // Set start date to yesterday for admin view to see recent past bookings
-    const latviaStartDate = new Date(latviaToday);
-    latviaStartDate.setDate(latviaToday.getDate() - 1); // Start from yesterday
+    // Get the day index in Latvia format (0=Monday, 6=Sunday)
+    const latvianDayIndex = getLatvianDayIndexFromDate(latviaToday);
     
-    // Calculate end date (today + 6 days) in Latvia timezone
-    const latviaEndDate = new Date(latviaToday);
-    latviaEndDate.setDate(latviaToday.getDate() + 6);
+    // Calculate this week's Monday
+    const latviaMondayDate = new Date(latviaToday);
+    latviaMondayDate.setDate(latviaToday.getDate() - latvianDayIndex);
     
-    console.log("Admin calendar initial date range:",
-      formatInLatviaTime(latviaStartDate, "yyyy-MM-dd"),
+    // Calculate end date (Sunday = Monday + 6 days)
+    const latviaSundayDate = new Date(latviaMondayDate);
+    latviaSundayDate.setDate(latviaMondayDate.getDate() + 6);
+    
+    console.log("Admin calendar initial date range (Monday-Sunday):",
+      formatInLatviaTime(latviaMondayDate, "yyyy-MM-dd"),
       "to", 
-      formatInLatviaTime(latviaEndDate, "yyyy-MM-dd")
+      formatInLatviaTime(latviaSundayDate, "yyyy-MM-dd")
     );
     
     // Return dates converted back to UTC for storage and API requests
     return {
-      start: fromLatviaTime(latviaStartDate), 
-      end: fromLatviaTime(latviaEndDate)
+      start: fromLatviaTime(latviaMondayDate), 
+      end: fromLatviaTime(latviaSundayDate)
     };
   });
   
@@ -580,14 +583,9 @@ const AdminCalendarView = () => {
     const todayInLatvia = toLatviaTime(rightNow);
     
     // Use current range as base for navigation
-    // In admin view, currentDateRange.start is Sunday (1 day before Monday)
-    // So adjust by adding 1 day to get Monday as our reference point
+    // In our new standardized approach, currentDateRange.start is already Monday
     const currentStart = toLatviaTime(currentDateRange.start);
-    const adjustedCurrentStart = addDays(currentStart, 1); // Adjust for the -1 day offset
-    
-    // Calculate current Monday precisely
-    const latvianDayIndex = getLatvianDayIndexFromDate(adjustedCurrentStart);
-    const currentMonday = addDays(adjustedCurrentStart, -latvianDayIndex);
+    const currentMonday = currentStart; // Monday is now directly our start date
     
     console.log(`Current monday calculated as: ${formatInLatviaTime(currentMonday, "yyyy-MM-dd")}`);
     
@@ -627,18 +625,14 @@ const AdminCalendarView = () => {
     // Calculate end of week (Sunday)
     const newSunday = addDays(newMonday, 6);
     
-    // For admin view, we want to show yesterday through the following week
-    // So adjust the start date to be 1 day before Monday
-    const newAdminStart = addDays(newMonday, -1);
-    
     // Clear the lastDateRef to allow a new initial update from the calendar
     lastDateRef.current = null;
     
     // Store formatted versions for lookup
-    const startLatvia = formatInLatviaTime(newAdminStart, "yyyy-MM-dd");
+    const startLatvia = formatInLatviaTime(newMonday, "yyyy-MM-dd");
     const endLatvia = formatInLatviaTime(newSunday, "yyyy-MM-dd");
     
-    console.log(`Setting new date range: ${startLatvia} to ${endLatvia}`);
+    console.log(`Setting new date range (Monday-Sunday): ${startLatvia} to ${endLatvia}`);
     
     // Store in lastDateRef to prevent duplicate updates
     lastDateRef.current = {
@@ -649,7 +643,7 @@ const AdminCalendarView = () => {
     // Update the date range state with the new dates
     // Convert back to UTC for storage
     setCurrentDateRange({
-      start: fromLatviaTime(newAdminStart),
+      start: fromLatviaTime(newMonday),
       end: fromLatviaTime(newSunday)
     });
     
