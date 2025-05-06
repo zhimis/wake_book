@@ -28,7 +28,7 @@ import {
 } from "@/lib/utils";
 import { useBooking } from "@/context/booking-context";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { TimeSlot as SchemaTimeSlot, generateTimeSlotId } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
 import AdminTimeSlot from "@/components/admin/admin-time-slot";
@@ -254,6 +254,14 @@ const BookingCalendar = ({
       if (!res.ok) throw new Error('Failed to fetch configuration');
       return res.json();
     }
+  });
+  
+  // Fetch lead time settings for booking restrictions
+  const { data: leadTimeSettings } = useQuery({
+    queryKey: ['/api/admin/lead-time-settings'],
+    queryFn: getQueryFn<any>({ on401: "returnNull" }),
+    staleTime: 60000,
+    retry: false,
   });
   
   // Determine if we're viewing a week that has no time slots
@@ -601,6 +609,47 @@ const BookingCalendar = ({
   };
   
   // Toggle slot selection
+  // Function to check if a slot is restricted by lead time settings
+  const isSlotRestrictedByLeadTime = (slot: CalendarTimeSlot): boolean => {
+    // If we're in admin mode, no lead time restrictions apply
+    if (isAdmin) return false;
+    
+    // If lead time settings aren't loaded yet or no restrictions, allow booking
+    if (!leadTimeSettings) return false;
+    if (leadTimeSettings.restrictionMode === "off") return false;
+    
+    // If operator is on-site, override all restrictions
+    if (leadTimeSettings.operatorOnSite) return false;
+    
+    // Get current date and slot date
+    const now = new Date();
+    const slotDate = new Date(slot.startTime);
+    
+    // Calculate the date difference in days (accounting for time of day)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const slotDay = new Date(slotDate.getFullYear(), slotDate.getMonth(), slotDate.getDate());
+    
+    // Calculate days difference
+    const diffTime = slotDay.getTime() - today.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Get lead time in days
+    const leadTimeDays = leadTimeSettings.leadTimeDays || 0;
+    const isWithinLeadTime = diffDays < leadTimeDays;
+    
+    console.log(`Lead time check: Slot date=${formatInLatviaTime(slotDate, 'yyyy-MM-dd')}, Today=${formatInLatviaTime(today, 'yyyy-MM-dd')}, Days difference=${diffDays}, Lead time required=${leadTimeDays}, Restricted=${isWithinLeadTime}, Mode=${leadTimeSettings.restrictionMode}`);
+    
+    // If in "booking_based" mode, we need to check if there are any bookings for this day
+    if (leadTimeSettings.restrictionMode === "booking_based" && isWithinLeadTime) {
+      // TODO: Check if there are any bookings for this day
+      // For now, we'll enforce the restriction
+      return true;
+    }
+    
+    // For "enforced" mode, simply check if we're within lead time
+    return leadTimeSettings.restrictionMode === "enforced" && isWithinLeadTime;
+  };
+
   const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
     // Find the actual slot object - compare both as strings
     const slot = timeSlots.find(s => String(s.id) === slotId);
@@ -610,6 +659,17 @@ const BookingCalendar = ({
     if (slot.isPast && !isAdmin) {
       // Regular users cannot interact with past slots
       console.log(`Cannot select past slot ${slotId}`);
+      return;
+    }
+    
+    // Check lead time restrictions (for non-admin users)
+    if (!isAdmin && isSlotRestrictedByLeadTime(slot)) {
+      toast({
+        title: "Booking restricted",
+        description: `This time slot cannot be booked as it's within the ${leadTimeSettings?.leadTimeDays} day lead time restriction period.`,
+        variant: "destructive",
+        duration: 5000,
+      });
       return;
     }
     
@@ -854,6 +914,25 @@ const BookingCalendar = ({
                   <div className={isToday(day.date) ? "text-blue-600" : ""}>
                     {day.day}
                   </div>
+                  {!isAdmin && leadTimeSettings && leadTimeSettings.restrictionMode !== "off" && !leadTimeSettings.operatorOnSite && (() => {
+                    // Calculate days difference from today
+                    const today = new Date();
+                    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const slotDate = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate());
+                    
+                    const diffTime = slotDate.getTime() - todayDate.getTime();
+                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    // Check if this day is within lead time restriction
+                    if (diffDays < leadTimeSettings.leadTimeDays) {
+                      return (
+                        <Badge variant="destructive" className="text-[0.6rem] mt-1 px-1">
+                          Restricted
+                        </Badge>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               ))}
 
