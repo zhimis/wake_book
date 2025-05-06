@@ -166,12 +166,34 @@ const BookingCalendar = ({
   const goToToday = () => {
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
+    
     // Use current date but ensure it's consistent with our timezone handling
     const todayInLatvia = toLatviaTime(new Date());
-    setCurrentDate(todayInLatvia);
     
-    // Log navigation for debugging
-    console.log(`BookingCalendar: Going to today: ${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}`);
+    // Get Latvia day of week (0=Monday, 6=Sunday)
+    const latvianDayIndex = getLatvianDayIndexFromDate(todayInLatvia);
+    
+    // Calculate Monday of this week by subtracting the day index
+    const thisMonday = subDays(todayInLatvia, latvianDayIndex);
+    
+    // Update the current date to this week's Monday
+    setCurrentDate(thisMonday);
+    
+    // If onDateRangeChange is provided, notify parent directly to ensure sync
+    if (onDateRangeChange) {
+      // Calculate end date (Sunday)
+      const thisSunday = addDays(thisMonday, 6);
+      
+      // For admin view, include the day before Monday
+      const adminStartDate = isAdmin ? subDays(thisMonday, 1) : thisMonday;
+      
+      // Ensure both calendar and parent are in sync immediately
+      console.log(`BookingCalendar: Going to today (${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}) - Monday: ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`);
+      console.log(`BookingCalendar: Explicitly notifying parent of date change to: ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")} - ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
+      
+      // Direct callback to parent with correct dates
+      onDateRangeChange(adminStartDate, thisSunday);
+    }
   };
   
   // Fetch time slots from the server with their actual statuses
