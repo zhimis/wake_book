@@ -845,7 +845,7 @@ const BookingCalendar = ({
                           const handleEmptySlotClick = () => {
                             // Create a schema-compatible time slot object
                             const tempSlot: SchemaTimeSlot = {
-                              id: tempId, // String ID to mark as temporary
+                              id: -1 * (dayIndex + 1) * (hour + 1) * (minute + 1), // Negative ID to mark as temporary
                               startTime: slotDate,
                               endTime: endDate,
                               status: 'available', // Treat as available for simplicity
@@ -868,8 +868,11 @@ const BookingCalendar = ({
                               onClick={handleEmptySlotClick}
                             >
                               {isAdmin && (
-                                <span className="text-xs text-gray-400 hover:text-gray-600">
-                                  Create Slot
+                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                  </svg>
                                 </span>
                               )}
                             </div>

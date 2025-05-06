@@ -98,12 +98,14 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     if (isSelected && slot.status !== 'booked') {
       return {
         position: 'relative' as const,
-        background: '#fee2e2', // lighter red background
-        boxShadow: '0 0 5px rgba(248, 113, 113, 0.5)', // more subtle shadow
+        background: '#e0f2fe', // light blue background
+        boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)', // blue shadow
         zIndex: 10,
-        borderColor: '#f87171', // lighter red border
+        borderColor: '#3b82f6', // blue border
         borderWidth: '2px',
-        fontWeight: 600
+        fontWeight: 600,
+        transform: 'scale(1.05)', // slightly larger
+        transition: 'all 0.2s ease'
       };
     }
     return {};
