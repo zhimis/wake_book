@@ -3,7 +3,14 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { bookingFormSchema, manualBookingSchema, blockTimeSlotSchema, timeSlots, operatingHours } from "@shared/schema";
+import { 
+  bookingFormSchema, 
+  manualBookingSchema, 
+  blockTimeSlotSchema, 
+  timeSlots, 
+  operatingHours,
+  leadTimeSettingsFormSchema
+} from "@shared/schema";
 import { format, addMinutes } from "date-fns";
 import { db } from "./db";
 import { gte, eq, sql } from "drizzle-orm";
@@ -1017,6 +1024,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error analyzing time slots:", error);
       res.status(500).json({ error: "Failed to analyze time slots" });
+    }
+  });
+
+  // Get lead time settings (admin only)
+  app.get("/api/admin/lead-time-settings", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const settings = await storage.getLeadTimeSettings();
+      
+      res.json(settings || {
+        restrictionMode: "off",
+        leadTimeDays: 0,
+        operatorOnSite: false
+      });
+    } catch (error) {
+      console.error("Error fetching lead time settings:", error);
+      res.status(500).json({ error: "Failed to fetch lead time settings" });
+    }
+  });
+
+  // Update lead time settings (admin only)
+  app.post("/api/admin/lead-time-settings", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const validatedData = leadTimeSettingsFormSchema.parse(req.body);
+      
+      let settings = await storage.getLeadTimeSettings();
+      
+      if (!settings) {
+        // Create new settings if they don't exist
+        settings = await storage.createLeadTimeSettings(validatedData);
+      } else {
+        // Update existing settings
+        settings = await storage.updateLeadTimeSettings(validatedData);
+      }
+      
+      res.json({
+        success: true,
+        settings
+      });
+    } catch (error) {
+      console.error("Error updating lead time settings:", error);
+      res.status(500).json({ error: "Failed to update lead time settings" });
+    }
+  });
+
+  // Check if booking is allowed for a specific date (considering lead time)
+  app.get("/api/lead-time/check", async (req: Request, res: Response) => {
+    try {
+      const dateStr = req.query.date as string;
+      
+      if (!dateStr || !validateDate(dateStr)) {
+        return res.status(400).json({ error: "Invalid date format" });
+      }
+      
+      const date = new Date(dateStr);
+      const result = await storage.checkBookingAllowedByLeadTime(date);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error checking lead time restrictions:", error);
+      res.status(500).json({ error: "Failed to check lead time restrictions" });
     }
   });
 
