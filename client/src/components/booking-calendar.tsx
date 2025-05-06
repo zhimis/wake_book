@@ -825,6 +825,58 @@ const BookingCalendar = ({
                       
                       if (!slot) {
                         // No slot exists for this day and time
+                        if (isAdmin && onAdminSlotSelect) {
+                          // Create a temporary empty slot for admin
+                          const dayDate = days[dayIndex].date;
+                          
+                          // Create the time for this slot
+                          const slotDate = new Date(dayDate);
+                          slotDate.setHours(hour, minute, 0, 0);
+                          
+                          // Create an end time (30 minutes later)
+                          const endDate = new Date(slotDate);
+                          endDate.setMinutes(endDate.getMinutes() + 30);
+                          
+                          // Create a temporary ID using negative numbers for empty slots
+                          // Format: day-hour-minute to ensure uniqueness
+                          const tempId = `-${dayIndex}-${hour}-${minute}`;
+                          
+                          // Define a function to handle click on the empty slot
+                          const handleEmptySlotClick = () => {
+                            // Create a schema-compatible time slot object
+                            const tempSlot: SchemaTimeSlot = {
+                              id: tempId, // String ID to mark as temporary
+                              startTime: slotDate,
+                              endTime: endDate,
+                              status: 'available', // Treat as available for simplicity
+                              price: 0, // No price set yet
+                              storageTimezone: 'UTC'
+                            };
+                            
+                            // Pass to the admin handler
+                            onAdminSlotSelect(tempSlot);
+                          };
+                          
+                          // Render a clickable empty slot for admin
+                          return (
+                            <div 
+                              key={dayIndex} 
+                              className="h-14 border border-dashed border-gray-200 rounded-md 
+                                        bg-gray-50 hover:bg-gray-100 hover:border-blue-300 
+                                        transition-colors duration-100 cursor-pointer
+                                        flex items-center justify-center"
+                              onClick={handleEmptySlotClick}
+                            >
+                              {isAdmin && (
+                                <span className="text-xs text-gray-400 hover:text-gray-600">
+                                  Create Slot
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        // For regular users or non-interactive admin view, show empty cell
                         return <div key={dayIndex} className="h-14 border border-dashed border-gray-100 rounded-md"></div>;
                       }
                       
