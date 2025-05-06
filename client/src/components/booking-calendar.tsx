@@ -228,7 +228,16 @@ const BookingCalendar = ({
     
     // For admin mode, use adminSelectedSlots instead of the booking context
     if (isAdmin) {
-      const isAdminSelected = adminSelectedSlots.some(slot => slot.id === id);
+      // Special check for admin mode to handle negative IDs for empty slots
+      const isAdminSelected = adminSelectedSlots.some(slot => {
+        // Debug log for selection
+        if (slot.id === id) {
+          console.log(`Admin slot selected: ${id}`);
+          return true;
+        }
+        return false;
+      });
+      
       return isAdminSelected;
     }
     
