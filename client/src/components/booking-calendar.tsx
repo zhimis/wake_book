@@ -772,9 +772,7 @@ const BookingCalendar = ({
             </Button>
             <Button 
               variant="outline" 
-              onClick={customNavigation && customNavigation.goToToday !== undefined 
-                ? customNavigation.goToToday || goToToday  // Use goToToday if null is passed
-                : goToToday}
+              onClick={customNavigation?.goToToday || goToToday}
               className="h-8 px-2 text-xs"
               title="Go to today"
             >
@@ -802,7 +800,7 @@ const BookingCalendar = ({
               There are no time slots available for this week yet.
               Please check back later or select an earlier date.
             </p>
-            <Button variant="outline" onClick={customNavigation ? customNavigation.goToToday : goToToday}>
+            <Button variant="outline" onClick={customNavigation?.goToToday || goToToday}>
               Go to current week
             </Button>
           </div>
