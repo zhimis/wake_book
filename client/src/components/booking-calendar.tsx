@@ -264,6 +264,13 @@ const BookingCalendar = ({
     retry: false,
   });
   
+  // Fetch all bookings to check for booking-based lead time restrictions
+  const { data: bookingsData } = useQuery({
+    queryKey: ['/api/bookings'],
+    queryFn: getQueryFn<any[]>({ on401: "returnEmptyArray" }),
+    staleTime: 60000,
+  });
+  
   // Determine if we're viewing a week that has no time slots
   // This could be a future week that hasn't been generated yet
   const isFutureWeekWithNoSlots = useMemo(() => {
