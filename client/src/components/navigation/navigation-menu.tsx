@@ -77,18 +77,12 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
     },
     {
       name: "Configuration",
-      path: "/admin",
-      pathParams: "?tab=configuration",
-      icon: <Settings className="h-5 w-5 mr-2" />,
-      onClick: () => {
-        localStorage.setItem("adminActiveTab", "configuration");
-        navigate("/admin");
-      }
+      path: "/admin/system-config",
+      icon: <Settings className="h-5 w-5 mr-2" />
     },
     {
       name: "Statistics",
       path: "/admin",
-      pathParams: "?tab=statistics",
       icon: <BarChart2 className="h-5 w-5 mr-2" />,
       onClick: () => {
         localStorage.setItem("adminActiveTab", "statistics");
@@ -99,10 +93,12 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
 
   // Check if an item is active (currently selected)
   const isActive = (item: NavigationItem) => {
-    if (item.path === "/admin" && item.pathParams) {
-      // For admin pages that use the tab parameter
-      return location === item.path;
+    // For statistics tab on admin page
+    if (item.name === "Statistics" && location === "/admin") {
+      return true;
     }
+    
+    // For all other routes
     return location === item.path;
   };
 
