@@ -18,7 +18,8 @@ import {
   Calendar,
   Settings,
   BarChart2,
-  Users
+  Users,
+  LogIn
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -170,21 +171,31 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
             </>
           )}
 
-          {/* Logout button (only for admin users) */}
-          {isAdmin && (
-            <>
-              <Separator className="my-2" />
-              <SheetClose asChild>
-                <Button 
-                  variant="ghost" 
-                  onClick={handleLogout}
-                  className="justify-start text-red-500 hover:text-red-600"
-                >
-                  <LogOut className="h-5 w-5 mr-2" />
-                  Logout
-                </Button>
-              </SheetClose>
-            </>
+          {/* Login/Logout button */}
+          <Separator className="my-2" />
+          
+          {isAdmin ? (
+            <SheetClose asChild>
+              <Button 
+                variant="ghost" 
+                onClick={handleLogout}
+                className="justify-start text-red-500 hover:text-red-600"
+              >
+                <LogOut className="h-5 w-5 mr-2" />
+                Logout
+              </Button>
+            </SheetClose>
+          ) : (
+            <SheetClose asChild>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate("/admin/login")}
+                className="justify-start"
+              >
+                <LogIn className="h-5 w-5 mr-2" />
+                Log In
+              </Button>
+            </SheetClose>
           )}
         </div>
       </SheetContent>

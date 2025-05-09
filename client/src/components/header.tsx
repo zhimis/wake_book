@@ -45,7 +45,7 @@ const Header = () => {
           
           {!user && (
             <Link href="/admin/login">
-              <span className="hidden md:block text-black font-semibold cursor-pointer mr-4">Admin</span>
+              <span className="hidden md:block text-black font-semibold cursor-pointer mr-4">Log In</span>
             </Link>
           )}
           
