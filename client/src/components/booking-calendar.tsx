@@ -120,8 +120,9 @@ const BookingCalendar = ({
   const { toast } = useToast();
   
   // Date range for the current week view
-  // For admin view, include yesterday in the date range
-  const startDate = isAdmin ? subDays(currentDate, 1) : currentDate;
+  // Always include yesterday in the date range to ensure consistent data fetching
+  // This helps with the initial load vs "Today" button behavior
+  const startDate = subDays(currentDate, 1);
   const endDate = addDays(currentDate, 6);
   
   // Effect to update current date when initialDate prop changes
@@ -204,25 +205,23 @@ const BookingCalendar = ({
       console.log(`End of week (Sunday): ${thisSunday.toISOString()}`);
       console.log(`End of week (formatted): ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
       
-      // For admin view, include the day before Monday
-      const adminStartDate = isAdmin ? subDays(thisMonday, 1) : thisMonday;
-      console.log(`Admin view, using modified start date: ${adminStartDate.toISOString()}`);
-      console.log(`Admin start (formatted): ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}`);
+      // Always include the day before Monday for consistent behavior
+      const newStartDate = subDays(thisMonday, 1);
+      console.log(`Using modified start date: ${newStartDate.toISOString()}`);
+      console.log(`Start date (formatted): ${formatInLatviaTime(newStartDate, "yyyy-MM-dd")}`);
       
-      // Extra debug for admin view
-      if (isAdmin) {
-        console.log(`ADMIN VIEW DATE RANGE:`);
-        console.log(`Start (Sunday): ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")}`);
-        console.log(`Monday: ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`);
-        console.log(`End (Sunday): ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
-      }
+      // Extra debug 
+      console.log(`DATE RANGE:`);
+      console.log(`Start (Sunday): ${formatInLatviaTime(newStartDate, "yyyy-MM-dd")}`);
+      console.log(`Monday: ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`);
+      console.log(`End (Sunday): ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
       
       // Ensure both calendar and parent are in sync immediately
       console.log(`BookingCalendar: Going to today (${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}) - Monday: ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`);
-      console.log(`BookingCalendar: Explicitly notifying parent of date change to: ${formatInLatviaTime(adminStartDate, "yyyy-MM-dd")} - ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
+      console.log(`BookingCalendar: Explicitly notifying parent of date change to: ${formatInLatviaTime(newStartDate, "yyyy-MM-dd")} - ${formatInLatviaTime(thisSunday, "yyyy-MM-dd")}`);
       
-      // Direct callback to parent with correct dates
-      onDateRangeChange(adminStartDate, thisSunday);
+      // Direct callback to parent with correct dates - always include the day before
+      onDateRangeChange(newStartDate, thisSunday);
     }
   };
   
@@ -393,7 +392,8 @@ const BookingCalendar = ({
         console.log(`Column ${i+1}: ${formatInLatviaTime(day.date, "EEE, MMM d, yyyy")}, Latvian index: ${day.latvianDayIndex}`);
       });
     } else {
-      // Regular user view just shows the current week (Mon-Sun)
+      // Regular user view always includes yesterday + the current week (Mon-Sun)
+      // This ensures the display is consistent with what we're fetching
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
       const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
       
@@ -517,13 +517,13 @@ const BookingCalendar = ({
       // to determine if they are "past days" - on initial load vs Today button press
       
       // On initial load or Today button press, we want the same behavior:
-      // 1. If we're in admin view, show all slots for the week (including yesterday)
-      // 2. Show booked slots even for past days
+      // 1. Always show slots for the week (including past days)
+      // 2. Show booked slots even for past days if they exist
       
-      // For admin view only: 
-      // Don't mark days as past if they're part of the selected week view
+      // IMPORTANT: Don't mark days as past for display purposes
       // This ensures consistency between initial load and "Today" button press
-      const isPastDay = isAdmin ? false : slotDate < todayDate;
+      // and shows the booked slots in the past, which is what the client needs
+      const isPastDay = false;
       
       // Then check if it's today but the time has already passed
       const isToday = slotDate.getTime() === todayDate.getTime();
