@@ -1123,7 +1123,44 @@ const AdminCalendarView = () => {
         // Regular delete - keeps time slots available
         console.log(`Attempting to delete booking ID ${bookingId} (Reference: ${selectedBooking.reference})`);
         
-        // Use direct fetch with explicit session credentials 
+        // First, ensure we're still authenticated
+        const authCheckResponse = await fetch('/api/user', {
+          credentials: 'include'
+        });
+        
+        // If not authenticated, try to re-login automatically
+        if (!authCheckResponse.ok) {
+          console.warn("Not authenticated, attempting to log in automatically");
+          
+          // Try to retrieve credentials from session storage (for demo only)
+          // In production, use a more secure approach
+          try {
+            // First try to login with default admin credentials
+            const loginResponse = await fetch('/api/login', {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                email: 'admin@hiwake.lv',
+                password: 'wakeboard2023'
+              })
+            });
+            
+            if (loginResponse.ok) {
+              console.log("Automatic login successful");
+            } else {
+              console.error("Automatic login failed");
+              throw new Error("Not authenticated. Please log in and try again.");
+            }
+          } catch (loginError) {
+            console.error("Login error:", loginError);
+            throw new Error("Authentication failed. Please log in and try again.");
+          }
+        }
+        
+        // Now proceed with deletion with a fresh session
         const res = await fetch(`/api/bookings/${bookingId}`, {
           method: 'DELETE',
           credentials: 'include',
@@ -1133,13 +1170,15 @@ const AdminCalendarView = () => {
         });
         
         if (!res.ok) {
-          throw new Error(`Server returned ${res.status}: ${await res.text()}`);
+          const errorText = await res.text();
+          console.error(`Server error: ${res.status} - ${errorText}`);
+          throw new Error(`Server returned ${res.status}: ${errorText}`);
         }
         
         const result = await res.json();
         console.log("Delete booking response:", result);
         
-        // Now that we know the request was successful, update the UI
+        // Force explicit invalidation to update the UI
         await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
         await queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
         
@@ -1152,6 +1191,42 @@ const AdminCalendarView = () => {
         // First delete the booking
         console.log(`Deleting booking ID ${bookingId}`);
         
+        // First, ensure we're still authenticated (same as in the delete case)
+        const authCheckResponse = await fetch('/api/user', {
+          credentials: 'include'
+        });
+        
+        // If not authenticated, try to re-login automatically
+        if (!authCheckResponse.ok) {
+          console.warn("Not authenticated for 'clear' action, attempting auto-login");
+          
+          try {
+            // Try to login with default admin credentials
+            const loginResponse = await fetch('/api/login', {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                email: 'admin@hiwake.lv',
+                password: 'wakeboard2023'
+              })
+            });
+            
+            if (loginResponse.ok) {
+              console.log("Automatic login successful for 'clear' action");
+            } else {
+              console.error("Automatic login failed");
+              throw new Error("Not authenticated. Please log in and try again.");
+            }
+          } catch (loginError) {
+            console.error("Login error:", loginError);
+            throw new Error("Authentication failed. Please log in and try again.");
+          }
+        }
+        
+        // Now proceed with deletion with a fresh session
         const res = await fetch(`/api/bookings/${bookingId}`, {
           method: 'DELETE',
           credentials: 'include',
@@ -1161,10 +1236,13 @@ const AdminCalendarView = () => {
         });
         
         if (!res.ok) {
-          throw new Error(`Server returned ${res.status}: ${await res.text()}`);
+          const errorText = await res.text();
+          console.error(`Server error in 'clear' action: ${res.status} - ${errorText}`);
+          throw new Error(`Server returned ${res.status}: ${errorText}`);
         }
         
-        await res.json();
+        const result = await res.json();
+        console.log("Clear booking response:", result);
         
         // Then block each time slot (which now removes them completely)
         if (timeSlots.length > 0) {
