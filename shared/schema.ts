@@ -148,6 +148,7 @@ export const bookingFormSchema = z.object({
     z.string().email({ message: "Invalid email format" }),
     z.string().length(0)
   ]).optional(),
+  notes: z.string().optional(),
   timeSlotIds: z.array(z.union([z.number(), z.string()])).min(1, { message: "Select at least one time slot" }),
 });
 
@@ -161,6 +162,7 @@ export const manualBookingSchema = z.object({
     z.string().email({ message: "Invalid email format" }),
     z.string().length(0)
   ]).optional(),
+  notes: z.string().optional(),
   timeSlotIds: z.array(z.union([z.number(), z.string()])).min(1, { message: "Select at least one time slot" }),
   // Include information about unallocated slots that need to be created
   unallocatedSlots: z.array(z.object({

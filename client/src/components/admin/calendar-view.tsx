@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
+import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   toLatviaTime, 
@@ -137,6 +138,7 @@ const manualBookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
   phoneNumber: z.string().regex(/^[0-9]{8,15}$/, "Phone number must be 8-15 digits"),
   email: z.string().email("Invalid email address").optional(),
+  notes: z.string().optional(),
   timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot"),
   unallocatedSlots: z.array(z.object({
     id: z.number(), 
@@ -297,6 +299,7 @@ const AdminCalendarView = () => {
       customerName: "",
       phoneNumber: "",
       email: "",
+      notes: "",
       timeSlotIds: [],
       unallocatedSlots: []
     }
@@ -1601,6 +1604,33 @@ const AdminCalendarView = () => {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={bookingForm.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Add any additional notes about this booking"
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="p-4 rounded-md bg-muted">
+                <h4 className="text-sm font-medium mb-2">Equipment Rental</h4>
+                <p className="text-sm text-muted-foreground">
+                  Wetsuit rental: 5€/h or 7€/session, Board rental: 7€/h or 10€/session.
+                  <br/>
+                  For all rates and rental options, please check the <Link to="/prices" className="underline text-primary hover:text-primary/90">pricing page</Link>.
+                </p>
+              </div>
               
               <DialogFooter>
                 <Button 
@@ -1988,26 +2018,14 @@ const AdminCalendarView = () => {
               
 
               
-              <FormField
-                control={editBookingForm.control}
-                name="equipmentRental"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Equipment Rental</FormLabel>
-                      <FormDescription>
-                        Does the customer need equipment rental?
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
+              <div className="p-4 rounded-md bg-muted">
+                <h4 className="text-sm font-medium mb-2">Equipment Rental</h4>
+                <p className="text-sm text-muted-foreground">
+                  Wetsuit rental: 5€/h or 7€/session, Board rental: 7€/h or 10€/session.
+                  <br/>
+                  For all rates and rental options, please check the <Link to="/prices" className="underline text-primary hover:text-primary/90">pricing page</Link>.
+                </p>
+              </div>
               
               <FormField
                 control={editBookingForm.control}
