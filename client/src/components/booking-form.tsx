@@ -60,6 +60,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       fullName: "",
       phoneNumber: "",
       email: "",
+      notes: "",
       timeSlotIds: selectedTimeSlots.map((slot) => slot.id),
     },
   });
@@ -252,6 +253,35 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Any special requests or information"
+                      {...field}
+                    />
+                  </FormControl>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Please include any relevant information for your booking
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="p-4 rounded-md bg-muted mt-4">
+              <h4 className="text-sm font-medium mb-2">Equipment Rental</h4>
+              <p className="text-sm text-muted-foreground">
+                Wetsuit rental: 5€/h or 7€/session, Board rental: 7€/h or 10€/session.
+                <br/>
+                For all rates and rental options, see the pricing page in the main menu.
+              </p>
+            </div>
 
             <div className="pt-4 border-t border-gray-200">
               <Button
