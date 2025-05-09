@@ -125,7 +125,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Booking, TimeSlot } from "@shared/schema";
+import { Booking, TimeSlot, BookingDetails } from "@shared/schema";
+
+// Extended booking type to handle potential timeSlots property
+interface ExtendedBooking extends Booking {
+  timeSlots?: TimeSlot[];
+}
 
 // Schema for manual booking form
 const manualBookingSchema = z.object({
@@ -239,7 +244,7 @@ const AdminCalendarView = () => {
   const [isMakeAvailableDialogOpen, setIsMakeAvailableDialogOpen] = useState(false);
   // Always use calendar view as requested (removing list view)
   const viewMode = 'calendar';
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<ExtendedBooking | null>(null);
   const [isEditBookingDialogOpen, setIsEditBookingDialogOpen] = useState(false);
   const [isBookingDetailsDialogOpen, setIsBookingDetailsDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -559,33 +564,66 @@ const AdminCalendarView = () => {
   // Delete booking mutation
   const deleteBookingMutation = useMutation({
     mutationFn: async (id: number) => {
+      console.log(`Sending DELETE request for booking ID: ${id}`);
       const res = await apiRequest("DELETE", `/api/bookings/${id}`);
-      return await res.json();
+      const data = await res.json();
+      console.log("DELETE booking response:", data);
+      return data;
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      console.log("Delete booking mutation succeeded:", data);
       setSelectedBooking(null);
       setIsBookingDetailsDialogOpen(false);
+      setIsCancelDialogOpen(false);
+      
+      // Reset the cancel action
+      setCancelAction(null);
       
       // Force immediate refetch of time slots and bookings
+      console.log("Invalidating queries to refresh data");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
         queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
       ]);
       
       // Additional explicit refetch for the current date range to ensure UI update
-      const res = await fetch(
-        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        queryClient.setQueryData([
-          '/api/timeslots',
-          currentDateRange.start.toISOString(),
-          currentDateRange.end.toISOString()
-        ], data);
+      console.log("Fetching fresh time slots data");
+      try {
+        const res = await fetch(
+          `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          console.log("Setting new time slots data in cache");
+          queryClient.setQueryData([
+            '/api/timeslots',
+            currentDateRange.start.toISOString(),
+            currentDateRange.end.toISOString()
+          ], data);
+        } else {
+          console.error("Failed to fetch fresh time slots:", res.status);
+        }
+      } catch (error) {
+        console.error("Error fetching fresh time slots:", error);
+      }
+      
+      // Explicitly refetch bookings as well
+      console.log("Explicitly refetching bookings");
+      try {
+        const bookingsRes = await fetch('/api/bookings');
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          console.log("Setting new bookings data in cache");
+          queryClient.setQueryData(['/api/bookings'], bookingsData);
+        } else {
+          console.error("Failed to fetch fresh bookings:", bookingsRes.status);
+        }
+      } catch (error) {
+        console.error("Error fetching fresh bookings:", error);
       }
       
       // Clear the cache to force refetching booking details
+      console.log("Clearing bookings cache");
       clearBookingsCache();
       
       toast({
@@ -1005,27 +1043,37 @@ const AdminCalendarView = () => {
   };
   
   const confirmCancelAction = async () => {
-    if (!selectedBooking) return;
+    if (!selectedBooking) {
+      console.error("No booking selected for cancellation");
+      toast({
+        title: "Error",
+        description: "No booking selected for cancellation",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Make sure we have a valid cancel action
+    if (!cancelAction) {
+      setCancelAction('delete'); // Set default action if none selected
+    }
     
     try {
       console.log("Cancelling booking:", selectedBooking);
+      console.log("Booking ID:", selectedBooking.id);
+      console.log("Booking reference:", selectedBooking.reference);
       console.log("Cancel action type:", cancelAction);
       
       // Check if we have cached booking details with time slots
-      let timeSlots = selectedBooking.timeSlots || [];
+      let timeSlots = [];
       
-      // If we don't have time slots directly on the booking, try to get them from cache
-      if (!timeSlots.length) {
-        console.log("No time slots on booking, checking cache");
-        const cachedData = getFromBookingsCache(selectedBooking.reference);
-        if (cachedData?.timeSlots) {
-          console.log("Found time slots in cache");
-          timeSlots = cachedData.timeSlots;
-        }
-      }
-      
-      // If still no time slots, fetch them
-      if (!timeSlots.length) {
+      // Try to get time slots from cache first
+      console.log("Checking cache for booking details");
+      const cachedData = getFromBookingsCache(selectedBooking.reference);
+      if (cachedData?.timeSlots) {
+        console.log("Found time slots in cache");
+        timeSlots = cachedData.timeSlots;
+      } else {
         console.log("No time slots found in cache, fetching from server");
         try {
           // Make a fresh fetch for booking details
@@ -1038,6 +1086,8 @@ const AdminCalendarView = () => {
             } else {
               console.warn("No time slots in response");
             }
+          } else {
+            console.error("Failed to fetch booking details:", res.status);
           }
         } catch (error) {
           console.error("Error fetching booking time slots:", error);
@@ -1046,11 +1096,32 @@ const AdminCalendarView = () => {
       
       console.log(`Found ${timeSlots.length} time slots for booking`);
       
-      if (cancelAction === 'delete') {
+      // Make sure we have a valid booking ID
+      const bookingId = selectedBooking.id;
+      if (!bookingId || isNaN(bookingId)) {
+        throw new Error(`Invalid booking ID: ${bookingId}`);
+      }
+      
+      if (cancelAction === 'delete' || !cancelAction) {
         // Regular delete - keeps time slots available
-        console.log(`Attempting to delete booking ID ${selectedBooking.id} (Reference: ${selectedBooking.reference})`);
-        const result = await deleteBookingMutation.mutateAsync(selectedBooking.id);
+        console.log(`Attempting to delete booking ID ${bookingId} (Reference: ${selectedBooking.reference})`);
+        
+        // Use direct fetch instead of mutation to debug
+        const res = await fetch(`/api/bookings/${bookingId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          throw new Error(`Server returned ${res.status}: ${await res.text()}`);
+        }
+        
+        const result = await res.json();
         console.log("Delete booking response:", result);
+        
+        // Now that we know the request was successful, update the UI
+        await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
         
         toast({
           title: "Booking Cancelled",
@@ -1059,8 +1130,18 @@ const AdminCalendarView = () => {
         });
       } else if (cancelAction === 'clear') {
         // First delete the booking
-        console.log(`Deleting booking ID ${selectedBooking.id}`);
-        await deleteBookingMutation.mutateAsync(selectedBooking.id);
+        console.log(`Deleting booking ID ${bookingId}`);
+        
+        const res = await fetch(`/api/bookings/${bookingId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          throw new Error(`Server returned ${res.status}: ${await res.text()}`);
+        }
+        
+        await res.json();
         
         // Then block each time slot (which now removes them completely)
         if (timeSlots.length > 0) {
@@ -1076,15 +1157,22 @@ const AdminCalendarView = () => {
           console.warn("Cannot clear time slots - none found for this booking");
         }
         
+        // Make sure to update the UI
+        await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+        
         toast({
           title: "Booking Cancelled",
-          description: "The booking has been cancelled and slots have been cleared.",
+          description: "The booking and slots have been removed.",
           variant: "default",
         });
       }
       
-      // Close the dialogs
+      // Reset state
+      setSelectedBooking(null);
+      setIsBookingDetailsDialogOpen(false);
       setIsCancelDialogOpen(false);
+      clearBookingsCache();
       setIsBookingDetailsDialogOpen(false);
       
       console.log("Invalidating queries and refreshing data");
