@@ -518,6 +518,44 @@ const AdminCalendarView = () => {
     }
   });
 
+  // Fetch booking details mutation
+  const fetchBookingDetailsMutation = useMutation({
+    mutationFn: async (reference: string) => {
+      console.log(`Fetching booking details for reference: ${reference}`);
+      const res = await fetch(`/api/bookings/${reference}`);
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Failed to fetch booking details: ${res.status} ${errorText}`);
+        throw new Error(`Failed to fetch booking: ${res.status}`);
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      console.log("Successfully fetched booking details:", data);
+      if (data?.booking && data?.timeSlots) {
+        // Update the selected booking with the complete data including time slots
+        setSelectedBooking(prevBooking => {
+          if (!prevBooking) return prevBooking;
+          return {
+            ...prevBooking,
+            timeSlots: data.timeSlots
+          };
+        });
+        
+        // Cache this data for later use
+        setInBookingsCache(data.booking.reference, data);
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Error fetching booking details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load booking details. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Delete booking mutation
   const deleteBookingMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -973,6 +1011,41 @@ const AdminCalendarView = () => {
       console.log("Cancelling booking:", selectedBooking);
       console.log("Cancel action type:", cancelAction);
       
+      // Check if we have cached booking details with time slots
+      let timeSlots = selectedBooking.timeSlots || [];
+      
+      // If we don't have time slots directly on the booking, try to get them from cache
+      if (!timeSlots.length) {
+        console.log("No time slots on booking, checking cache");
+        const cachedData = getFromBookingsCache(selectedBooking.reference);
+        if (cachedData?.timeSlots) {
+          console.log("Found time slots in cache");
+          timeSlots = cachedData.timeSlots;
+        }
+      }
+      
+      // If still no time slots, fetch them
+      if (!timeSlots.length) {
+        console.log("No time slots found in cache, fetching from server");
+        try {
+          // Make a fresh fetch for booking details
+          const res = await fetch(`/api/bookings/${selectedBooking.reference}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.timeSlots) {
+              console.log("Successfully fetched time slots");
+              timeSlots = data.timeSlots;
+            } else {
+              console.warn("No time slots in response");
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching booking time slots:", error);
+        }
+      }
+      
+      console.log(`Found ${timeSlots.length} time slots for booking`);
+      
       if (cancelAction === 'delete') {
         // Regular delete - keeps time slots available
         console.log(`Attempting to delete booking ID ${selectedBooking.id} (Reference: ${selectedBooking.reference})`);
@@ -985,24 +1058,11 @@ const AdminCalendarView = () => {
           variant: "default",
         });
       } else if (cancelAction === 'clear') {
-        // We need to fetch the booking details for this booking to get time slots
-        console.log(`Fetching booking details for reference ${selectedBooking.reference}`);
-        const res = await fetch(`/api/bookings/${selectedBooking.reference}`);
-        if (!res.ok) {
-          console.error(`Failed to fetch booking details: ${res.status} ${res.statusText}`);
-          throw new Error('Failed to fetch booking details');
-        }
-        const bookingDetails = await res.json();
-        console.log("Booking details:", bookingDetails);
-        
         // First delete the booking
         console.log(`Deleting booking ID ${selectedBooking.id}`);
         await deleteBookingMutation.mutateAsync(selectedBooking.id);
         
         // Then block each time slot (which now removes them completely)
-        const timeSlots = bookingDetails.booking?.timeSlots || [];
-        console.log(`Found ${timeSlots.length} time slots to clear`);
-        
         if (timeSlots.length > 0) {
           const timeSlotIds = timeSlots.map((slot: TimeSlot) => slot.id);
           console.log("Time slots to block:", timeSlotIds);
@@ -1012,6 +1072,8 @@ const AdminCalendarView = () => {
             reason: `Cleared from booking ${selectedBooking.reference}`
           });
           console.log("Block result:", blockResult);
+        } else {
+          console.warn("Cannot clear time slots - none found for this booking");
         }
         
         toast({
