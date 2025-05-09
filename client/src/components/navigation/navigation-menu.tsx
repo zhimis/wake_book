@@ -54,8 +54,8 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
       icon: <CalendarDays className="h-5 w-5 mr-2" />
     },
     {
-      name: "Pricing",
-      path: "/pricing",
+      name: "Prices",
+      path: "/prices",
       icon: <Wallet className="h-5 w-5 mr-2" />
     },
     {

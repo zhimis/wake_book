@@ -12,6 +12,8 @@ import AdminStatisticsPage from "@/pages/admin-statistics-page";
 import PublicPage from "@/pages/public-page";
 import NewAdminPage from "@/pages/new-admin-page";
 import SystemConfigPage from "@/pages/system-config-page";
+import PricesPage from "@/pages/prices-page";
+import ContactsPage from "@/pages/contacts-page";
 
 import Header from "./components/header";
 import Footer from "./components/footer";
@@ -51,6 +53,8 @@ function App() {
               <Route path="/booking" component={BookingPage} />
               <Route path="/confirmation/:reference" component={ConfirmationPage} />
               <Route path="/public" component={PublicPage} />
+              <Route path="/prices" component={PricesPage} />
+              <Route path="/contacts" component={ContactsPage} />
               <Route path="/admin/login" component={AdminLoginPage} />
               <ProtectedRoute path="/admin" component={AdminPage} />
               <ProtectedRoute path="/admin/dashboard" component={AdminDashboardPage} />
