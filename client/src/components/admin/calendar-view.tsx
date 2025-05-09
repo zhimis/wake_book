@@ -986,8 +986,8 @@ const AdminCalendarView = () => {
         await deleteBookingMutation.mutateAsync(selectedBooking.id);
         
         // Then block each time slot (which now removes them completely)
-        if (bookingDetails.timeSlots?.length > 0) {
-          const timeSlotIds = bookingDetails.timeSlots.map((slot: TimeSlot) => slot.id);
+        if (bookingDetails.booking?.timeSlots?.length > 0) {
+          const timeSlotIds = bookingDetails.booking.timeSlots.map((slot: TimeSlot) => slot.id);
           
           await blockTimeSlotsMutation.mutateAsync({
             timeSlotIds,
@@ -1005,6 +1005,26 @@ const AdminCalendarView = () => {
       // Close the dialogs
       setIsCancelDialogOpen(false);
       setIsBookingDetailsDialogOpen(false);
+      
+      // Force immediate refresh of the time slots data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
+      ]);
+      
+      // Explicitly refetch the current time slots to update the UI
+      const timeSlotsRes = await fetch(
+        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+      );
+      
+      if (timeSlotsRes.ok) {
+        const freshData = await timeSlotsRes.json();
+        queryClient.setQueryData([
+          '/api/timeslots',
+          currentDateRange.start.toISOString(),
+          currentDateRange.end.toISOString()
+        ], freshData);
+      }
       
     } catch (error) {
       toast({
