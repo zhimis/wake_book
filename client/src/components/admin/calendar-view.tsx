@@ -1059,6 +1059,23 @@ const AdminCalendarView = () => {
     }
     
     try {
+      // Check authentication before proceeding
+      console.log("Verifying authentication before cancellation");
+      const userResponse = await fetch('/api/user', {
+        credentials: 'include'
+      });
+      
+      if (!userResponse.ok) {
+        console.error(`Authentication check failed: ${userResponse.status}`);
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to cancel bookings. Please log in and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log("Authentication verified, proceeding with cancellation");
       console.log("Cancelling booking:", selectedBooking);
       console.log("Booking ID:", selectedBooking.id);
       console.log("Booking reference:", selectedBooking.reference);
@@ -1106,10 +1123,13 @@ const AdminCalendarView = () => {
         // Regular delete - keeps time slots available
         console.log(`Attempting to delete booking ID ${bookingId} (Reference: ${selectedBooking.reference})`);
         
-        // Use direct fetch instead of mutation to debug
+        // Use direct fetch with explicit session credentials 
         const res = await fetch(`/api/bookings/${bookingId}`, {
           method: 'DELETE',
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
         
         if (!res.ok) {
@@ -1134,7 +1154,10 @@ const AdminCalendarView = () => {
         
         const res = await fetch(`/api/bookings/${bookingId}`, {
           method: 'DELETE',
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
         
         if (!res.ok) {
