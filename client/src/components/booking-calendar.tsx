@@ -512,7 +512,18 @@ const BookingCalendar = ({
       // First check if the date is in the past (before today)
       const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const slotDate = new Date(correctedStartTime.getFullYear(), correctedStartTime.getMonth(), correctedStartTime.getDate());
-      const isPastDay = slotDate < todayDate;
+      
+      // For rendered slots in the current week view, we need to use a consistent approach
+      // to determine if they are "past days" - on initial load vs Today button press
+      
+      // On initial load or Today button press, we want the same behavior:
+      // 1. If we're in admin view, show all slots for the week (including yesterday)
+      // 2. Show booked slots even for past days
+      
+      // For admin view only: 
+      // Don't mark days as past if they're part of the selected week view
+      // This ensures consistency between initial load and "Today" button press
+      const isPastDay = isAdmin ? false : slotDate < todayDate;
       
       // Then check if it's today but the time has already passed
       const isToday = slotDate.getTime() === todayDate.getTime();
