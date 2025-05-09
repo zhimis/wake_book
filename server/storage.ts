@@ -491,33 +491,49 @@ export class DatabaseStorage implements IStorage {
   
   async deleteBooking(id: number): Promise<boolean> {
     try {
+      console.log(`Storage.deleteBooking(${id}) called`);
+      
       // First, check if the booking exists
       const booking = await this.getBooking(id);
       if (!booking) {
+        console.log(`No booking found with ID ${id}`);
         return false;
       }
+      
+      console.log(`Found booking to delete:`, booking);
       
       // Find all time slots associated with this booking
       const timeSlotIds = await db.select()
         .from(bookingTimeSlots)
         .where(eq(bookingTimeSlots.bookingId, id));
       
+      console.log(`Found ${timeSlotIds.length} time slots associated with booking ${id}:`, timeSlotIds);
+      
       // Delete the booking-time slot connections
-      await db.delete(bookingTimeSlots)
-        .where(eq(bookingTimeSlots.bookingId, id));
+      const bookingTimeSlotsResult = await db.delete(bookingTimeSlots)
+        .where(eq(bookingTimeSlots.bookingId, id))
+        .returning();
+      
+      console.log(`Deleted ${bookingTimeSlotsResult.length} booking-time slot connections`);
       
       // Update the time slots back to available
       for (const timeSlotRef of timeSlotIds) {
-        await db.update(timeSlots)
+        const updateResult = await db.update(timeSlots)
           .set({ status: "available" })
-          .where(eq(timeSlots.id, timeSlotRef.timeSlotId));
+          .where(eq(timeSlots.id, timeSlotRef.timeSlotId))
+          .returning();
+        
+        console.log(`Updated time slot ${timeSlotRef.timeSlotId} status to "available":`, updateResult);
       }
       
       // Delete the booking itself
       const result = await db.delete(bookings)
-        .where(eq(bookings.id, id));
+        .where(eq(bookings.id, id))
+        .returning();
       
-      return result.rowCount === 1;
+      console.log(`Booking deletion result:`, result);
+      
+      return result.length === 1;
     } catch (error) {
       console.error("Error deleting booking:", error);
       return false;

@@ -691,18 +691,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Requires authentication
   app.delete("/api/bookings/:id", async (req: Request, res: Response) => {
     try {
+      console.log(`DELETE /api/bookings/${req.params.id} request received`);
+      
       if (!req.isAuthenticated()) {
+        console.log("Delete booking request unauthorized");
         return res.status(401).json({ error: "Unauthorized" });
       }
       
       const id = parseInt(req.params.id);
+      console.log(`Attempting to delete booking with ID ${id}`);
+      
+      // Get the booking info before we delete it (for logging)
+      const bookingInfo = await storage.getBooking(id);
+      console.log("Booking to delete:", bookingInfo);
       
       const success = await storage.deleteBooking(id);
+      console.log(`Deletion of booking ${id} result: ${success ? 'success' : 'failure'}`);
       
       if (!success) {
+        console.log(`Booking ${id} not found - returning 404`);
         return res.status(404).json({ error: "Booking not found" });
       }
       
+      console.log(`Booking ${id} successfully deleted`);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting booking:", error);

@@ -878,6 +878,9 @@ const AdminCalendarView = () => {
   const handleBookingDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsBookingDetailsDialogOpen(true);
+    
+    // Fetch the detailed booking info with time slots
+    fetchBookingDetailsMutation.mutate(booking.reference);
   };
   
   const handleEditBooking = async () => {
@@ -967,9 +970,14 @@ const AdminCalendarView = () => {
     if (!selectedBooking) return;
     
     try {
+      console.log("Cancelling booking:", selectedBooking);
+      console.log("Cancel action type:", cancelAction);
+      
       if (cancelAction === 'delete') {
         // Regular delete - keeps time slots available
-        await deleteBookingMutation.mutateAsync(selectedBooking.id);
+        console.log(`Attempting to delete booking ID ${selectedBooking.id} (Reference: ${selectedBooking.reference})`);
+        const result = await deleteBookingMutation.mutateAsync(selectedBooking.id);
+        console.log("Delete booking response:", result);
         
         toast({
           title: "Booking Cancelled",
@@ -978,21 +986,32 @@ const AdminCalendarView = () => {
         });
       } else if (cancelAction === 'clear') {
         // We need to fetch the booking details for this booking to get time slots
+        console.log(`Fetching booking details for reference ${selectedBooking.reference}`);
         const res = await fetch(`/api/bookings/${selectedBooking.reference}`);
-        if (!res.ok) throw new Error('Failed to fetch booking details');
+        if (!res.ok) {
+          console.error(`Failed to fetch booking details: ${res.status} ${res.statusText}`);
+          throw new Error('Failed to fetch booking details');
+        }
         const bookingDetails = await res.json();
+        console.log("Booking details:", bookingDetails);
         
         // First delete the booking
+        console.log(`Deleting booking ID ${selectedBooking.id}`);
         await deleteBookingMutation.mutateAsync(selectedBooking.id);
         
         // Then block each time slot (which now removes them completely)
-        if (bookingDetails.booking?.timeSlots?.length > 0) {
-          const timeSlotIds = bookingDetails.booking.timeSlots.map((slot: TimeSlot) => slot.id);
+        const timeSlots = bookingDetails.booking?.timeSlots || [];
+        console.log(`Found ${timeSlots.length} time slots to clear`);
+        
+        if (timeSlots.length > 0) {
+          const timeSlotIds = timeSlots.map((slot: TimeSlot) => slot.id);
+          console.log("Time slots to block:", timeSlotIds);
           
-          await blockTimeSlotsMutation.mutateAsync({
+          const blockResult = await blockTimeSlotsMutation.mutateAsync({
             timeSlotIds,
             reason: `Cleared from booking ${selectedBooking.reference}`
           });
+          console.log("Block result:", blockResult);
         }
         
         toast({
@@ -1006,6 +1025,7 @@ const AdminCalendarView = () => {
       setIsCancelDialogOpen(false);
       setIsBookingDetailsDialogOpen(false);
       
+      console.log("Invalidating queries and refreshing data");
       // Force immediate refresh of the time slots data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
@@ -1013,12 +1033,18 @@ const AdminCalendarView = () => {
       ]);
       
       // Explicitly refetch the current time slots to update the UI
+      console.log("Explicitly refetching time slots for date range:", {
+        start: formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd"),
+        end: formatInLatviaTime(currentDateRange.end, "yyyy-MM-dd")
+      });
+      
       const timeSlotsRes = await fetch(
         `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
       );
       
       if (timeSlotsRes.ok) {
         const freshData = await timeSlotsRes.json();
+        console.log("Fresh data fetched, updating UI");
         queryClient.setQueryData([
           '/api/timeslots',
           currentDateRange.start.toISOString(),
