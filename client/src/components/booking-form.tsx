@@ -5,7 +5,7 @@ import { useLocation } from "wouter";
 import { BookingFormData, bookingFormSchema } from "@shared/schema";
 import { useBooking } from "@/context/booking-context";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   formatDate,
@@ -85,7 +85,32 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Immediately invalidate and refetch time slots to refresh the calendar
+      console.log("Invalidating queries to refresh data after booking");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
+        queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
+      ]);
+      
+      // Explicitly refetch the data to ensure UI update
+      console.log("Explicitly refetching time slots after booking");
+      try {
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + 7); // Fetch a week's worth of time slots
+        
+        const res = await fetch(
+          `/api/timeslots?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          queryClient.setQueryData(['/api/timeslots'], data);
+        }
+      } catch (error) {
+        console.error("Error fetching fresh time slots after booking:", error);
+      }
+      
       // Navigate to confirmation page
       navigate(`/confirmation/${data.booking.reference}`);
 
