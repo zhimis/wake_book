@@ -109,17 +109,27 @@ const BookingCalendar = ({
   onDateRangeChange,
   initialDate, // New prop to allow parent to control the initial date
 }: BookingCalendarProps) => {
-  // Initialize currentDate with initialDate prop if provided, or today's date
-  // This ensures the calendar shows the correct week or the one provided by parent
+  // Initialize currentDate with initialDate prop if provided, or Monday of the current week
+  // This ensures the calendar shows the correct week alignment consistently
   const [currentDate, setCurrentDate] = useState<Date>(() => {
-    // Use provided initialDate if available, or default to today
-    const startingDate = initialDate
+    // Start with today's date in Latvia timezone or use initialDate if provided
+    const todayInLatvia = initialDate
       ? toLatviaTime(initialDate)
       : toLatviaTime(new Date());
+    
+    // Get Latvia day of week (0=Monday, 6=Sunday)
+    const latvianDayIndex = getLatvianDayIndexFromDate(todayInLatvia);
+    
+    // Calculate Monday of this week by subtracting the day index
+    // This matches the exact same calculation used in the goToToday function
+    const thisMonday = subDays(todayInLatvia, latvianDayIndex);
+    
     console.log(
-      `Initializing calendar with date: ${startingDate.toISOString()} (Latvia time)`,
+      `Initializing calendar with Monday of current week: ${thisMonday.toISOString()} (Latvia time)`,
     );
-    return startingDate;
+    console.log(`Latvia day index: ${latvianDayIndex}, Original date: ${todayInLatvia.toISOString()}`);
+    
+    return thisMonday; // Always start with Monday to ensure consistent display
   });
 
   // Use the booking context
