@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
+import { useLocation } from "wouter";
 
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
@@ -1628,7 +1629,7 @@ const AdminCalendarView = () => {
                 <p className="text-sm text-muted-foreground">
                   Wetsuit rental: 5€/h or 7€/session, Board rental: 7€/h or 10€/session.
                   <br/>
-                  For all rates and rental options, please check the <Link to="/prices" className="underline text-primary hover:text-primary/90">pricing page</Link>.
+                  For all rates and rental options, see the pricing page in the main menu.
                 </p>
               </div>
               
@@ -2023,7 +2024,7 @@ const AdminCalendarView = () => {
                 <p className="text-sm text-muted-foreground">
                   Wetsuit rental: 5€/h or 7€/session, Board rental: 7€/h or 10€/session.
                   <br/>
-                  For all rates and rental options, please check the <Link to="/prices" className="underline text-primary hover:text-primary/90">pricing page</Link>.
+                  For all rates and rental options, see the pricing page in the main menu.
                 </p>
               </div>
               
