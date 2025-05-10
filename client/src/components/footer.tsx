@@ -1,4 +1,4 @@
-import { Facebook, Instagram, Mail } from "lucide-react";
+import { Facebook, Instagram, Mail, Phone } from "lucide-react";
 import { Link } from "wouter";
 
 const Footer = () => {
@@ -12,14 +12,24 @@ const Footer = () => {
             <p className="text-gray-600 text-sm">
               © {currentYear} Hi Wake 2.0. Visas tiesības aizsargātas.
             </p>
-            <a 
-              href="mailto:hiwake2.0@gmail.com" 
-              className="text-gray-600 hover:text-primary transition-colors text-sm flex items-center mt-1"
-              aria-label="Email"
-            >
-              <Mail className="h-3.5 w-3.5 mr-1" />
-              <span>hiwake2.0@gmail.com</span>
-            </a>
+            <div className="flex flex-col sm:flex-row sm:space-x-4">
+              <a 
+                href="mailto:hiwake2.0@gmail.com" 
+                className="text-gray-600 hover:text-primary transition-colors text-sm flex items-center mt-1"
+                aria-label="Email"
+              >
+                <Mail className="h-3.5 w-3.5 mr-1" />
+                <span>hiwake2.0@gmail.com</span>
+              </a>
+              <a 
+                href="tel:+37125422219" 
+                className="text-gray-600 hover:text-primary transition-colors text-sm flex items-center mt-1"
+                aria-label="Phone"
+              >
+                <Phone className="h-3.5 w-3.5 mr-1" />
+                <span>+371 25 422 219</span>
+              </a>
+            </div>
           </div>
           
           <div className="flex items-center space-x-6">

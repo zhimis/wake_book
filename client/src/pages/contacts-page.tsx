@@ -19,7 +19,12 @@ const ContactsPage = () => {
                 <Phone className="h-5 w-5 mr-2 text-primary" />
                 <div>
                   <h3 className="font-medium">Telefons / Phone</h3>
-                  <p className="text-gray-600">+371 25 422 219</p>
+                  <a 
+                    href="tel:+37125422219" 
+                    className="text-gray-600 hover:text-primary transition-colors"
+                  >
+                    +371 25 422 219
+                  </a>
                 </div>
               </div>
 
