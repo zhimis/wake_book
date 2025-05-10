@@ -307,6 +307,17 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
                 For all rates and rental options, see the pricing page in the main menu.
               </p>
             </div>
+            
+            <div className="p-4 rounded-md bg-muted mt-4 border-l-4 border-amber-500">
+              <h4 className="text-sm font-medium mb-2">Cancellation Policy</h4>
+              <p className="text-sm text-muted-foreground">
+                • Cancellations less than 2 hours before session: Full payment required
+                <br/>
+                • Cancellations less than 24 hours before session: 50% payment required
+                <br/>
+                • Earlier cancellations: No charge
+              </p>
+            </div>
 
             <div className="pt-4 border-t border-gray-200">
               <Button

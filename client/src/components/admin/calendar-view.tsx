@@ -1633,6 +1633,17 @@ const AdminCalendarView = () => {
                 </p>
               </div>
               
+              <div className="p-4 rounded-md bg-muted mt-4 border-l-4 border-amber-500">
+                <h4 className="text-sm font-medium mb-2">Cancellation Policy</h4>
+                <p className="text-sm text-muted-foreground">
+                  • Cancellations less than 2 hours before session: Full payment required
+                  <br/>
+                  • Cancellations less than 24 hours before session: 50% payment required
+                  <br/>
+                  • Earlier cancellations: No charge
+                </p>
+              </div>
+              
               <DialogFooter>
                 <Button 
                   type="button" 
@@ -2025,6 +2036,17 @@ const AdminCalendarView = () => {
                   Wetsuit rental: 5€/h or 7€/session, Board rental: 7€/h or 10€/session.
                   <br/>
                   For all rates and rental options, see the pricing page in the main menu.
+                </p>
+              </div>
+              
+              <div className="p-4 rounded-md bg-muted mt-4 border-l-4 border-amber-500">
+                <h4 className="text-sm font-medium mb-2">Cancellation Policy</h4>
+                <p className="text-sm text-muted-foreground">
+                  • Cancellations less than 2 hours before session: Full payment required
+                  <br/>
+                  • Cancellations less than 24 hours before session: 50% payment required
+                  <br/>
+                  • Earlier cancellations: No charge
                 </p>
               </div>
               
