@@ -215,6 +215,9 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
               {formatPrice(calculateTotalPrice(selectedTimeSlots, false))}
             </span>
           </div>
+          <div className="mt-2 text-xs text-blue-600">
+            <p>Pricing depends on season: Off-peak (Spring): 20€/30min, Peak (Summer): 25€/30min</p>
+          </div>
         </div>
 
         {/* Booking Form */}
