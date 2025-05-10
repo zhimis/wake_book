@@ -35,7 +35,7 @@ const ContactsPage = () => {
                 <MapPin className="h-5 w-5 mr-2 text-primary" />
                 <div>
                   <h3 className="font-medium">Adrese / Address</h3>
-                  <p className="text-gray-600">Ādaži Siguļi, Carnikava, LV-2163, Latvija</p>
+                  <p className="text-gray-600">Saulkrasti, Zvejniekciems, Bērzu aleja 7a, LV-2161, Latvija</p>
                 </div>
               </div>
             </div>
@@ -98,7 +98,7 @@ const ContactsPage = () => {
 
             <div className="aspect-video relative rounded-lg overflow-hidden border">
               <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2172.878317597524!2d24.28131822334406!3d57.0891629593342!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46eecc1682dbe705%3A0x8a2a3cb9b6d9c06!2zxIBkYcW-aSBTaWd1xLxpLCBHYXV1amFzIHBhZ2FzdHMsIEFkYcW-dSBub3ZhZHMsIExWLTIxNjM!5e0!3m2!1sen!2slv!4v1683123409421!5m2!1sen!2slv" 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2166.1990222449!2d24.32753704913578!3d57.13002330002096!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46eeb65bb9631099%3A0x1898e6eb4452dba7!2sHi%20Wake%202.0!5e0!3m2!1sen!2slv!4v1683123409421!5m2!1sen!2slv" 
                 width="100%" 
                 height="100%" 
                 style={{ border: 0 }} 
@@ -112,7 +112,7 @@ const ContactsPage = () => {
 
             <div className="mt-4 flex items-center justify-center gap-6">
               <a 
-                href="https://www.google.com/maps/place/%C4%80da%C5%BEi+Sigu%C4%BCi,+Gaujas+pagasts,+Ada%C5%BEu+novads,+LV-2163/@57.0891629,24.2813182,17z/data=!3m1!4b1!4m6!3m5!1s0x46eecc1682dbe705:0x8a2a3cb9b6d9c06!8m2!3d57.0891601!4d24.2838931!16s%2Fg%2F1tflr5wd" 
+                href="https://www.google.com/maps/place/Hi+Wake+2.0/@57.1300233,24.327537,590m/data=!3m2!1e3!4b1!4m6!3m5!1s0x46eeb65bb9631099:0x1898e6eb4452dba7!8m2!3d57.1300204!4d24.3301119!16s%2Fg%2F11fxf0tdwx" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center text-primary hover:text-primary-dark transition-colors"
@@ -124,7 +124,7 @@ const ContactsPage = () => {
               </a>
 
               <a 
-                href="https://www.waze.com/ul?ll=57.0891601%2C24.2838931&navigate=yes&zoom=17" 
+                href="https://www.waze.com/ul?ll=57.1300204%2C24.3301119&navigate=yes&zoom=17" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center text-blue-500 hover:text-blue-700 transition-colors"
