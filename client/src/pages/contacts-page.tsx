@@ -35,7 +35,7 @@ const ContactsPage = () => {
                 <MapPin className="h-5 w-5 mr-2 text-primary" />
                 <div>
                   <h3 className="font-medium">Adrese / Address</h3>
-                  <p className="text-gray-600">Latvija, Ķekavas novads, Baldone, Rīgas iela 119, LV-2125</p>
+                  <p className="text-gray-600">Saulkrasti, Zvejniekciems, Bērzu aleja 7a, LV-2161, Latvija</p>
                 </div>
               </div>
             </div>
@@ -98,27 +98,41 @@ const ContactsPage = () => {
 
             <div className="aspect-video relative rounded-lg overflow-hidden border">
               <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2177.385935770352!2d24.392731812858646!3d56.74250560469748!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46e925cf328afda3%3A0xb879f40153d6381a!2zUsSrZ2FzIGllbGEgMTE5LCBCYWxkb25lLCBLxJNrYXZhcyBub3ZhZHMsIExWLTIxMjU!5e0!3m2!1slv!2slv!4v1651123409421!5m2!1slv!2slv" 
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2166.1990222449!2d24.32753704913578!3d57.13002330002096!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x46eeb65bb9631099%3A0x1898e6eb4452dba7!2sHi%20Wake%202.0!5e0!3m2!1sen!2slv!4v1683123409421!5m2!1sen!2slv" 
                 width="100%" 
                 height="100%" 
                 style={{ border: 0 }} 
                 allowFullScreen={true} 
                 loading="lazy" 
                 referrerPolicy="no-referrer-when-downgrade"
-                title="Hi Wake Location Map"
+                title="Hi Wake 2.0 Location Map"
                 className="absolute inset-0"
               ></iframe>
             </div>
 
-            <div className="mt-4 flex items-center justify-center">
+            <div className="mt-4 flex items-center justify-center gap-6">
               <a 
-                href="https://goo.gl/maps/T9Z8vXrQ5KM78QZJA" 
+                href="https://www.google.com/maps/place/Hi+Wake+2.0/@57.1300233,24.327537,590m/data=!3m2!1e3!4b1!4m6!3m5!1s0x46eeb65bb9631099:0x1898e6eb4452dba7!8m2!3d57.1300204!4d24.3301119!16s%2Fg%2F11fxf0tdwx" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center text-primary hover:text-primary-dark transition-colors"
               >
-                <span className="mr-1">Atvērt Google kartē</span>
-                <ExternalLink className="h-4 w-4" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0c-4.198 0-8 3.403-8 7.602 0 4.198 3.469 9.21 8 16.398 4.531-7.188 8-12.2 8-16.398 0-4.199-3.801-7.602-8-7.602zm0 11c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z" />
+                </svg>
+                <span>Google Maps</span>
+              </a>
+
+              <a 
+                href="https://www.waze.com/ul?ll=57.1300204%2C24.3301119&navigate=yes&zoom=17" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center text-blue-500 hover:text-blue-700 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.054 0h-16.108c-2.169 0-3.946 1.777-3.946 3.946v16.108c0 2.169 1.777 3.946 3.946 3.946h16.108c2.169 0 3.946-1.777 3.946-3.946v-16.108c0-2.169-1.777-3.946-3.946-3.946zm-8.054 19c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8zm-4.908-8.478c-.936.028-1.09-.484-1.089-.921.002-.435.154-.949 1.133-.947.976.002 1.051.482 1.049.92-.002.437-.159.947-1.093.948zm6.979-.042c-1.763 0-3.241 1.441-3.241 3.158s1.478 3.158 3.241 3.158c1.762 0 3.24-1.441 3.24-3.158s-1.478-3.158-3.24-3.158zm2.822-3.941c-1.1-.004-1.073-1.1-1.069-1.474.004-.374.179-1.438 1.241-1.432 1.063.005 1.032 1.068 1.028 1.446-.004.378-.101 1.465-1.2 1.46zm-5.962.046c-1.134-.04-1.039-1.159-.992-1.52.047-.36.321-1.385 1.415-1.345 1.094.04.997 1.12.953 1.485-.044.366-.243 1.42-1.376 1.38zm.834-3.559c-1.587-.058-1.453-1.621-1.388-2.124.064-.504.45-1.937 1.977-1.877 1.526.06 1.394 1.563 1.333 2.074-.062.512-.339 1.985-1.922 1.927z" />
+                </svg>
+                <span>Waze</span>
               </a>
             </div>
           </CardContent>
