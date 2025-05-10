@@ -72,6 +72,20 @@ const ContactsPage = () => {
                   If online booking is not available, please call the phone number provided.
                 </p>
               </div>
+              
+              <div className="mt-4">
+                <h3 className="font-medium mb-2">Atcelšanas politika / Cancellation Policy</h3>
+                <ul className="space-y-1 text-gray-600 text-sm">
+                  <li>• Atcelšana mazāk nekā 2 stundas pirms sesijas: jāmaksā pilna cena</li>
+                  <li>• Atcelšana mazāk nekā 24 stundas pirms sesijas: jāmaksā 50% no cenas</li>
+                  <li>• Ātrāka atcelšana: bez maksas</li>
+                </ul>
+                <ul className="space-y-1 text-gray-600 text-sm mt-2">
+                  <li>• Cancellations less than 2 hours before session: full payment required</li>
+                  <li>• Cancellations less than 24 hours before session: 50% payment required</li>
+                  <li>• Earlier cancellations: no charge</li>
+                </ul>
+              </div>
             </div>
           </CardContent>
         </Card>
