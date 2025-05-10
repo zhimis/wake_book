@@ -37,7 +37,8 @@ const HomePage = () => {
                     <div>
                       <h4 className="font-medium text-sm">Cenas:</h4>
                       <p className="text-gray-600 text-xs">
-                        Pirmssezonas: 20 eur / pusstundu <br />
+                        Pavasarā/Off-peak: 20 eur / pusstundu <br />
+                        Vasarā/Peak: 25 eur / pusstundu <br />
                         Hidras noma: 7 eur /stundu (5 eur / pusstundu)
                         <br />
                         Dēļa noma: 10 eur / stundu (7 eur / pusstundu)

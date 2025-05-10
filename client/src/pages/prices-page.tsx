@@ -16,14 +16,18 @@ const PricesPage = () => {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="font-medium">30 minūtes</span>
-                <span className="font-bold">20 EUR</span>
+                <span className="font-bold">20 / 25 EUR</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">1 stunda</span>
-                <span className="font-bold">40 EUR</span>
+                <span className="font-bold">40 / 50 EUR</span>
               </div>
-              <div className="text-sm text-gray-500 mt-2">
-                <p>Wakeboarding prices are for off-peak hours</p>
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mt-3">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">20 / 40 EUR</span> - Pavasara / Off-peak season (Spring)
+                  <br />
+                  <span className="font-medium">25 / 50 EUR</span> - Vasaras / Peak season (Summer)
+                </p>
               </div>
             </div>
           </CardContent>
