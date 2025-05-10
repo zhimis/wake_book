@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { useLocation } from "wouter";
-import { RefreshCw } from "lucide-react";
 
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
@@ -56,7 +55,8 @@ import {
   Clock, 
   Calendar, 
   AlertTriangle,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import BookingCalendar from "@/components/booking-calendar";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
