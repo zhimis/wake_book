@@ -87,7 +87,13 @@ const PricesPage = () => {
               <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
                 <li>Visas cenas ir norādītas ar PVN / All prices include VAT</li>
                 <li>Rezervācija ir nepieciešama / Booking is required</li>
-                <li>Atcelšanas politika: 24 stundas iepriekš / Cancellation policy: 24 hours in advance</li>
+              </ul>
+              
+              <h3 className="font-medium mt-4 mb-2">Atcelšanas politika / Cancellation Policy</h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                <li>Atcelšana mazāk nekā 2 stundas pirms sesijas: jāmaksā pilna cena / Cancellations less than 2 hours before session: full payment required</li>
+                <li>Atcelšana mazāk nekā 24 stundas pirms sesijas: jāmaksā 50% no cenas / Cancellations less than 24 hours before session: 50% payment required</li>
+                <li>Ātrāka atcelšana: bez maksas / Earlier cancellations: no charge</li>
               </ul>
             </div>
           </CardContent>
