@@ -556,24 +556,37 @@ const AdminSystemConfig = () => {
         </CardContent>
       </Card>
       
-      {/* Time Slot Management */}
+      {/* Lead Time Settings */}
+      <LeadTimeSettingsForm />
+      
       <Card>
         <CardHeader>
-          <CardTitle>Time Slot Management</CardTitle>
+          <CardTitle>Emergency Time Slot Management</CardTitle>
           <CardDescription>
-            Regenerate time slots to apply updated pricing rules and operating hours.
+            Manual override tools for special circumstances
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             <div className="flex flex-col space-y-2">
+              <h3 className="text-lg font-medium mb-1">Manual Regeneration Tool</h3>
+              
               <p className="text-sm text-gray-700">
-                After making changes to operating hours or pricing, you can regenerate time slots to apply the new settings
-                to all future time slots. This will preserve existing bookings while creating new available time slots.
+                This tool is a <strong>manual override</strong> to regenerate all future time slots. You only need to use this in special situations:
               </p>
               
+              <div className="mt-2 mb-3">
+                <ul className="list-disc pl-6 space-y-1 text-sm text-gray-700">
+                  <li><strong>After Price Changes:</strong> When you update pricing without changing operating hours</li>
+                  <li><strong>After System Errors:</strong> If automatic slot generation failed during updates</li>
+                  <li><strong>For Manual Resets:</strong> To reset all future slots to match current configuration</li>
+                  <li><strong>For Extended Booking Window:</strong> To generate slots beyond the default 28-day window</li>
+                </ul>
+              </div>
+              
               <div className="p-3 border border-yellow-200 bg-yellow-50 rounded text-sm mb-4">
-                <p className="font-medium text-amber-800">Peak hours are now applied based on the following fixed rules:</p>
+                <p className="font-medium text-amber-800">Note: Regeneration preserves all existing bookings</p>
+                <p className="text-amber-700 mt-1">Peak hours are applied based on fixed rules:</p>
                 <ul className="list-disc pl-5 mt-1 text-amber-700">
                   <li>Monday to Friday: 17:00-22:00 (Latvia time)</li>
                   <li>Saturday and Sunday: All day</li>
@@ -585,7 +598,7 @@ const AdminSystemConfig = () => {
                   variant="default"
                   onClick={regenerateTimeSlots}
                   disabled={isRegenerating}
-                  className="w-full sm:w-auto py-6 text-lg bg-blue-600 hover:bg-blue-700"
+                  className="w-full sm:w-auto py-4 text-md bg-blue-600 hover:bg-blue-700"
                 >
                   {isRegenerating ? 
                     <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Regenerating Time Slots...</> : 
@@ -593,14 +606,9 @@ const AdminSystemConfig = () => {
                 </Button>
               </div>
             </div>
-            
-            {/* Calendar visibility section removed */}
           </div>
         </CardContent>
       </Card>
-      
-      {/* Lead Time Settings */}
-      <LeadTimeSettingsForm />
     </div>
   );
 };
