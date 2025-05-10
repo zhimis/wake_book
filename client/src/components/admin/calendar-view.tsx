@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import { useLocation } from "wouter";
+import { RefreshCw } from "lucide-react";
 
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
@@ -1342,9 +1343,77 @@ const AdminCalendarView = () => {
   const isLoading = timeSlotsLoading || bookingsLoading;
   const hasError = timeSlotsError || bookingsError;
   
+  // Function to manually refresh the calendar data
+  const refreshCalendarData = async () => {
+    console.log("Manually refreshing calendar data");
+    toast({
+      title: "Refreshing data...",
+      description: "Fetching latest bookings and time slots",
+    });
+    
+    // Clear bookings cache 
+    clearBookingsCache();
+    
+    // Invalidate queries to force refetch
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
+    ]);
+    
+    // Explicitly refetch the data for the current date range
+    console.log("Fetching fresh time slots data for current range");
+    try {
+      const res = await fetch(
+        `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        console.log("Setting new time slots data in cache");
+        queryClient.setQueryData([
+          '/api/timeslots',
+          currentDateRange.start.toISOString(),
+          currentDateRange.end.toISOString()
+        ], data);
+      }
+    } catch (error) {
+      console.error("Error fetching fresh time slots:", error);
+    }
+    
+    // Explicitly refetch bookings
+    console.log("Explicitly refetching bookings");
+    try {
+      const bookingsRes = await fetch('/api/bookings');
+      if (bookingsRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        console.log("Setting new bookings data in cache");
+        queryClient.setQueryData(['/api/bookings'], bookingsData);
+      }
+    } catch (error) {
+      console.error("Error fetching fresh bookings:", error);
+    }
+    
+    toast({
+      title: "Data refreshed",
+      description: "Calendar is now showing the latest information",
+      variant: "success" as any,
+    });
+  };
+
   return (
     <div id="bookingsTab" className="admin-tab-content p-0.5">
-      {/* Top controls removed, buttons moved below the calendar view */}
+      {/* Top controls with refresh button */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Booking Calendar</h2>
+        <Button 
+          onClick={refreshCalendarData}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Refresh Calendar
+        </Button>
+      </div>
       
       {hasError ? (
         <Alert variant="destructive">
