@@ -247,14 +247,27 @@ export function setupAuth(app: Express) {
       }
       
       // Get bookings for the authenticated user
-      const userEmail = req.user.email;
+      const userEmail = req.user?.email;
+      if (!userEmail) {
+        return res.status(400).json({ error: "User email not found" });
+      }
       const bookings = await storage.getBookingsByEmail(userEmail);
       
-      // Get time slots for each booking
+      // Get time slots for each booking and calculate totalPrice if missing
       const bookingsWithTimeSlots = await Promise.all(
         bookings.map(async (booking) => {
           const timeSlots = await storage.getBookingTimeSlots(booking.id);
-          return { ...booking, timeSlots };
+          
+          // Calculate total price if it doesn't exist
+          let totalPrice = booking.totalPrice;
+          if (totalPrice === undefined || totalPrice === null) {
+            totalPrice = timeSlots.reduce((sum, slot) => {
+              const slotPrice = typeof slot.price === 'number' ? slot.price : 0;
+              return sum + slotPrice;
+            }, 0);
+          }
+          
+          return { ...booking, timeSlots, totalPrice };
         })
       );
       

@@ -230,7 +230,7 @@ const ProfilePage = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {booking.slots.map((slot) => (
+                            {booking.timeSlots && booking.timeSlots.map((slot) => (
                               <TableRow key={slot.id}>
                                 <TableCell>
                                   {formatDate(slot.startTime)}
