@@ -36,15 +36,31 @@ const AuthPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Email/Password Login Is Primary */}
-              <div className="mb-4 text-sm text-muted-foreground">
-                Sign in with your email address and password:
+              {/* Google Sign In */}
+              <div className="mb-4">
+                <Button variant="outline" className="w-full" asChild>
+                  <a href="/api/auth/google" className="flex items-center justify-center gap-2">
+                    <FaGoogle className="h-4 w-4" />
+                    <span>Sign in with Google</span>
+                  </a>
+                </Button>
+              </div>
+              
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
               </div>
               
               {/* Note about Google authentication */}
               <div className="mb-4 p-3 border rounded border-yellow-200 bg-yellow-50 text-yellow-800 text-sm">
                 <p className="font-medium mb-1">Note:</p>
-                <p>Google Sign-in is currently being configured. For now, please use email and password authentication.</p>
+                <p>If Google sign-in shows a redirect error, please use email and password for now.</p>
               </div>
 
               {/* Tabs for Login/Register */}

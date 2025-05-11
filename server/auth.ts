@@ -424,10 +424,11 @@ export function setupAuth(app: Express) {
     res.json(userWithoutPassword);
   });
   
-  // Google OAuth routes
+  // Google OAuth routes - using simpler paths for better compatibility
   app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
   
-  app.get("/api/auth/google/callback", 
+  // Using the simplified callback path that's registered in Google Cloud Console
+  app.get("/oauth2callback", 
     passport.authenticate("google", { 
       failureRedirect: "/auth",
       session: true

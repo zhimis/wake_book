@@ -10,15 +10,18 @@ export const getBaseUrl = (): string => {
     return 'https://hiwake.replit.app';
   }
   
-  // For development environment - use the Replit dev URL
-  // You can update this as needed when the Replit URL changes
+  // Google OAuth has restrictions on complex subdomains for redirect URIs
+  // For development environment, we could use localhost for Google OAuth testing
+  // Currently using the Replit dev URL (which might have restrictions with Google OAuth)
   return 'https://5e856194-fc92-4683-ae56-63781c4048c5-00-pg4k37roq8jk.worf.replit.dev';
 };
 
 // Configuration object
 export const config = {
   baseUrl: getBaseUrl(),
-  googleCallbackUrl: `${getBaseUrl()}/api/auth/google/callback`,
+  // For development, we might need a simpler callback URL to work with Google's restrictions
+  // Using a simpler path that's more likely to be approved by Google
+  googleCallbackUrl: "/oauth2callback",
   
   // Add other environment-specific configuration as needed
   isDevelopment: process.env.NODE_ENV === 'development',
