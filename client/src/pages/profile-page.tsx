@@ -38,8 +38,8 @@ interface UserBooking {
   customerName: string;
   phoneNumber: string;
   email: string | null;
-  totalPrice: number;
-  slots: {
+  totalPrice?: number;
+  timeSlots: {
     id: number;
     startTime: string;
     endTime: string;
@@ -212,7 +212,9 @@ const ProfilePage = () => {
                             </div>
                           </div>
                           <Badge className="mt-2 md:mt-0">
-                            Total: €{booking.totalPrice.toFixed(2)}
+                            Total: €{typeof booking.totalPrice === 'number' 
+                              ? booking.totalPrice.toFixed(2) 
+                              : 'N/A'}
                           </Badge>
                         </div>
 
@@ -238,7 +240,9 @@ const ProfilePage = () => {
                                 </TableCell>
                                 <TableCell>30 min</TableCell>
                                 <TableCell className="text-right">
-                                  €{slot.price.toFixed(2)}
+                                  €{typeof slot.price === 'number' 
+                                    ? slot.price.toFixed(2) 
+                                    : 'N/A'}
                                 </TableCell>
                               </TableRow>
                             ))}
