@@ -139,7 +139,7 @@ interface ExtendedBooking extends Booking {
 // Schema for manual booking form
 const manualBookingSchema = z.object({
   customerName: z.string().min(2, "Name must be at least 2 characters"),
-  phoneNumber: z.string().regex(/^[0-9]{8,15}$/, "Phone number must be 8-15 digits"),
+  phoneNumber: z.string().regex(/^[+]?[0-9]{8,15}$/, "Phone number must be 8-15 digits, optionally starting with +"),
   email: z.string().email("Invalid email address").optional(),
   notes: z.string().optional(),
   timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot"),
@@ -154,7 +154,7 @@ const manualBookingSchema = z.object({
 const editBookingSchema = z.object({
   id: z.number(),
   customerName: z.string().min(2, "Name must be at least 2 characters"),
-  phoneNumber: z.string().regex(/^[0-9]{8,15}$/, "Phone number must be 8-15 digits"),
+  phoneNumber: z.string().regex(/^[+]?[0-9]{8,15}$/, "Phone number must be 8-15 digits, optionally starting with +"),
   email: z.string().email("Invalid email address").optional().nullable(),
   equipmentRental: z.boolean().default(false),
   notes: z.string().optional().nullable(),
