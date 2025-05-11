@@ -124,10 +124,7 @@ const BookingCalendar = ({
     // This matches the exact same calculation used in the goToToday function
     const thisMonday = subDays(todayInLatvia, latvianDayIndex);
     
-    console.log(
-      `Initializing calendar with Monday of current week: ${thisMonday.toISOString()} (Latvia time)`,
-    );
-    console.log(`Latvia day index: ${latvianDayIndex}, Original date: ${todayInLatvia.toISOString()}`);
+    // Calendar initialization logs removed
     
     return thisMonday; // Always start with Monday to ensure consistent display
   });
@@ -161,9 +158,7 @@ const BookingCalendar = ({
     if (onDateRangeChange && initialDate === undefined) {
       // Only notify parent if initialDate is undefined (calendar is controlling dates internally)
       // This prevents infinite loops when parent is controlling the date with initialDate prop
-      console.log(
-        `Calendar notifying parent of date range change: ${formatInLatviaTime(startDate, "yyyy-MM-dd")} to ${formatInLatviaTime(endDate, "yyyy-MM-dd")}`,
-      );
+      // Calendar date range notification log removed
       onDateRangeChange(startDate, endDate);
     }
   }, [currentDate, onDateRangeChange, initialDate]); // Only when our internal currentDate changes, not on every render
@@ -174,10 +169,7 @@ const BookingCalendar = ({
     clearSelectedTimeSlots();
     setCurrentDate(subDays(currentDate, 7));
 
-    // Log navigation for debugging
-    console.log(
-      `BookingCalendar: Navigating to previous week: ${formatInLatviaTime(subDays(currentDate, 7), "yyyy-MM-dd")}`,
-    );
+    // Navigation debug log removed
   };
 
   const goToNextWeek = () => {
@@ -185,51 +177,26 @@ const BookingCalendar = ({
     clearSelectedTimeSlots();
     setCurrentDate(addDays(currentDate, 7));
 
-    // Log navigation for debugging
-    console.log(
-      `BookingCalendar: Navigating to next week: ${formatInLatviaTime(addDays(currentDate, 7), "yyyy-MM-dd")}`,
-    );
+    // Next week navigation debug log removed
   };
 
   const goToToday = () => {
-    // ENHANCED DEBUG: Log detailed info about Today button handling
-    console.log("=== TODAY BUTTON PRESSED (BOOKING-CALENDAR) ===");
-    console.log(
-      `Component settings: isAdmin=${isAdmin}, hasCustomNav=${!!customNavigation}`,
-    );
+    // Today button debug logs removed
 
     // Clear selections when changing weeks
     clearSelectedTimeSlots();
 
-    // Get the actual current date (server time)
-    const serverNow = new Date();
-    console.log(`Server time now: ${serverNow.toISOString()}`);
-
-    // Use current date but ensure it's consistent with our timezone handling
+    // Get the current date in Latvia timezone
     const todayInLatvia = toLatviaTime(new Date());
-    console.log(`Today in Latvia timezone: ${todayInLatvia.toISOString()}`);
-    console.log(
-      `Today in Latvia (formatted): ${formatInLatviaTime(todayInLatvia, "yyyy-MM-dd")}`,
-    );
-
-    // Get day of week as JavaScript normally sees it
-    const jsDayOfWeek = todayInLatvia.getDay(); // 0-6, 0=Sunday
-    console.log(`JavaScript day of week: ${jsDayOfWeek} (0=Sun, 6=Sat)`);
-
+    
     // Get Latvia day of week (0=Monday, 6=Sunday)
     const latvianDayIndex = getLatvianDayIndexFromDate(todayInLatvia);
-    console.log(`Latvia day of week: ${latvianDayIndex} (0=Mon, 6=Sun)`);
-
+    
     // Calculate Monday of this week by subtracting the day index
     const thisMonday = subDays(todayInLatvia, latvianDayIndex);
-    console.log(`Monday of current week: ${thisMonday.toISOString()}`);
-    console.log(
-      `Monday of current week (formatted): ${formatInLatviaTime(thisMonday, "yyyy-MM-dd")}`,
-    );
-
+    
     // Update the current date to this week's Monday
     setCurrentDate(thisMonday);
-    console.log(`Set current date to: ${thisMonday.toISOString()}`);
 
     // If onDateRangeChange is provided, notify parent directly to ensure sync
     if (onDateRangeChange) {
