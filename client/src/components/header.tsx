@@ -46,11 +46,11 @@ const Header = () => {
           {!user && (
             <div className="flex items-center space-x-4">
               <Link href="/auth">
-                <span className="hidden md:block text-black font-semibold cursor-pointer">Sign Up</span>
+                <span className="text-black font-semibold cursor-pointer">Sign Up</span>
               </Link>
-              <span className="hidden md:block text-gray-400">|</span>
+              <span className="text-gray-400">|</span>
               <Link href="/auth">
-                <span className="hidden md:block text-black font-semibold cursor-pointer mr-4">Log In</span>
+                <span className="text-black font-semibold cursor-pointer mr-4">Log In</span>
               </Link>
             </div>
           )}
