@@ -24,8 +24,14 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     return null;
   }
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      // Force page refresh to update UI state correctly
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
