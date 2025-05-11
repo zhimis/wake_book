@@ -1341,7 +1341,6 @@ const AdminCalendarView = () => {
   
   // Function to manually refresh the calendar data
   const refreshCalendarData = async () => {
-    console.log("Manually refreshing calendar data");
     toast({
       title: "Refreshing data...",
       description: "Fetching latest bookings and time slots",
@@ -1355,9 +1354,6 @@ const AdminCalendarView = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
       queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
     ]);
-    
-    // Explicitly refetch the data for the current date range
-    console.log("Fetching fresh time slots data for current range");
     try {
       const res = await fetch(
         `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`

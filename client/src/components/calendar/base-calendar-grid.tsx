@@ -5,8 +5,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
-import { TimeSlot, OperatingHours } from "@shared/schema";
+import { TimeSlot } from "@shared/schema";
 import { LATVIA_TIMEZONE, toLatviaTime } from "@/lib/utils";
+
+// Define internal OperatingHours interface since we're only using it in this component
+interface OperatingHours {
+  id: number;
+  dayOfWeek: number;
+  openTime: string;
+  closeTime: string;
+  isClosed: boolean;
+}
 
 export interface BaseCalendarProps {
   // For derived components to control behavior
@@ -197,19 +206,19 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
         minHour = Math.max(8, earliestHour); // Don't go earlier than 8am
         maxHour = Math.min(23, latestHour);  // Don't go later than 11pm
         
-        console.log(`Public view range based on available slots: ${minHour}:00-${maxHour}:00`);
+        // Public view range log removed
       } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
         // Fallback to operating hours if no available slots
-        console.log("No available slots found, using operating hours instead");
+        // No available slots log removed
         
         // Find all non-closed days
-        const activeDays = config.operatingHours.filter(oh => !oh.isClosed);
+        const activeDays = config.operatingHours.filter((oh: OperatingHours) => !oh.isClosed);
         
         if (activeDays.length === 0) {
           // If all days are closed, use default 10am-6pm range
           minHour = 10;
           maxHour = 18;
-          console.log("No active operating hours found, using default 10:00-18:00 range");
+          // Default range log removed
         } else {
           // Process the active operating hours
           activeDays.forEach((oh: OperatingHours) => {
