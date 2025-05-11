@@ -19,9 +19,8 @@ export const getBaseUrl = (): string => {
 // Configuration object
 export const config = {
   baseUrl: getBaseUrl(),
-  // For development, we might need a simpler callback URL to work with Google's restrictions
-  // Using a simpler path that's more likely to be approved by Google
-  googleCallbackUrl: "/oauth2callback",
+  // Using the original callback URL that's configured in Google Cloud Console
+  googleCallbackUrl: "/api/auth/google/callback",
   
   // Add other environment-specific configuration as needed
   isDevelopment: process.env.NODE_ENV === 'development',
