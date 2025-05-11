@@ -288,7 +288,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const id of timeSlotIds) {
         // Check if this is an unallocated slot (negative ID)
-        if (id < 0) {
+        const numericId = Number(id);
+        if (numericId < 0) {
           try {
             // This is a placeholder/unallocated slot, we need to create a real one
             // Extract time info from the client-side data
@@ -330,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify all time slots exist and check their status
       const timeSlots = await Promise.all(
-        timeSlotIds.map(id => storage.getTimeSlot(id))
+        timeSlotIds.map(id => storage.getTimeSlot(Number(id)))
       );
       
       console.log("Time slots for booking:", timeSlots);
@@ -376,14 +377,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Associate time slots with the booking and update their status to "booked"
       const bookingTimeSlotPromises = timeSlotIds.map(async timeSlotId => {
+        const numericTimeSlotId = Number(timeSlotId);
         // Add to booking-timeslot relation
         const result = await storage.addTimeSlotToBooking({
           bookingId: booking.id,
-          timeSlotId
+          timeSlotId: numericTimeSlotId
         });
         
         // Additionally ensure the time slot itself is marked as booked
-        await storage.updateTimeSlot(timeSlotId, {
+        await storage.updateTimeSlot(numericTimeSlotId, {
           status: "booked"
         });
         
@@ -597,7 +599,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return {
               // Only include data needed for calendar display and lead time calculations
               id: booking.id,
-              status: booking.status,
               firstSlotTime: timeSlots.length > 0 ? 
                 new Date(Math.min(...timeSlots.map(slot => new Date(slot.startTime).getTime()))) : 
                 null,
