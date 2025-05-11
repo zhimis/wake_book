@@ -60,6 +60,7 @@ export interface IStorage {
   getBooking(id: number): Promise<Booking | undefined>;
   getBookingByReference(reference: string): Promise<Booking | undefined>;
   getBookings(): Promise<Booking[]>;
+  getBookingsByEmail(email: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: number, booking: Partial<Booking>): Promise<Booking | undefined>;
   deleteBooking(id: number): Promise<boolean>;
@@ -442,6 +443,10 @@ export class DatabaseStorage implements IStorage {
   
   async getBookings(): Promise<Booking[]> {
     return db.select().from(bookings);
+  }
+  
+  async getBookingsByEmail(email: string): Promise<Booking[]> {
+    return db.select().from(bookings).where(eq(bookings.email, email));
   }
   
   async getBooking(id: number): Promise<Booking | undefined> {

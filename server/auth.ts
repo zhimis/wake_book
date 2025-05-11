@@ -238,6 +238,32 @@ export function setupAuth(app: Express) {
     }
   })();
 
+  // Athlete bookings endpoint
+  app.get("/api/user/bookings", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      // Get bookings for the authenticated user
+      const userEmail = req.user.email;
+      const bookings = await storage.getBookingsByEmail(userEmail);
+      
+      // Get time slots for each booking
+      const bookingsWithTimeSlots = await Promise.all(
+        bookings.map(async (booking) => {
+          const timeSlots = await storage.getBookingTimeSlots(booking.id);
+          return { ...booking, timeSlots };
+        })
+      );
+      
+      res.json(bookingsWithTimeSlots);
+    } catch (error) {
+      console.error("Error fetching user bookings:", error);
+      res.status(500).json({ error: "Failed to fetch bookings" });
+    }
+  });
+
   // User management endpoints (protected)
   app.get("/api/users", requireRole(["admin", "manager"]), async (req, res) => {
     try {
