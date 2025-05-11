@@ -174,25 +174,25 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
     error: timeSlotsError,
   } = useQuery({
     queryKey: ["/api/timeslots", { startDate, endDate }],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Fetch operating hours for availability data
   const { data: configData } = useQuery({
     queryKey: ["/api/config"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Fetch lead time settings
   const { data: leadTimeSettings } = useQuery({
     queryKey: ["/api/admin/lead-time-settings"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Fetch bookings for lead time restriction bypass
   const { data: bookings } = useQuery({
     queryKey: ["/api/bookings"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Log when bookings data is loaded (helps with debugging lead time issues)
@@ -210,14 +210,25 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
 
   // Process time slots and group them by day
   const days = useMemo(() => {
+    // Safety check - if any required data is missing, return an array of empty days
     if (
       !timeSlotData ||
       !timeSlotData.slots ||
       !configData ||
-      !configData.operatingHours ||
-      !leadTimeSettings
+      !configData.operatingHours
     ) {
-      return [];
+      const today = toLatviaTime(new Date());
+      return Array.from({ length: 7 }).map((_, i) => {
+        const date = addDays(currentDate, i);
+        return {
+          date,
+          name: format(date, "EEEE"),
+          slots: [],
+          isAvailable: false,
+          isToday: format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd"),
+          isPast: date < today && format(date, "yyyy-MM-dd") !== format(today, "yyyy-MM-dd")
+        };
+      });
     }
 
     const today = toLatviaTime(new Date());
@@ -301,12 +312,12 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
         
         // Determine if slot should be restricted based on lead time settings
         let isRestricted = false;
-        if (leadTimeSettings.restrictionMode === "always") {
+        if (leadTimeSettings && leadTimeSettings.restrictionMode === "always") {
           // Always apply lead time restriction
-          isRestricted = daysDifference < leadTimeSettings.leadTimeDays;
-        } else if (leadTimeSettings.restrictionMode === "booking_based") {
+          isRestricted = daysDifference < (leadTimeSettings.leadTimeDays || 0);
+        } else if (leadTimeSettings && leadTimeSettings.restrictionMode === "booking_based") {
           // Only apply restriction if there are no bookings that day
-          isRestricted = daysDifference < leadTimeSettings.leadTimeDays;
+          isRestricted = daysDifference < (leadTimeSettings.leadTimeDays || 0);
           
           // Check if this date has any bookings, which would relax the restriction
           if (isRestricted && bookings && slotDateStr) {
@@ -348,7 +359,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
           }
         }
         
-        console.log(`Lead time check: Slot date=${slotDateStr}, Today=${todayDateStr}, Days difference=${daysDifference}, Lead time required=${leadTimeSettings.leadTimeDays}, Restricted=${isRestricted}, Mode=${leadTimeSettings.restrictionMode}`);
+        console.log(`Lead time check: Slot date=${slotDateStr}, Today=${todayDateStr}, Days difference=${daysDifference}, Lead time required=${leadTimeSettings ? leadTimeSettings.leadTimeDays : 'unknown'}, Restricted=${isRestricted}, Mode=${leadTimeSettings ? leadTimeSettings.restrictionMode : 'unknown'}`);
         
         // Apply the restriction if needed
         if (isRestricted && status === "available") {
