@@ -1,249 +1,266 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Redirect } from "wouter";
+import { format } from "date-fns";
+import { getQueryFn } from "@/lib/queryClient";
+import { Loader2, Clock, CalendarDays, User, Phone, Mail } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatTimeSlot, formatPrice } from "@/lib/utils";
-import { Loader2, User, CalendarDays, Clock } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+
+// Type for user bookings
+interface UserBooking {
+  id: number;
+  reference: string;
+  createdAt: string;
+  customerName: string;
+  phoneNumber: string;
+  email: string | null;
+  totalPrice: number;
+  slots: {
+    id: number;
+    startTime: string;
+    endTime: string;
+    price: number;
+    status: string;
+  }[];
+}
 
 const ProfilePage = () => {
-  const { user, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("bookings");
+  const { user, isLoading, logoutMutation } = useAuth();
+  const [activeTab, setActiveTab] = useState("profile");
 
-  useEffect(() => {
-    // Set page title
-    document.title = "My Profile | Hi Wake 2.0";
-  }, []);
-
-  // Get user's bookings
-  const {
-    data: bookings,
-    isLoading: isBookingsLoading,
-    error: bookingsError,
-  } = useQuery<any[]>({
-    queryKey: ["/api/user/bookings"],
-    enabled: !!user, // Only run query if user is logged in
-    initialData: [],
-  });
-
-  // If not authenticated, redirect to login
+  // Redirect to auth page if not logged in
   if (!isLoading && !user) {
     return <Redirect to="/auth" />;
   }
 
-  return (
-    <div className="container py-6 min-h-[80vh]">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">My Profile</h1>
+  // Fetch user bookings
+  const {
+    data: userBookings,
+    isLoading: bookingsLoading,
+    error: bookingsError,
+  } = useQuery<UserBooking[]>({
+    queryKey: ["/api/user/bookings"],
+    queryFn: getQueryFn(),
+    enabled: !!user,
+  });
 
-        {isLoading ? (
-          <div className="flex justify-center items-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  useEffect(() => {
+    document.title = "My Profile | Hi Wake 2.0";
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="container py-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
+  const formatDate = (dateString: string) => {
+    return format(new Date(dateString), "MMM d, yyyy");
+  };
+
+  const formatTime = (dateString: string) => {
+    return format(new Date(dateString), "HH:mm");
+  };
+
+  return (
+    <div className="container py-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">My Profile</h1>
+            <p className="text-muted-foreground">
+              Welcome back, {user?.firstName || user?.username}
+            </p>
           </div>
-        ) : (
-          <>
-            {/* User Info Card */}
-            <Card className="mb-8">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-2xl">
-                      {user?.firstName
-                        ? `${user.firstName} ${user.lastName || ""}`
-                        : user?.email}
-                    </CardTitle>
-                    <CardDescription>{user?.email}</CardDescription>
+          <Button
+            variant="destructive"
+            onClick={handleLogout}
+            disabled={logoutMutation.isPending}
+            className="mt-4 md:mt-0"
+          >
+            {logoutMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Logging out...
+              </>
+            ) : (
+              "Sign Out"
+            )}
+          </Button>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-8">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="bookings">My Bookings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>
+                    Your account and contact details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="font-medium mr-2">Name:</span>
+                    <span>
+                      {user?.firstName && user?.lastName
+                        ? `${user.firstName} ${user.lastName}`
+                        : "Not provided"}
+                    </span>
                   </div>
-                  <Badge variant="outline" className="uppercase">
-                    {user?.role}
-                  </Badge>
-                </div>
+                  <div className="flex items-center">
+                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="font-medium mr-2">Email:</span>
+                    <span>{user?.email}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="font-medium mr-2">Phone:</span>
+                    <span>{user?.phoneNumber || "Not provided"}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle>Account Details</CardTitle>
+                  <CardDescription>Information about your account</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center">
+                    <span className="font-medium mr-2">Account Type:</span>
+                    <Badge>{user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}</Badge>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="font-medium mr-2">Username:</span>
+                    <span>{user?.username}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="font-medium mr-2">Member Since:</span>
+                    <span>{formatDate(user?.createdAt)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="bookings">
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle>My Bookings</CardTitle>
+                <CardDescription>
+                  View all your wake park bookings
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col sm:flex-row gap-4 text-muted-foreground">
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    <span>Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}</span>
-                  </div>
-                  {user?.phoneNumber && (
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2" />
-                      <span>{user.phoneNumber}</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tabs for Profile Sections */}
-            <Tabs
-              defaultValue="bookings"
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-2 mb-8">
-                <TabsTrigger value="bookings">My Bookings</TabsTrigger>
-                <TabsTrigger value="account">Account Settings</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="bookings" className="space-y-6">
-                <h2 className="text-xl font-bold mb-4">Booking History</h2>
-
-                {isBookingsLoading ? (
-                  <div className="flex justify-center items-center p-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                {bookingsLoading ? (
+                  <div className="flex justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
                   </div>
                 ) : bookingsError ? (
-                  <Card className="bg-destructive/10">
-                    <CardContent className="pt-6">
-                      <p>Failed to load bookings. Please try again later.</p>
-                    </CardContent>
-                  </Card>
-                ) : !bookings || bookings.length === 0 ? (
-                  <Card className="bg-muted">
-                    <CardContent className="pt-6">
-                      <div className="text-center py-8">
-                        <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium mb-2">No bookings yet</h3>
-                        <p className="text-muted-foreground mb-4">
-                          You haven't made any bookings yet.
-                        </p>
-                        <Button variant="default" asChild>
-                          <a href="/booking">Book a Session</a>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {bookings.map((booking: any) => (
-                      <Card key={booking.id} className="overflow-hidden">
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle>{booking.reference}</CardTitle>
-                              <CardDescription>
-                                {new Date(booking.createdAt).toLocaleDateString()}
-                              </CardDescription>
-                            </div>
-                            <Badge
-                              className={
-                                new Date(booking.timeSlots[0]?.startTime) > new Date()
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-gray-100 text-gray-800"
-                              }
-                            >
-                              {new Date(booking.timeSlots[0]?.startTime) > new Date()
-                                ? "Upcoming"
-                                : "Past"}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2">
-                            {booking.timeSlots.map((slot: any) => (
-                              <div
-                                key={slot.id}
-                                className="flex justify-between py-1 border-b border-border last:border-0"
-                              >
-                                <span>
-                                  {formatDate(new Date(slot.startTime))} -{" "}
-                                  {formatTimeSlot(
-                                    new Date(slot.startTime),
-                                    new Date(slot.endTime)
-                                  )}
-                                </span>
-                                <span>{formatPrice(slot.price)}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="flex justify-between mt-4 font-medium">
-                            <span>Total:</span>
-                            <span>
-                              {formatPrice(
-                                booking.timeSlots.reduce(
-                                  (acc: number, slot: any) => acc + slot.price,
-                                  0
-                                )
-                              )}
-                            </span>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="bg-muted border-t flex justify-between">
+                  <div className="text-center p-8 text-destructive">
+                    Error loading bookings. Please try again later.
+                  </div>
+                ) : userBookings && userBookings.length > 0 ? (
+                  <div className="space-y-6">
+                    {userBookings.map((booking) => (
+                      <div key={booking.id} className="border rounded-lg p-4">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4">
                           <div>
-                            {booking.equipmentRental && (
-                              <Badge variant="outline" className="mr-2">
-                                Equipment Rental
-                              </Badge>
-                            )}
+                            <h3 className="font-medium">
+                              Booking #{booking.reference}
+                            </h3>
+                            <div className="flex items-center text-sm text-muted-foreground mt-1">
+                              <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                              {formatDate(booking.createdAt)}
+                            </div>
                           </div>
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={`/confirmation/${booking.reference}`}>View Details</a>
-                          </Button>
-                        </CardFooter>
-                      </Card>
+                          <Badge className="mt-2 md:mt-0">
+                            Total: €{booking.totalPrice.toFixed(2)}
+                          </Badge>
+                        </div>
+
+                        <Separator className="my-4" />
+
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Time</TableHead>
+                              <TableHead>Duration</TableHead>
+                              <TableHead className="text-right">Price</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {booking.slots.map((slot) => (
+                              <TableRow key={slot.id}>
+                                <TableCell>
+                                  {formatDate(slot.startTime)}
+                                </TableCell>
+                                <TableCell>
+                                  {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                                </TableCell>
+                                <TableCell>30 min</TableCell>
+                                <TableCell className="text-right">
+                                  €{slot.price.toFixed(2)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     ))}
                   </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="account" className="space-y-6">
-                <h2 className="text-xl font-bold mb-4">Account Information</h2>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Personal Information</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Email</p>
-                            <p className="font-medium">{user?.email}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Username</p>
-                            <p className="font-medium">{user?.username}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">First Name</p>
-                            <p className="font-medium">{user?.firstName || "-"}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Last Name</p>
-                            <p className="font-medium">{user?.lastName || "-"}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Phone Number</p>
-                            <p className="font-medium">{user?.phoneNumber || "-"}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">Account Actions</h3>
-                        <div className="space-y-2">
-                          <Button variant="outline" className="w-full sm:w-auto" asChild>
-                            <a href="/api/logout">Sign Out</a>
-                          </Button>
-                        </div>
-                      </div>
+                ) : (
+                  <div className="text-center p-8 text-muted-foreground">
+                    You haven't made any bookings yet.
+                    <div className="mt-4">
+                      <Button asChild>
+                        <a href="/">Book Wake Session</a>
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

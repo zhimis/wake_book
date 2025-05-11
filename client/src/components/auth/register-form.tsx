@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useAuth } from "@/hooks/use-auth";
-import { insertUserSchema } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Form,
   FormControl,
@@ -15,31 +15,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
-// Extend the user schema with additional validation
-const registerSchema = insertUserSchema
-  .omit({ 
-    id: true, 
-    lastLogin: true, 
-    createdAt: true, 
-    role: true, 
-    isActive: true,
-    phoneNumber: true,
-  })
-  .extend({
-    password: z.string()
-      .min(8, "Password must be at least 8 characters")
-      .max(100),
-    confirmPassword: z.string()
-      .min(1, "Please confirm your password"),
-    firstName: z.string()
-      .min(1, "First name is required"),
-    lastName: z.string()
-      .min(1, "Last name is required"),
-    email: z.string()
-      .email("Invalid email address")
-      .min(1, "Email is required"),
+// Form schema with validation
+const registerSchema = z
+  .object({
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    email: z.string().email("Please enter a valid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    phoneNumber: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -49,75 +35,107 @@ const registerSchema = insertUserSchema
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 interface RegisterFormProps {
-  onSuccess?: () => void;
+  setActiveTab: (tab: string) => void;
 }
 
-const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
-  const { registerMutation } = useAuth();
-  const [error, setError] = useState<string | null>(null);
+const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
   const { toast } = useToast();
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   // Initialize form
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: "",
       username: "",
+      email: "",
       password: "",
       confirmPassword: "",
       firstName: "",
       lastName: "",
+      phoneNumber: "",
     },
   });
 
   // Handle form submission
   const onSubmit = async (data: RegisterFormData) => {
     setError(null);
-    
+    setIsSubmitting(true);
+
     try {
-      const { confirmPassword, ...userData } = data;
+      const { confirmPassword, ...registerData } = data;
       
-      registerMutation.mutate(
-        {
-          ...userData,
-          role: "athlete", // Default role for regular registrations
-          isActive: true,
-        },
-        {
-          onSuccess: () => {
-            toast({
-              title: "Registration successful",
-              description: "Your account has been created. You can now log in.",
-              variant: "default",
-            });
-            if (onSuccess) onSuccess();
-          },
-          onError: (err) => {
-            console.error("Registration error:", err);
-            if (err.message.includes("Email already in use")) {
-              setError("This email is already registered. Please log in instead.");
-            } else {
-              setError("Registration failed. Please try again.");
-            }
-          },
-        }
-      );
-    } catch (err) {
-      console.error("Registration form error:", err);
-      setError("Registration failed. Please try again.");
+      // Set role to athlete
+      const userData = {
+        ...registerData,
+        role: "athlete"
+      };
+      
+      const res = await apiRequest("POST", "/api/register", userData);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Registration failed");
+      }
+      
+      toast({
+        title: "Registration successful",
+        description: "Your account has been created. You can now log in.",
+      });
+      
+      // Switch to login tab
+      setActiveTab("login");
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      setError(err.message || "Registration failed. Please try again.");
+      toast({
+        title: "Registration failed",
+        description: err.message || "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Username</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter a username" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="Enter your email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>First Name</FormLabel>
+                <FormLabel>First Name (Optional)</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter your first name" {...field} />
                 </FormControl>
@@ -131,7 +149,7 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Last Name</FormLabel>
+                <FormLabel>Last Name (Optional)</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter your last name" {...field} />
                 </FormControl>
@@ -143,40 +161,12 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
 
         <FormField
           control={form.control}
-          name="email"
+          name="phoneNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Phone Number (Optional)</FormLabel>
               <FormControl>
-                <Input 
-                  type="email" 
-                  placeholder="Enter your email" 
-                  {...field} 
-                  onChange={(e) => {
-                    field.onChange(e);
-                    // Auto-generate username from email if username is empty
-                    if (!form.getValues().username) {
-                      const emailParts = e.target.value.split('@');
-                      if (emailParts[0]) {
-                        form.setValue('username', emailParts[0]);
-                      }
-                    }
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input placeholder="Choose a username" {...field} />
+                <Input placeholder="Enter your phone number" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -219,22 +209,18 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={registerMutation.isPending}
-        >
-          {registerMutation.isPending ? (
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creating Account...
             </>
           ) : (
-            "Create Account"
+            "Register"
           )}
         </Button>
       </form>
-      
+
       {error && (
         <div className="mt-4 p-2 bg-destructive/10 text-destructive rounded text-sm">
           {error}

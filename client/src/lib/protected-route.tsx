@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
-import { useState, useEffect } from "react";
 
 export function ProtectedRoute({
   path,
@@ -10,47 +9,19 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading: authLoading } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    // Simple loading effect to allow auth state to be determined
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      console.log("Protected route loading finished, user:", user);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [user]);
-
-  // Add debugging for authentication state
-  useEffect(() => {
-    console.log("Auth state in protected route:", { user, authLoading, path });
-  }, [user, authLoading, path]);
-
-  if (isLoading || authLoading) {
-    console.log("ProtectedRoute: Still loading...");
-    return (
-      <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-border" />
+  return (
+    <Route path={path}>
+      {isLoading ? (
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </Route>
-    );
-  }
-
-  if (!user) {
-    // Check if this is an admin path
-    const isAdminPath = path.startsWith("/admin");
-    
-    console.log("ProtectedRoute: No user, redirecting to login");
-    return (
-      <Route path={path}>
-        <Redirect to={isAdminPath ? "/admin/login" : "/auth"} />
-      </Route>
-    );
-  }
-
-  console.log("ProtectedRoute: User authenticated, rendering component");
-  return <Route path={path} component={Component} />;
+      ) : user && (user.role === "admin" || user.role === "manager") ? (
+        <Component />
+      ) : (
+        <Redirect to="/admin/login" />
+      )}
+    </Route>
+  );
 }
