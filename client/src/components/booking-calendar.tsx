@@ -402,23 +402,14 @@ const BookingCalendar = ({
         });
       }
 
-      // Log the generated dates for debugging
-      console.log(`Admin view - Column dates in order:`);
-      daysArray.forEach((day, i) => {
-        console.log(
-          `Column ${i + 1}: ${formatInLatviaTime(day.date, "EEE, MMM d, yyyy")}, Latvian index: ${day.latvianDayIndex}`,
-        );
-      });
+      // Admin view column debug logs removed
     } else {
       // Regular user view always includes yesterday + the current week (Mon-Sun)
       // This ensures the display is consistent with what we're fetching
       const latvianDayIndexForToday = getLatvianDayIndexFromDate(currentDate);
       const mondayDate = addDays(currentDate, -latvianDayIndexForToday);
 
-      console.log(`Regular view - Week calculation:
-        Current date: ${formatInLatviaTime(currentDate, "EEE, MMM d")}
-        Monday of week: ${formatInLatviaTime(mondayDate, "EEE, MMM d")}
-      `);
+      // Regular view week calculation logs removed
 
       // Create array of 7 days (Monday-Sunday)
       for (let i = 0; i < 7; i++) {
@@ -649,9 +640,7 @@ const BookingCalendar = ({
             slot.status === "booked" &&
             (hour === 13 || hour === 14 || hour === 15 || hour === 16)
           ) {
-            console.log(
-              `TODAY'S BOOKING: ${formatInLatviaTime(slot.startTime, "HH:mm")} placed in column ${columnIndex}, status: ${slot.status}`,
-            );
+            // Today's booking debug log removed
           }
         } else {
           // Log error if we can't find a matching day

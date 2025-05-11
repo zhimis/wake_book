@@ -228,11 +228,7 @@ const AdminCalendarView = () => {
     const latviaSundayDate = new Date(latviaMondayDate);
     latviaSundayDate.setDate(latviaMondayDate.getDate() + 6);
     
-    console.log("Admin calendar initial date range (Monday-Sunday):",
-      formatInLatviaTime(latviaMondayDate, "yyyy-MM-dd"),
-      "to", 
-      formatInLatviaTime(latviaSundayDate, "yyyy-MM-dd")
-    );
+    // Admin calendar initialization logs removed
     
     // Return dates converted back to UTC for storage and API requests
     return {
