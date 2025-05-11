@@ -109,11 +109,8 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   // Organize time slots by day of the week (0-6 where 0 is Monday in our case)
   const timeSlotsByDay: TimeSlotByDay = useMemo(() => {
     if (!timeSlots || !Array.isArray(timeSlots)) {
-      console.log("No time slots available or not an array", timeSlots);
       return {};
     }
-    
-    console.log(`Processing ${timeSlots.length} time slots`);
     
     const slotsByDay: TimeSlotByDay = {};
     
@@ -128,17 +125,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       const dayOfWeek = (slotDate.getDay() + 6) % 7; // Convert Sunday(0) to 6, Monday(1) to 0, etc.
       
       slotsByDay[dayOfWeek].push(slot);
-      
-      // Log some details for debugging
-      if (slot.status === 'available') {
-        console.log(`Available slot: day=${dayOfWeek}, time=${format(slotDate, 'HH:mm')}, price=${slot.price}`);
-      }
     });
-    
-    // Log summary of slots by day
-    for (let i = 0; i < 7; i++) {
-      console.log(`Day ${i} (${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}): ${slotsByDay[i].length} slots`);
-    }
     
     return slotsByDay;
   }, [timeSlots]);
@@ -177,20 +164,20 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       // If explicitly provided time range, use that
       minHour = fixedTimeRange.start;
       maxHour = fixedTimeRange.end;
-      console.log(`Using provided fixed time range: ${minHour}:00-${maxHour}:00`);
+      // Time range log removed
     } else if (viewMode === 'public' && timeSlots && timeSlots.length > 0) {
       // For public view - determine range based on available time slots
       // First - get all slots that are available
-      const availableSlots = timeSlots.filter(slot => slot.status === 'available');
+      const availableSlots = timeSlots.filter((slot: TimeSlot) => slot.status === 'available');
       
-      console.log(`Found ${availableSlots.length} available slots in the current view`);
+      // Available slots log removed
       
       if (availableSlots.length > 0) {
         // Find the earliest and latest time slots
         let earliestHour = 24;
         let latestHour = 0;
         
-        availableSlots.forEach(slot => {
+        availableSlots.forEach((slot: TimeSlot) => {
           const slotDate = toLatviaTime(slot.startTime);
           const slotEndDate = toLatviaTime(slot.endTime);
           const hour = slotDate.getHours();
@@ -277,7 +264,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   const findTimeSlot = (day: number, hour: number, minute: number): TimeSlot | null => {
     if (!timeSlotsByDay[day]) return null;
     
-    // Add debug logging to see what's happening
+    // Filter slots for the requested time
     const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
       // Convert the UTC slot time to Latvia timezone
       const slotLatviaDate = toLatviaTime(slot.startTime);
@@ -287,23 +274,8 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       const slotMinute = slotLatviaDate.getMinutes();
       
       // Check if this slot matches the requested hour and minute
-      const isMatch = slotHour === hour && slotMinute === minute;
-      
-      if (isMatch) {
-        console.log(`Matched: slot ${formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, 'HH:mm')} with grid ${hour}:${minute}`);
-        console.log(`  - UTC time: ${format(new Date(slot.startTime), 'HH:mm')}`);
-        console.log(`  - Latvia time: ${formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, 'HH:mm')}`);
-      }
-      
-      return isMatch;
+      return slotHour === hour && slotMinute === minute;
     });
-    
-    if (matchingSlots.length > 0) {
-      console.log(`Matching slots for ${hour}:${minute} - ${matchingSlots.length} slots found`);
-      matchingSlots.forEach((slot, index) => {
-        console.log(`Slot ${index}: day=${day}, hour=${hour}, minute=${minute}, status=${slot.status}, date=${formatInTimeZone(new Date(slot.startTime), LATVIA_TIMEZONE, 'EEE, MMM d')}`);
-      });
-    }
     
     return matchingSlots[0] || null;
   };

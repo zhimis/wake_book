@@ -27,6 +27,7 @@ export async function apiRequest(
     
     return res;
   } catch (error) {
+    // Keep error reporting to console for troubleshooting
     console.error(`API request error for ${url}:`, error);
     throw error;
   }
@@ -38,30 +39,24 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    console.log(`Making GET request to ${queryKey[0]}`);
-    
     try {
       const res = await fetch(queryKey[0] as string, {
         credentials: "include",
       });
       
-      console.log(`Response status for ${queryKey[0]}: ${res.status} ${res.statusText}`);
-      
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log(`Returning null for 401 response to ${queryKey[0]}`);
         return null;
       }
       
       if (!res.ok) {
-        console.error(`Query failed: ${res.status} ${res.statusText}`);
         const errorText = await res.text();
-        console.error(`Error details: ${errorText}`);
         throw new Error(`${res.status}: ${errorText || res.statusText}`);
       }
       
       const data = await res.json();
       return data;
     } catch (error) {
+      // Keep error reporting to console for troubleshooting
       console.error(`Query error for ${queryKey[0]}:`, error);
       throw error;
     }
