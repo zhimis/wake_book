@@ -64,7 +64,7 @@ const ProfilePage = () => {
     error: bookingsError,
   } = useQuery<UserBooking[]>({
     queryKey: ["/api/user/bookings"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
 
@@ -165,7 +165,7 @@ const ProfilePage = () => {
                 <CardContent className="space-y-4">
                   <div className="flex items-center">
                     <span className="font-medium mr-2">Account Type:</span>
-                    <Badge>{user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}</Badge>
+                    <Badge>{user && user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}</Badge>
                   </div>
                   <div className="flex items-center">
                     <span className="font-medium mr-2">Username:</span>
@@ -173,7 +173,7 @@ const ProfilePage = () => {
                   </div>
                   <div className="flex items-center">
                     <span className="font-medium mr-2">Member Since:</span>
-                    <span>{formatDate(user?.createdAt)}</span>
+                    <span>{user?.createdAt ? formatDate(user.createdAt.toString()) : '-'}</span>
                   </div>
                 </CardContent>
               </Card>
