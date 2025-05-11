@@ -33,7 +33,8 @@ import { TimeSlot as SchemaTimeSlot, generateTimeSlotId } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
 import AdminTimeSlot from "@/components/admin/admin-time-slot";
 import useEmblaCarousel from 'embla-carousel-react';
-import { BookingCalendar, BookingCalendarProps } from "./booking-calendar";
+import { BookingCalendarProps } from "./booking-calendar";
+import BookingCalendar from "./booking-calendar";
 
 /**
  * BookingCalendarSwipe - Extends BookingCalendar with swipe functionality

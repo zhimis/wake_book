@@ -32,7 +32,6 @@ import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { TimeSlot as SchemaTimeSlot, generateTimeSlotId } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
 import AdminTimeSlot from "@/components/admin/admin-time-slot";
-import useEmblaCarousel from 'embla-carousel-react';
 
 // Define TimeSlotStatus type to be used consistently across components
 export type TimeSlotStatus =
@@ -1257,8 +1256,52 @@ const BookingCalendar = ({
     );
   }
 
+  // Touch event handling for swipe
+  const touchRef = useRef({ startX: 0, startY: 0 });
+  const swipeThreshold = 50; // Minimum distance required for swipe detection
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchRef.current.startX = e.touches[0].clientX;
+    touchRef.current.startY = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!e.changedTouches[0]) return;
+    
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    
+    const diffX = touchRef.current.startX - endX;
+    const diffY = touchRef.current.startY - endY;
+    
+    // Only register horizontal swipes (when x movement is greater than y movement)
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+      if (Math.abs(diffX) > swipeThreshold) {
+        if (diffX > 0) {
+          // Swiped left - go to next week
+          if (customNavigation) {
+            customNavigation.goToNext();
+          } else {
+            goToNextWeek();
+          }
+        } else {
+          // Swiped right - go to previous week
+          if (customNavigation) {
+            customNavigation.goToPrevious();
+          } else {
+            goToPreviousWeek();
+          }
+        }
+      }
+    }
+  };
+
   return (
-    <Card className="w-full">
+    <Card 
+      className="w-full"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <CardHeader className="pb-1 pt-2 px-2">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
@@ -1302,6 +1345,11 @@ const BookingCalendar = ({
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+        
+        {/* Mobile hint */}
+        <div className="mt-2 text-xs text-center text-muted-foreground sm:hidden">
+          Swipe left or right to change weeks
         </div>
       </CardHeader>
       <CardContent className="p-2">
