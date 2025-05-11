@@ -26,7 +26,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 const LoginForm = () => {
   const { loginMutation } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize form
   const form = useForm<LoginFormData>({
@@ -40,7 +39,6 @@ const LoginForm = () => {
   // Handle form submission
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
-    setIsSubmitting(true);
     
     try {
       loginMutation.mutate(
@@ -49,21 +47,18 @@ const LoginForm = () => {
           onSuccess: () => {
             // The auth context will handle redirection and data storage
             console.log("Login successful");
-            setIsSubmitting(false);
           },
           onError: (err) => {
             console.error("Login mutation error:", err);
             setError(
               "Login failed. Please check your credentials and try again."
             );
-            setIsSubmitting(false);
           },
         }
       );
     } catch (err) {
       console.error("Login form submission error:", err);
       setError("Login failed. Please check your credentials and try again.");
-      setIsSubmitting(false);
     }
   };
 
@@ -105,9 +100,9 @@ const LoginForm = () => {
         <Button
           type="submit"
           className="w-full"
-          disabled={isSubmitting}
+          disabled={loginMutation.isPending}
         >
-          {isSubmitting ? (
+          {loginMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Logging in...
