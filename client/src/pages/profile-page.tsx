@@ -80,8 +80,14 @@ const ProfilePage = () => {
     );
   }
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      // Force page refresh to update UI state correctly
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const formatDate = (dateString: string) => {

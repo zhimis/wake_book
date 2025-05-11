@@ -42,8 +42,13 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
   const { user, logoutMutation } = useAuth();
 
   const handleLogout = async () => {
-    await logoutMutation.mutateAsync();
-    navigate("/admin/login");
+    try {
+      await logoutMutation.mutateAsync();
+      // Force page refresh to update UI state correctly
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   // Public navigation items (available to all users)

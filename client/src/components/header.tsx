@@ -9,9 +9,14 @@ const Header = () => {
   const [, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
   
-  const handleLogout = () => {
-    logoutMutation.mutate();
-    // No need to handle redirect, auth hook will do that 
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      // Force page refresh to update UI state correctly
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
   
   return (
