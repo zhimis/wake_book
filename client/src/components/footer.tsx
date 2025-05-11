@@ -33,15 +33,11 @@ const Footer = () => {
           </div>
           
           <div className="flex items-center space-x-6">
-            <Link href="/contacts">
-              <a className="text-gray-600 hover:text-primary transition-colors text-sm">
+            <Link href="/contacts" className="text-gray-600 hover:text-primary transition-colors text-sm">
                 Kontakti
-              </a>
             </Link>
-            <Link href="/prices">
-              <a className="text-gray-600 hover:text-primary transition-colors text-sm">
+            <Link href="/prices" className="text-gray-600 hover:text-primary transition-colors text-sm">
                 Cenas
-              </a>
             </Link>
             <a 
               href="https://www.facebook.com/people/HiWake/61576267285909/" 
