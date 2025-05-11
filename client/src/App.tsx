@@ -15,6 +15,7 @@ import SystemConfigPage from "@/pages/system-config-page";
 import PricesPage from "@/pages/prices-page";
 import ContactsPage from "@/pages/contacts-page";
 import AuthPage from "@/pages/auth-page";
+import ProfilePage from "@/pages/profile-page";
 
 import Header from "./components/header";
 import Footer from "./components/footer";
@@ -57,6 +58,7 @@ function App() {
               <Route path="/prices" component={PricesPage} />
               <Route path="/contacts" component={ContactsPage} />
               <Route path="/auth" component={AuthPage} />
+              <Route path="/profile" component={ProfilePage} />
               <Route path="/admin/login" component={AdminLoginPage} />
               <ProtectedRoute path="/admin" component={AdminPage} />
               <ProtectedRoute path="/admin/dashboard" component={AdminDashboardPage} />

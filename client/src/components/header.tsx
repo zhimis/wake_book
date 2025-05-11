@@ -31,6 +31,11 @@ const Header = () => {
               <span className="text-sm text-gray-600">
                 Welcome, <span className="font-medium">{user.username}</span>
               </span>
+              <Link href="/profile">
+                <Button variant="ghost" size="sm" className="text-primary">
+                  My Profile
+                </Button>
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
