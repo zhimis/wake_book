@@ -12,8 +12,6 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  console.log(`Making ${method} request to ${url}`, data);
-  
   try {
     const res = await fetch(url, {
       method,
@@ -22,12 +20,8 @@ export async function apiRequest(
       credentials: "include",
     });
     
-    console.log(`Response status: ${res.status} ${res.statusText}`);
-    
     if (!res.ok) {
-      console.error(`Request failed: ${res.status} ${res.statusText}`);
       const errorText = await res.text();
-      console.error(`Error details: ${errorText}`);
       throw new Error(`${res.status}: ${errorText || res.statusText}`);
     }
     

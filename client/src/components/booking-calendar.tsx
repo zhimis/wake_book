@@ -444,7 +444,7 @@ const BookingCalendar = ({
       dbTimeSlots.timeSlots &&
       Array.isArray(dbTimeSlots.timeSlots)
     ) {
-      console.log("Database time slots loaded:", dbTimeSlots.timeSlots.length);
+      // Database time slots log removed
 
       // Create a map of database time slot statuses by ID for quick lookup
       dbTimeSlots.timeSlots.forEach((dbSlot: SchemaTimeSlot) => {
@@ -527,10 +527,7 @@ const BookingCalendar = ({
       const correctedEndTime = new Date(matchedDate);
       correctedEndTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
-      // Debug our mapping
-      console.log(`SLOT MAPPING: Original date: ${formatInLatviaTime(startTime, "EEE, MMM d, yyyy HH:mm")}, 
-                   Mapped to week day: ${formatInLatviaTime(correctedStartTime, "EEE, MMM d, yyyy HH:mm")},
-                   Latvian day index: ${latvianDayIndex}`);
+      // Slot mapping debug logs removed
 
       // Get time components from the converted Latvia time
       const hour = correctedStartTime.getHours();
@@ -577,18 +574,7 @@ const BookingCalendar = ({
       // So we'll only mark slots as "past" if they're from a previous day
       const isPast = isPastDay; // Do not include isPastTime for admin view
 
-      // For slots during important hours, log detailed information
-      if (hour >= 13 && hour <= 16) {
-        console.log(`Slot ${dbSlot.id} timing:`, {
-          date: formatInLatviaTime(correctedStartTime, "yyyy-MM-dd"),
-          time: formatInLatviaTime(correctedStartTime, "HH:mm"),
-          status: dbSlot.status,
-          isPastDay,
-          isToday,
-          isPastTime,
-          isPast,
-        });
-      }
+      // Slot timing debug logs removed
 
       slots.push({
         id: dbSlot.id.toString(),
@@ -622,20 +608,7 @@ const BookingCalendar = ({
     // Create an array of slots (7 for both views since we're using the current week's days)
     const slotsForWeek = Array(7).fill(undefined);
 
-    // For important hours, log detailed information
-    if (
-      (hour === 13 || hour === 14 || hour === 15 || hour === 16) &&
-      minute === 0
-    ) {
-      console.log(
-        `Matching slots for ${hour}:${minute} - ${matchingSlots.length} slots found`,
-      );
-      matchingSlots.forEach((slot, idx) => {
-        console.log(
-          `Slot ${idx}: day=${slot.latvianDayIndex}, hour=${slot.hour}, minute=${slot.minute}, status=${slot.status}, date=${formatInLatviaTime(slot.startTime, "EEE, MMM d")}`,
-        );
-      });
-    }
+    // Slot matching debug logs removed
 
     // Place slots in the correct position
     matchingSlots.forEach((slot) => {
