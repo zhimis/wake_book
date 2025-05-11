@@ -174,25 +174,25 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
     error: timeSlotsError,
   } = useQuery({
     queryKey: ["/api/timeslots", { startDate, endDate }],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn,
   });
 
   // Fetch operating hours for availability data
   const { data: configData } = useQuery({
     queryKey: ["/api/config"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn,
   });
 
   // Fetch lead time settings
   const { data: leadTimeSettings } = useQuery({
     queryKey: ["/api/admin/lead-time-settings"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn,
   });
 
   // Fetch bookings for lead time restriction bypass
   const { data: bookings } = useQuery({
     queryKey: ["/api/bookings"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn,
   });
 
   // Log when bookings data is loaded (helps with debugging lead time issues)

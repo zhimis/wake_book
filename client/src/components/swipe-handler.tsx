@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useRef, ReactNode } from 'react';
 
 // Interface for the component props
 interface SwipeHandlerProps {
-  children: React.ReactNode;
+  children: ReactNode;
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   threshold?: number;
@@ -14,54 +14,52 @@ interface SwipeHandlerProps {
  * This is a simple touch event handler that detects horizontal swipe gestures
  * and invokes callbacks for left and right swipes.
  */
-class SwipeHandler extends React.Component<SwipeHandlerProps> {
-  // Default props
-  static defaultProps = {
-    threshold: 50
-  };
-
-  // Instance variables
-  private touchStartX: number | null = null;
+const SwipeHandler: React.FC<SwipeHandlerProps> = ({
+  children,
+  onSwipeLeft,
+  onSwipeRight,
+  threshold = 50
+}) => {
+  // Use a ref to track touch start position
+  const touchStartX = useRef<number | null>(null);
   
-  // Event handlers
-  private handleTouchStart = (e: React.TouchEvent) => {
-    this.touchStartX = e.touches[0]?.clientX || null;
+  // Simple event handlers that don't rely on hooks or state
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX || null;
   };
   
-  private handleTouchEnd = (e: React.TouchEvent) => {
-    if (this.touchStartX === null) return;
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
     
     const touchEndX = e.changedTouches[0]?.clientX;
     if (touchEndX === undefined) return;
     
-    const diffX = this.touchStartX - touchEndX;
+    const diffX = touchStartX.current - touchEndX;
     
     // Only trigger if swipe distance exceeds threshold
-    if (Math.abs(diffX) >= (this.props.threshold || 50)) {
-      if (diffX > 0 && this.props.onSwipeLeft) {
+    if (Math.abs(diffX) >= threshold) {
+      if (diffX > 0 && onSwipeLeft) {
         // Swipe from right to left
-        this.props.onSwipeLeft();
-      } else if (diffX < 0 && this.props.onSwipeRight) {
-        // Swipe from left to right
-        this.props.onSwipeRight();
+        onSwipeLeft();
+      } else if (diffX < 0 && onSwipeRight) {
+        // Swipe from right to left
+        onSwipeRight();
       }
     }
     
     // Reset touch tracking
-    this.touchStartX = null;
+    touchStartX.current = null;
   };
 
-  // Render method
-  render() {
-    return (
-      <div 
-        onTouchStart={this.handleTouchStart}
-        onTouchEnd={this.handleTouchEnd}
-      >
-        {this.props.children}
-      </div>
-    );
-  }
-}
+  // Wrap children with touch event handlers
+  return (
+    <div 
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {children}
+    </div>
+  );
+};
 
 export default SwipeHandler;
