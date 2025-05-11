@@ -7,6 +7,7 @@ import { useBooking } from "@/context/booking-context";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import {
   formatDate,
   formatTimeSlot,
@@ -43,6 +44,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
+import { FaGoogle } from "react-icons/fa";
 
 interface BookingFormProps {
   onCancel: () => void;
@@ -52,6 +55,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
   const { selectedTimeSlots, clearSelectedTimeSlots } = useBooking();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Create form
   const form = useForm<BookingFormData>({
@@ -220,6 +224,53 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
           </div>
         </div>
 
+        {/* Sign in option */}
+        {!user && (
+          <div className="mb-6 p-4 rounded-lg bg-muted border border-border">
+            <div className="text-center mb-4">
+              <h3 className="font-medium text-lg">Sign in to complete your booking faster</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create an account or sign in to save your information for future bookings
+              </p>
+            </div>
+            
+            <Button variant="outline" className="w-full" asChild>
+              <a href="/api/auth/google" className="flex items-center justify-center gap-2">
+                <FaGoogle className="h-4 w-4" />
+                <span>Sign in with Google</span>
+              </a>
+            </Button>
+            
+            <div className="relative mt-6 mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  or continue as guest
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* User info display when signed in */}
+        {user && (
+          <div className="mb-6 p-4 rounded-lg bg-muted border border-border">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Signed in as {user.email}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your booking will be saved to your account
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <a href="/api/logout" className="text-primary">Sign out</a>
+              </Button>
+            </div>
+          </div>
+        )}
+        
         {/* Booking Form */}
         <Form {...form}>
           <form
