@@ -40,10 +40,13 @@ export function ProtectedRoute({
   }
 
   if (!user) {
+    // Check if this is an admin path
+    const isAdminPath = path.startsWith("/admin");
+    
     console.log("ProtectedRoute: No user, redirecting to login");
     return (
       <Route path={path}>
-        <Redirect to="/admin/login" />
+        <Redirect to={isAdminPath ? "/admin/login" : "/auth"} />
       </Route>
     );
   }

@@ -44,9 +44,15 @@ const Header = () => {
           )}
           
           {!user && (
-            <Link href="/admin/login">
-              <span className="hidden md:block text-black font-semibold cursor-pointer mr-4">Log In</span>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/auth">
+                <span className="hidden md:block text-black font-semibold cursor-pointer">Sign Up</span>
+              </Link>
+              <span className="hidden md:block text-gray-400">|</span>
+              <Link href="/auth">
+                <span className="hidden md:block text-black font-semibold cursor-pointer mr-4">Log In</span>
+              </Link>
+            </div>
           )}
           
           {/* Navigation Menu Component - moved to the right */}
