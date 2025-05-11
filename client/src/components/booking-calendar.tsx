@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { format, addDays, subDays, isToday } from "date-fns";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { TimeSlot as SchemaTimeSlot, generateTimeSlotId } from "@shared/schema";
 import CalendarDay from "@/components/calendar-day";
 import AdminTimeSlot from "@/components/admin/admin-time-slot";
+import useEmblaCarousel from 'embla-carousel-react';
 
 // Define TimeSlotStatus type to be used consistently across components
 export type TimeSlotStatus =
@@ -63,7 +64,7 @@ interface CustomNavigationProps {
   goToToday: () => void;
 }
 
-interface BookingCalendarProps {
+export interface BookingCalendarProps {
   onDateRangeChange?: (startDate: Date, endDate: Date) => void;
   isAdmin?: boolean;
   onAdminSlotSelect?: (timeSlot: SchemaTimeSlot) => void;
