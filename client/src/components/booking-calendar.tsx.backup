@@ -174,25 +174,25 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
     error: timeSlotsError,
   } = useQuery({
     queryKey: ["/api/timeslots", { startDate, endDate }],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Fetch operating hours for availability data
   const { data: configData } = useQuery({
     queryKey: ["/api/config"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Fetch lead time settings
   const { data: leadTimeSettings } = useQuery({
     queryKey: ["/api/admin/lead-time-settings"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Fetch bookings for lead time restriction bypass
   const { data: bookings } = useQuery({
     queryKey: ["/api/bookings"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
   });
 
   // Log when bookings data is loaded (helps with debugging lead time issues)
@@ -491,22 +491,6 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({
 
   // If loading or error
   if (isLoadingTimeSlots) {
-    return (
-      <Card className="w-full">
-        <CardHeader className="flex justify-center items-center h-40">
-          <div className="flex flex-col items-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Loading calendar...
-            </p>
-          </div>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  // Safe early return if data isn't fully loaded
-  if (!days || days.length < 7 || !days[0] || !days[6]) {
     return (
       <Card className="w-full">
         <CardHeader className="flex justify-center items-center h-40">
