@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -101,6 +102,65 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Configure Google strategy for OAuth login
+  passport.use(
+    new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: "/api/auth/google/callback",
+      scope: ["profile", "email"]
+    }, 
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        console.log("Google auth callback received for profile:", profile.displayName);
+        
+        // Extract email from profile
+        const email = profile.emails && profile.emails[0] && profile.emails[0].value;
+        if (!email) {
+          console.log("No email provided by Google");
+          return done(null, false, { message: "No email provided by Google" });
+        }
+        
+        // Check if user exists
+        let user = await storage.getUserByEmail(email);
+        
+        if (user) {
+          console.log("Existing user found with email:", email);
+          
+          // Update last login time
+          await storage.updateUserLastLogin(user.id);
+          
+          return done(null, user);
+        } else {
+          console.log("Creating new user from Google profile:", profile.displayName);
+          
+          // Create a new user with Google profile data
+          // Generate a random password that the user won't need to use
+          const randomPassword = await hashPassword(randomBytes(16).toString('hex'));
+          
+          const firstName = profile.name?.givenName || profile.displayName?.split(' ')[0] || '';
+          const lastName = profile.name?.familyName || profile.displayName?.split(' ').slice(1).join(' ') || '';
+          
+          const newUser = await storage.createUser({
+            email: email,
+            username: email.split('@')[0], // Use part of email as username
+            password: randomPassword,
+            role: "athlete", // Default role for Google sign-ups
+            firstName: firstName,
+            lastName: lastName,
+            isActive: true
+          });
+          
+          console.log("Created new user from Google auth:", newUser.email);
+          return done(null, newUser);
+        }
+      } catch (error) {
+        console.error("Error during Google authentication:", error);
+        return done(error as Error);
+      }
+    })
+  );
 
   // Configure local strategy for username/email & password login
   passport.use(
@@ -336,6 +396,20 @@ export function setupAuth(app: Express) {
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
   });
+  
+  // Google OAuth routes
+  app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+  
+  app.get("/api/auth/google/callback", 
+    passport.authenticate("google", { 
+      failureRedirect: "/auth",
+      session: true
+    }),
+    (req, res) => {
+      // Successful authentication, redirect to home
+      res.redirect("/");
+    }
+  );
   
   // Reset password for a user (admin only)
   app.post("/api/users/:id/reset-password", requireRole(["admin"]), async (req, res) => {
