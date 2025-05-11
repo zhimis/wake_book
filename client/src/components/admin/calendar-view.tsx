@@ -70,6 +70,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1579,7 +1580,7 @@ const AdminCalendarView = () => {
       
       {/* Manual Booking Dialog */}
       <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Create Manual Booking</DialogTitle>
             <DialogDescription>
@@ -1587,40 +1588,41 @@ const AdminCalendarView = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 mb-4">
-            <div className="rounded-md bg-muted p-3">
-              <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
-              <div className="space-y-2">
-                {selectedTimeSlots.map((slot) => {
-                  // Get actual time in Latvia timezone using our utility function
-                  const startTime = new Date(slot.startTime);
-                  const endTime = new Date(slot.endTime);
-                  
-                  // Use the proper Latvia timezone conversion instead of manual adjustment
-                  const adjustedStartTime = toLatviaTime(startTime);
-                  const adjustedEndTime = toLatviaTime(endTime);
-                  
-                  return (
-                    <div key={slot.id} className="text-sm flex justify-between items-center">
-                      <span>
-                        {formatInLatviaTime(adjustedStartTime, "EEE, MMM d")} • 
-                        {formatInLatviaTime(adjustedStartTime, "HH:mm")}-
-                        {formatInLatviaTime(adjustedEndTime, "HH:mm")}
-                      </span>
-                      <span>{formatPrice(slot.price)}</span>
-                    </div>
-                  );
-                })}
-                <div className="pt-2 mt-2 border-t text-sm font-semibold flex justify-between">
-                  <span>Total:</span>
-                  <span>{formatPrice(selectedTimeSlots.reduce((sum, slot) => sum + slot.price, 0))}</span>
+          <ScrollArea className="max-h-[calc(90vh-200px)] pr-4">
+            <div className="grid gap-4 mb-4">
+              <div className="rounded-md bg-muted p-3">
+                <h4 className="mb-2 font-semibold text-sm">Selected Time Slots:</h4>
+                <div className="space-y-2">
+                  {selectedTimeSlots.map((slot) => {
+                    // Get actual time in Latvia timezone using our utility function
+                    const startTime = new Date(slot.startTime);
+                    const endTime = new Date(slot.endTime);
+                    
+                    // Use the proper Latvia timezone conversion instead of manual adjustment
+                    const adjustedStartTime = toLatviaTime(startTime);
+                    const adjustedEndTime = toLatviaTime(endTime);
+                    
+                    return (
+                      <div key={slot.id} className="text-sm flex justify-between items-center">
+                        <span>
+                          {formatInLatviaTime(adjustedStartTime, "EEE, MMM d")} • 
+                          {formatInLatviaTime(adjustedStartTime, "HH:mm")}-
+                          {formatInLatviaTime(adjustedEndTime, "HH:mm")}
+                        </span>
+                        <span>{formatPrice(slot.price)}</span>
+                      </div>
+                    );
+                  })}
+                  <div className="pt-2 mt-2 border-t text-sm font-semibold flex justify-between">
+                    <span>Total:</span>
+                    <span>{formatPrice(selectedTimeSlots.reduce((sum, slot) => sum + slot.price, 0))}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <Form {...bookingForm}>
-            <form onSubmit={bookingForm.handleSubmit(onBookingSubmit)} className="space-y-4">
+            
+            <Form {...bookingForm}>
+              <form onSubmit={bookingForm.handleSubmit(onBookingSubmit)} className="space-y-4">
               <FormField
                 control={bookingForm.control}
                 name="customerName"
@@ -1704,28 +1706,33 @@ const AdminCalendarView = () => {
                   • Earlier cancellations: No charge
                 </p>
               </div>
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsBookingDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createBookingMutation.isPending}>
-                  {createBookingMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Booking"
-                  )}
-                </Button>
-              </DialogFooter>
             </form>
           </Form>
+          </ScrollArea>
+          
+          <DialogFooter className="mt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsBookingDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={createBookingMutation.isPending}
+              onClick={() => bookingForm.handleSubmit(onBookingSubmit)()}
+            >
+              {createBookingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Booking"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
