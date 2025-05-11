@@ -30,9 +30,10 @@ const ProfilePage = () => {
     data: bookings,
     isLoading: isBookingsLoading,
     error: bookingsError,
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/user/bookings"],
     enabled: !!user, // Only run query if user is logged in
+    initialData: [],
   });
 
   // If not authenticated, redirect to login
@@ -72,7 +73,7 @@ const ProfilePage = () => {
                 <div className="flex flex-col sm:flex-row gap-4 text-muted-foreground">
                   <div className="flex items-center">
                     <User className="h-4 w-4 mr-2" />
-                    <span>Member since {new Date(user?.createdAt).toLocaleDateString()}</span>
+                    <span>Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}</span>
                   </div>
                   {user?.phoneNumber && (
                     <div className="flex items-center">

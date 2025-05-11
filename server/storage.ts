@@ -921,6 +921,337 @@ export class MemStorage implements IStorage {
   private pricingMap: Map<number, Pricing>;
   private configurationMap: Map<string, Configuration>;
   private leadTimeSettingsMap: Map<number, LeadTimeSettings>;
+  
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+  
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.email === email);
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.currentUserId++;
+    const newUser: User = { ...insertUser, id, createdAt: new Date() };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+  
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const user = await this.getUser(id);
+    if (!user) {
+      throw new Error(`User with ID ${id} not found`);
+    }
+    
+    const updatedUser = { ...user, ...userData };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+  
+  async adminUserExists(): Promise<boolean> {
+    return Array.from(this.users.values()).some(user => user.role === 'admin');
+  }
+  
+  async updateUserLastLogin(id: number): Promise<void> {
+    const user = await this.getUser(id);
+    if (user) {
+      user.lastLogin = new Date();
+      this.users.set(id, user);
+    }
+  }
+  
+  // TimeSlot methods
+  async getTimeSlot(id: number): Promise<TimeSlot | undefined> {
+    return this.timeSlots.get(id);
+  }
+  
+  async getTimeSlotsByDateRange(startDate: Date, endDate: Date): Promise<TimeSlot[]> {
+    return Array.from(this.timeSlots.values()).filter(slot => {
+      const slotDate = new Date(slot.startTime);
+      return slotDate >= startDate && slotDate <= endDate;
+    });
+  }
+  
+  async createTimeSlot(timeSlot: InsertTimeSlot): Promise<TimeSlot> {
+    const id = this.currentTimeSlotId++;
+    const newTimeSlot: TimeSlot = { ...timeSlot, id };
+    this.timeSlots.set(id, newTimeSlot);
+    return newTimeSlot;
+  }
+  
+  async updateTimeSlot(id: number, timeSlotData: Partial<TimeSlot>): Promise<TimeSlot | undefined> {
+    const timeSlot = await this.getTimeSlot(id);
+    if (!timeSlot) {
+      return undefined;
+    }
+    
+    const updatedTimeSlot = { ...timeSlot, ...timeSlotData };
+    this.timeSlots.set(id, updatedTimeSlot);
+    return updatedTimeSlot;
+  }
+  
+  async blockTimeSlot(id: number, reason: string): Promise<TimeSlot | undefined> {
+    return this.updateTimeSlot(id, { status: "blocked", notes: reason });
+  }
+  
+  async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[] }> {
+    return { success: true, preservedBookings: 0, conflicts: [] };
+  }
+  
+  // Booking methods  
+  async getBookings(): Promise<Booking[]> {
+    return Array.from(this.bookings.values());
+  }
+  
+  async getBookingsByEmail(email: string): Promise<Booking[]> {
+    return Array.from(this.bookings.values()).filter(booking => booking.email === email);
+  }
+  
+  async getBooking(id: number): Promise<Booking | undefined> {
+    return this.bookings.get(id);
+  }
+  
+  async getBookingByReference(reference: string): Promise<Booking | undefined> {
+    return Array.from(this.bookings.values()).find(booking => booking.reference === reference);
+  }
+  
+  async createBooking(booking: InsertBooking): Promise<Booking> {
+    const id = this.currentBookingId++;
+    const reference = `WB-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+    
+    const newBooking: Booking = { 
+      ...booking, 
+      id, 
+      reference,
+      createdAt: new Date()
+    };
+    
+    this.bookings.set(id, newBooking);
+    return newBooking;
+  }
+  
+  async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | undefined> {
+    const booking = await this.getBooking(id);
+    if (!booking) {
+      return undefined;
+    }
+    
+    const updatedBooking = { ...booking, ...bookingData };
+    this.bookings.set(id, updatedBooking);
+    return updatedBooking;
+  }
+  
+  async deleteBooking(id: number): Promise<boolean> {
+    return this.bookings.delete(id);
+  }
+  
+  async getBookingTimeSlots(bookingId: number): Promise<TimeSlot[]> {
+    const bookingTimeSlotRels = Array.from(this.bookingTimeSlots.values())
+      .filter(rel => rel.bookingId === bookingId);
+      
+    const timeSlotIds = bookingTimeSlotRels.map(rel => rel.timeSlotId);
+    
+    return Array.from(this.timeSlots.values())
+      .filter(slot => timeSlotIds.includes(slot.id));
+  }
+  
+  async addTimeSlotToBooking(bookingTimeSlot: InsertBookingTimeSlot): Promise<BookingTimeSlot> {
+    const id = this.currentBookingTimeSlotId++;
+    const newBookingTimeSlot: BookingTimeSlot = { ...bookingTimeSlot, id };
+    this.bookingTimeSlots.set(id, newBookingTimeSlot);
+    return newBookingTimeSlot;
+  }
+  
+  // Configuration methods
+  async getOperatingHours(): Promise<OperatingHours[]> {
+    return Array.from(this.operatingHoursMap.values());
+  }
+  
+  async updateOperatingHours(id: number, hours: Partial<OperatingHours>): Promise<OperatingHours | undefined> {
+    const operatingHours = this.operatingHoursMap.get(id);
+    if (!operatingHours) {
+      return undefined;
+    }
+    
+    const updatedHours = { ...operatingHours, ...hours };
+    this.operatingHoursMap.set(id, updatedHours);
+    return updatedHours;
+  }
+  
+  async createOperatingHours(hours: InsertOperatingHours): Promise<OperatingHours> {
+    const id = this.currentOperatingHoursId++;
+    const newOperatingHours: OperatingHours = { ...hours, id };
+    this.operatingHoursMap.set(id, newOperatingHours);
+    return newOperatingHours;
+  }
+  
+  async getPricing(): Promise<Pricing[]> {
+    return Array.from(this.pricingMap.values());
+  }
+  
+  async updatePricing(id: number, pricingData: Partial<Pricing>): Promise<Pricing | undefined> {
+    const pricing = this.pricingMap.get(id);
+    if (!pricing) {
+      return undefined;
+    }
+    
+    const updatedPricing = { ...pricing, ...pricingData };
+    this.pricingMap.set(id, updatedPricing);
+    return updatedPricing;
+  }
+  
+  async createPricing(pricingData: InsertPricing): Promise<Pricing> {
+    const id = this.currentPricingId++;
+    const newPricing: Pricing = { ...pricingData, id };
+    this.pricingMap.set(id, newPricing);
+    return newPricing;
+  }
+  
+  async getConfiguration(name: string): Promise<Configuration | undefined> {
+    return this.configurationMap.get(name);
+  }
+  
+  async updateConfiguration(name: string, value: string): Promise<Configuration | undefined> {
+    const config = this.configurationMap.get(name);
+    if (!config) {
+      return undefined;
+    }
+    
+    config.value = value;
+    this.configurationMap.set(name, config);
+    return config;
+  }
+  
+  async createConfiguration(config: InsertConfiguration): Promise<Configuration> {
+    const newConfig: Configuration = { ...config };
+    this.configurationMap.set(config.name, newConfig);
+    return newConfig;
+  }
+  
+  async getBookingStats(startDate: Date, endDate: Date): Promise<any> {
+    return { totalBookings: this.bookings.size };
+  }
+  
+  // Lead time settings methods
+  async getLeadTimeSettings(): Promise<LeadTimeSettings | undefined> {
+    const values = Array.from(this.leadTimeSettingsMap.values());
+    return values.length > 0 ? values[0] : undefined;
+  }
+  
+  async updateLeadTimeSettings(settings: Partial<LeadTimeSettings>): Promise<LeadTimeSettings | undefined> {
+    const existingSettings = await this.getLeadTimeSettings();
+    
+    if (!existingSettings) {
+      // Handle missing required fields if they're not provided
+      const fullSettings: InsertLeadTimeSettings = {
+        restrictionMode: settings.restrictionMode as "enforced" | "booking_based" | "off" || "off",
+        leadTimeDays: settings.leadTimeDays ?? 0,
+        operatorOnSite: settings.operatorOnSite ?? false,
+      };
+      return this.createLeadTimeSettings(fullSettings);
+    }
+    
+    const updatedSettings: LeadTimeSettings = {
+      ...existingSettings,
+      ...settings,
+      // Ensure required fields have values
+      restrictionMode: (settings.restrictionMode || existingSettings.restrictionMode) as "enforced" | "booking_based" | "off",
+      leadTimeDays: settings.leadTimeDays ?? existingSettings.leadTimeDays,
+      operatorOnSite: settings.operatorOnSite ?? existingSettings.operatorOnSite,
+      updatedAt: new Date()
+    };
+    
+    this.leadTimeSettingsMap.set(existingSettings.id, updatedSettings);
+    return updatedSettings;
+  }
+  
+  async createLeadTimeSettings(settings: InsertLeadTimeSettings): Promise<LeadTimeSettings> {
+    const id = this.currentLeadTimeSettingsId++;
+    
+    const newSettings: LeadTimeSettings = {
+      id,
+      restrictionMode: settings.restrictionMode,
+      leadTimeDays: settings.leadTimeDays,
+      operatorOnSite: settings.operatorOnSite,
+      updatedAt: new Date()
+    };
+    
+    this.leadTimeSettingsMap.set(id, newSettings);
+    return newSettings;
+  }
+  
+  async checkBookingAllowedByLeadTime(date: Date): Promise<{
+    allowed: boolean;
+    reason?: string;
+    leadTimeDays?: number;
+    mode?: string;
+  }> {
+    const settings = await this.getLeadTimeSettings();
+    
+    // If no settings or mode is off, booking is allowed
+    if (!settings || settings.restrictionMode === "off") {
+      return { allowed: true };
+    }
+    
+    // If operator is on-site, booking is allowed
+    if (settings.operatorOnSite) {
+      return { allowed: true, mode: "operator_on_site" };
+    }
+    
+    // Calculate days difference
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const bookingDate = new Date(date);
+    bookingDate.setHours(0, 0, 0, 0);
+    
+    const daysDiff = Math.floor((bookingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Check if the booking date meets the lead time requirement
+    const hasEnoughLeadTime = daysDiff >= settings.leadTimeDays;
+    
+    // For booking-based mode, check if there are existing bookings for this date
+    if (settings.restrictionMode === "booking_based" && !hasEnoughLeadTime) {
+      // Get all time slots for this date
+      const startOfDay = new Date(bookingDate);
+      const endOfDay = new Date(bookingDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const dateSlots = await this.getTimeSlotsByDateRange(startOfDay, endOfDay);
+      
+      // Check if any slots are booked
+      const hasBookings = dateSlots.some(slot => slot.status === "booked");
+      
+      if (hasBookings) {
+        return { 
+          allowed: true, 
+          mode: "booking_based_override",
+          leadTimeDays: settings.leadTimeDays 
+        };
+      }
+    }
+    
+    // If enforced mode or booking-based mode without existing bookings
+    if (!hasEnoughLeadTime) {
+      return {
+        allowed: false,
+        reason: `Booking must be made at least ${settings.leadTimeDays} days in advance.`,
+        leadTimeDays: settings.leadTimeDays,
+        mode: settings.restrictionMode
+      };
+    }
+    
+    return { allowed: true };
+  }
 
   currentUserId: number;
   currentTimeSlotId: number;
