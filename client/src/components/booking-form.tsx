@@ -68,6 +68,22 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       timeSlotIds: selectedTimeSlots.map((slot) => slot.id),
     },
   });
+  
+  // Update form values when user logs in during the booking process
+  useEffect(() => {
+    if (user) {
+      const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      form.setValue('email', user.email);
+      
+      if (fullName) {
+        form.setValue('fullName', fullName);
+      }
+      
+      if (user.phoneNumber) {
+        form.setValue('phoneNumber', user.phoneNumber);
+      }
+    }
+  }, [user, form]);
 
   // Handle booking creation
   const bookingMutation = useMutation({
