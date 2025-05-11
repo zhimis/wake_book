@@ -39,12 +39,11 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options?: {
-  on401?: UnauthorizedBehavior;
+export const getQueryFn: <T>(options: {
+  on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
-  (options) =>
+  ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const unauthorizedBehavior = options?.on401 || "returnNull";
     console.log(`Making GET request to ${queryKey[0]}`);
     
     try {
@@ -77,7 +76,7 @@ export const getQueryFn: <T>(options?: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "returnNull" }),
+      queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
