@@ -42,7 +42,7 @@ const ContactsPage = () => {
                 <MapPin className="h-5 w-5 mr-2 text-primary" />
                 <div>
                   <h3 className="font-medium">Adrese / Address</h3>
-                  <p className="text-gray-600">Saulkrasti, Zvejniekciems, Bērzu aleja 7a, LV-2161, Latvija</p>
+                  <p className="text-gray-600">Ādaži Siguļi, Carnikava, LV-2163, Latvija</p>
                 </div>
               </div>
               
