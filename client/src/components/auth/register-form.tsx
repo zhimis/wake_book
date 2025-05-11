@@ -40,7 +40,7 @@ interface RegisterFormProps {
 
 const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { registerMutation } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   // Initialize form
@@ -60,41 +60,40 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
   // Handle form submission
   const onSubmit = async (data: RegisterFormData) => {
     setError(null);
-    setIsSubmitting(true);
 
     try {
       const { confirmPassword, ...registerData } = data;
       
-      // Set role to athlete
+      // Set role to athlete (with proper type casting)
       const userData = {
         ...registerData,
-        role: "athlete"
+        role: "athlete" as "athlete",
+        isActive: true
       };
       
-      const res = await apiRequest("POST", "/api/register", userData);
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Registration failed");
-      }
-      
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created. You can now log in.",
+      registerMutation.mutate(userData, {
+        onSuccess: () => {
+          toast({
+            title: "Registration successful",
+            description: "Your account has been created. You can now log in.",
+          });
+          
+          // Switch to login tab
+          setActiveTab("login");
+        },
+        onError: (err: any) => {
+          console.error("Registration error:", err);
+          setError(err.message || "Registration failed. Please try again.");
+          toast({
+            title: "Registration failed",
+            description: err.message || "Please try again later",
+            variant: "destructive",
+          });
+        }
       });
-      
-      // Switch to login tab
-      setActiveTab("login");
     } catch (err: any) {
-      console.error("Registration error:", err);
+      console.error("Registration form error:", err);
       setError(err.message || "Registration failed. Please try again.");
-      toast({
-        title: "Registration failed",
-        description: err.message || "Please try again later",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -209,8 +208,8 @@ const RegisterForm = ({ setActiveTab }: RegisterFormProps) => {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? (
+        <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+          {registerMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creating Account...
