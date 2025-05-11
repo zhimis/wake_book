@@ -1256,17 +1256,43 @@ const BookingCalendar = ({
     );
   }
 
-  // Touch event handling for swipe
-  const touchRef = useRef({ startX: 0, startY: 0 });
-  const swipeThreshold = 50; // Minimum distance required for swipe detection
+  // Touch event handling for swipe - using a useRef to store touch state
+  // to prevent hooks rule violations during renders
+  const touchRef = useRef({
+    startX: 0,
+    startY: 0,
+    isSwiping: false,
+    lastSwipeTime: 0
+  });
+  
+  // Setup swipe handlers with useCallback to ensure stable function references
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches[0]) {
+      touchRef.current.startX = e.touches[0].clientX;
+      touchRef.current.startY = e.touches[0].clientY;
+      touchRef.current.isSwiping = true;
+    }
+  }, []);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchRef.current.startX = e.touches[0].clientX;
-    touchRef.current.startY = e.touches[0].clientY;
-  };
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    // Implement to prevent default scrolling if needed
+    if (touchRef.current.isSwiping) {
+      // Optional: Add code here if you need to handle touch move
+    }
+  }, []);
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!e.changedTouches[0]) return;
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    // Prevent rapid successive swipes
+    const now = Date.now();
+    if (now - touchRef.current.lastSwipeTime < 300) {
+      touchRef.current.isSwiping = false;
+      return;
+    }
+    
+    if (!touchRef.current.isSwiping || !e.changedTouches[0]) {
+      touchRef.current.isSwiping = false;
+      return;
+    }
     
     const endX = e.changedTouches[0].clientX;
     const endY = e.changedTouches[0].clientY;
@@ -1274,32 +1300,37 @@ const BookingCalendar = ({
     const diffX = touchRef.current.startX - endX;
     const diffY = touchRef.current.startY - endY;
     
-    // Only register horizontal swipes (when x movement is greater than y movement)
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (Math.abs(diffX) > swipeThreshold) {
-        if (diffX > 0) {
-          // Swiped left - go to next week
-          if (customNavigation) {
-            customNavigation.goToNext();
-          } else {
-            goToNextWeek();
-          }
+    // Reset swiping state
+    touchRef.current.isSwiping = false;
+    
+    // Only register horizontal swipes when x movement is greater than y movement
+    // and greater than threshold (50px)
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+      touchRef.current.lastSwipeTime = now;
+      
+      if (diffX > 0) {
+        // Swiped left - go to next week
+        if (customNavigation) {
+          customNavigation.goToNext();
         } else {
-          // Swiped right - go to previous week
-          if (customNavigation) {
-            customNavigation.goToPrevious();
-          } else {
-            goToPreviousWeek();
-          }
+          goToNextWeek();
+        }
+      } else {
+        // Swiped right - go to previous week
+        if (customNavigation) {
+          customNavigation.goToPrevious();
+        } else {
+          goToPreviousWeek();
         }
       }
     }
-  };
+  }, [customNavigation, goToNextWeek, goToPreviousWeek]);
 
   return (
     <Card 
       className="w-full"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <CardHeader className="pb-1 pt-2 px-2">
