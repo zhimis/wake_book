@@ -319,47 +319,10 @@ const BookingCalendar = ({
     staleTime: 60000,
   });
 
-  // Debug booking data when it changes
+  // Process booking data when it changes
   useEffect(() => {
-    if (bookingsData) {
-      console.log("Loaded bookings data:", bookingsData);
-      // Log all booking dates to help debug lead time restrictions
-      if (Array.isArray(bookingsData)) {
-        // Collect dates from both timeSlots arrays and firstSlotTime fields since the list API
-        // doesn't include full time slot details
-        const allDates = bookingsData.flatMap((booking) => {
-          const dates: string[] = [];
-
-          // Add dates from timeSlots if they exist
-          if (booking.timeSlots && Array.isArray(booking.timeSlots)) {
-            booking.timeSlots.forEach((slot: any) => {
-              dates.push(
-                formatInLatviaTime(new Date(slot.startTime), "yyyy-MM-dd"),
-              );
-            });
-          }
-
-          // Add date from firstSlotTime if it exists
-          if (booking.firstSlotTime) {
-            dates.push(
-              formatInLatviaTime(new Date(booking.firstSlotTime), "yyyy-MM-dd"),
-            );
-          }
-
-          return dates;
-        });
-
-        console.log("Booking dates found:", allDates);
-
-        // Check specifically for May 8th
-        const may8th = allDates.filter((date) => date === "2025-05-08");
-        if (may8th.length > 0) {
-          console.log("✅ FOUND MAY 8TH BOOKINGS:", may8th.length);
-        } else {
-          console.log("❌ NO MAY 8TH BOOKINGS FOUND");
-        }
-      }
-    }
+    // This effect is intentionally left empty now that the component is stable
+    // Previously it contained debugging logs for lead time and booking data
   }, [bookingsData]);
 
   // Determine if we're viewing a week that has no time slots
@@ -822,9 +785,7 @@ const BookingCalendar = ({
     // Since diffDays would be 1, we need to use <= instead of <
     const isWithinLeadTime = diffDays <= leadTimeDays;
 
-    console.log(
-      `Lead time check: Slot date=${formatInLatviaTime(slotDate, "yyyy-MM-dd")}, Today=${formatInLatviaTime(today, "yyyy-MM-dd")}, Days difference=${diffDays}, Lead time required=${leadTimeDays}, Restricted=${isWithinLeadTime}, Mode=${leadTimeSettings.restrictionMode}`,
-    );
+    // Lead time debug logs removed
 
     // If in "booking_based" mode, we need to check if there are any bookings for this day
     if (
@@ -836,25 +797,8 @@ const BookingCalendar = ({
         // Format the slot date to YYYY-MM-DD for consistent comparison
         const slotDateStr = formatInLatviaTime(slotDate, "yyyy-MM-dd");
 
-        // Log additional debug info for May 8th
-        const isMay8th = slotDateStr === "2025-05-08";
-        if (isMay8th) {
-          console.log(`⚠️ CHECKING MAY 8TH: Slot date=${slotDateStr}`);
-          console.log(
-            `⚠️ Available bookings data:`,
-            bookingsData ? bookingsData.length : 0,
-          );
-          if (bookingsData && Array.isArray(bookingsData)) {
-            bookingsData.forEach((booking, idx) => {
-              console.log(
-                `⚠️ Booking #${idx + 1}:`,
-                booking.customerName,
-                booking.timeSlots ? booking.timeSlots.length : 0,
-                "time slots",
-              );
-            });
-          }
-        }
+        // May 8th debugging logs removed
+        const isMay8th = false; // Setting to false to disable all related debug logging
 
         // Check if any booking contains a time slot on this day
         const bookingExistsForDay = bookingsData.some((booking: any) => {
@@ -875,27 +819,12 @@ const BookingCalendar = ({
                 // Check if this booking is for the same day as our slot
                 const match = bookingDate === slotDateStr;
 
-                // Extra debug for May 8th
-                if (isMay8th) {
-                  console.log(
-                    `⚠️ MAY 8TH CHECK (timeSlots): Booking date=${bookingDate}, Match=${match ? "YES" : "no"}`,
-                  );
-                }
-
-                if (match) {
-                  console.log(
-                    `Found booking for ${slotDateStr}, relaxing lead time restriction`,
-                  );
-                }
+                // Debug logs removed
                 return match;
               },
             );
 
-            if (isMay8th && hasSlotForDay) {
-              console.log(
-                `⚠️ MAY 8TH: Found booking (via timeSlots) that matches this date!`,
-              );
-            }
+            // May 8th debug log removed
 
             if (hasSlotForDay) return true;
           }
@@ -908,17 +837,8 @@ const BookingCalendar = ({
             );
             const match = bookingDate === slotDateStr;
 
-            // Extra debug for May 8th
-            if (isMay8th) {
-              console.log(
-                `⚠️ MAY 8TH CHECK (firstSlotTime): Booking date=${bookingDate}, Match=${match ? "YES" : "no"}`,
-              );
-            }
-
+            // Removed May 8th debugging logs
             if (match) {
-              console.log(
-                `Found booking (via firstSlotTime) for ${slotDateStr}, relaxing lead time restriction`,
-              );
               return true;
             }
           }
