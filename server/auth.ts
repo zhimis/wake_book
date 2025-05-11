@@ -256,18 +256,25 @@ export function setupAuth(app: Express) {
       // Get time slots for each booking and calculate totalPrice if missing
       const bookingsWithTimeSlots = await Promise.all(
         bookings.map(async (booking) => {
-          const timeSlots = await storage.getBookingTimeSlots(booking.id);
-          
-          // Calculate total price if it doesn't exist
-          let totalPrice = booking.totalPrice;
-          if (totalPrice === undefined || totalPrice === null) {
-            totalPrice = timeSlots.reduce((sum, slot) => {
-              const slotPrice = typeof slot.price === 'number' ? slot.price : 0;
-              return sum + slotPrice;
-            }, 0);
+          try {
+            const timeSlots = await storage.getBookingTimeSlots(booking.id);
+            
+            // Calculate total price if it doesn't exist
+            // @ts-ignore - totalPrice might not be in the type but we'll add it
+            let totalPrice = booking.totalPrice;
+            if (totalPrice === undefined || totalPrice === null) {
+              totalPrice = timeSlots.reduce((sum, slot) => {
+                const slotPrice = typeof slot.price === 'number' ? slot.price : 0;
+                return sum + slotPrice;
+              }, 0);
+            }
+            
+            return { ...booking, timeSlots, totalPrice };
+          } catch (err) {
+            console.error(`Error processing booking ${booking.id}:`, err);
+            // Return the booking even if we can't get time slots
+            return { ...booking, timeSlots: [], totalPrice: 0 };
           }
-          
-          return { ...booking, timeSlots, totalPrice };
         })
       );
       
@@ -433,7 +440,7 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).send();
     // Don't return the password
-    const { password, ...userWithoutPassword } = req.user;
+    const { password, ...userWithoutPassword } = req.user || {};
     res.json(userWithoutPassword);
   });
   

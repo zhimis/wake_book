@@ -230,13 +230,15 @@ const ProfilePage = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {booking.timeSlots && booking.timeSlots.map((slot) => (
+                            {booking.timeSlots && Array.isArray(booking.timeSlots) && booking.timeSlots.map((slot) => (
                               <TableRow key={slot.id}>
                                 <TableCell>
-                                  {formatDate(slot.startTime)}
+                                  {slot.startTime ? formatDate(slot.startTime) : 'N/A'}
                                 </TableCell>
                                 <TableCell>
-                                  {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                                  {slot.startTime && slot.endTime 
+                                    ? `${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`
+                                    : 'N/A'}
                                 </TableCell>
                                 <TableCell>30 min</TableCell>
                                 <TableCell className="text-right">
