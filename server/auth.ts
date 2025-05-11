@@ -8,6 +8,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { config } from "./config";
 
 declare global {
   namespace Express {
@@ -108,7 +109,7 @@ export function setupAuth(app: Express) {
     new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: "https://5e856194-fc92-4683-ae56-63781c4048c5-00-pg4k37roq8jk.worf.replit.dev/api/auth/google/callback",
+      callbackURL: config.googleCallbackUrl,
       scope: ["profile", "email"]
     }, 
     async (accessToken, refreshToken, profile, done) => {

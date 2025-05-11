@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { config } from "./config";
 
 const app = express();
 app.use(express.json());
@@ -68,5 +69,9 @@ app.use((req, res, next) => {
     const environment = process.env.NODE_ENV || 'development';
     log(`Server started in ${environment.toUpperCase()} mode`);
     log(`serving on port ${port}`);
+    
+    // Log OAuth configuration
+    log(`Base URL: ${config.baseUrl}`);
+    log(`Google OAuth callback URL: ${config.googleCallbackUrl}`);
   });
 })();
