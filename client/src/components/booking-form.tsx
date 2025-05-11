@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
@@ -57,13 +57,13 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Create form
+  // Create form with pre-filled data from user account if logged in
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
-      fullName: "",
-      phoneNumber: "",
-      email: "",
+      fullName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : "",
+      phoneNumber: user?.phoneNumber || "",
+      email: user?.email || "",
       notes: "",
       timeSlotIds: selectedTimeSlots.map((slot) => slot.id),
     },
@@ -284,8 +284,18 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your full name" {...field} />
+                    <Input 
+                      placeholder={user && user.firstName && user.lastName ? "" : "Enter your full name"} 
+                      {...field} 
+                      readOnly={!!(user && user.firstName && user.lastName)}
+                      className={user && user.firstName && user.lastName ? "bg-muted cursor-not-allowed" : ""}
+                    />
                   </FormControl>
+                  {user && user.firstName && user.lastName && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Name from your account will be used for this booking
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -300,33 +310,42 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
                   <FormControl>
                     <Input
                       type="tel"
-                      placeholder="Enter your phone number"
+                      placeholder={user?.phoneNumber ? "" : "Enter your phone number"}
                       {...field}
+                      readOnly={!!user?.phoneNumber}
+                      className={user?.phoneNumber ? "bg-muted cursor-not-allowed" : ""}
                     />
                   </FormControl>
                   <p className="mt-1 text-xs text-gray-500">
-                    We'll send your booking confirmation to this number
+                    {user?.phoneNumber 
+                      ? "Phone number from your account will be used for this booking"
+                      : "We'll send your booking confirmation to this number"}
                   </p>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            {/* Show email field as read-only when logged in or as editable when not logged in */}
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email (Optional)</FormLabel>
+                  <FormLabel>{user ? "Email" : "Email (Optional)"}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="Enter your email address"
+                      placeholder={user ? "" : "Enter your email address"}
                       {...field}
+                      readOnly={!!user}
+                      className={user ? "bg-muted cursor-not-allowed" : ""}
                     />
                   </FormControl>
                   <p className="mt-1 text-xs text-gray-500">
-                    For booking updates and future account registration
+                    {user 
+                      ? "Email from your account will be used for this booking" 
+                      : "For booking updates and future account registration"}
                   </p>
                   <FormMessage />
                 </FormItem>
