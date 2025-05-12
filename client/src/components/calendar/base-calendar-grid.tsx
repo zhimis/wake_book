@@ -8,6 +8,76 @@ import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { TimeSlot } from "@shared/schema";
 import { LATVIA_TIMEZONE, toLatviaTime } from "@/lib/utils";
 
+// Global debug function to analyze June 1st booking from browser console
+(window as any).debugJune1stBooking = () => {
+  // Fetch the June 1st time slots directly
+  fetch('/api/timeslots?startDate=2025-06-01T00:00:00.000Z&endDate=2025-06-09T00:00:00.000Z')
+    .then(res => res.json())
+    .then(data => {
+      const juneFirstBooking = 'WB-L_7LG1SG';
+      
+      // Filter to get only the June 1st booking slots
+      const targetSlots = data.timeSlots.filter((slot: any) => 
+        slot.bookingReference === juneFirstBooking
+      );
+      
+      // Log the found slots
+      console.log(`FOUND JUNE 1ST BOOKING SLOTS: ${targetSlots.length}`, targetSlots);
+      
+      // For each slot, log the date and day of week
+      targetSlots.forEach((slot: any) => {
+        const jsDate = new Date(slot.startTime);
+        const jsDay = jsDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const latvianDay = jsDay === 0 ? 6 : jsDay - 1; // Convert to our system
+        
+        console.log(`SLOT ${slot.id}:
+          - JS Date: ${jsDate.toISOString()}
+          - JS Day of Week: ${jsDay} (0=Sun, 1=Mon, etc.)
+          - Our System Day: ${latvianDay} (0=Mon, 1=Tue, etc.)
+          - Status: ${slot.status}
+          - Reference: ${slot.bookingReference}
+        `);
+      });
+      
+      // Manually test our day organization logic
+      console.log("\n--- MANUAL DAY ORGANIZATION TEST ---");
+      
+      // Initialize day buckets (our system: 0=Monday, 6=Sunday)
+      const dayBuckets = {
+        0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
+      };
+      
+      // Organize slots into day buckets
+      targetSlots.forEach(slot => {
+        const slotDate = new Date(slot.startTime);
+        const jsDay = slotDate.getDay(); // 0=Sunday
+        const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1; // Convert
+        
+        // Add to the appropriate day bucket
+        if (dayBuckets[ourSystemDay]) {
+          dayBuckets[ourSystemDay].push(slot);
+        } else {
+          console.error(`Invalid day bucket: ${ourSystemDay}`);
+        }
+      });
+      
+      // Log the organized slots
+      for (let day = 0; day < 7; day++) {
+        const slotsForDay = dayBuckets[day];
+        console.log(`Day ${day} (${day === 6 ? 'Sunday' : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}): ${slotsForDay.length} slots`);
+        
+        if (slotsForDay.length > 0) {
+          slotsForDay.forEach(slot => {
+            console.log(`  - Slot ${slot.id}: ${new Date(slot.startTime).toISOString()}`);
+          });
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching June 1st slots:", err);
+    });
+};
+
 // Define internal OperatingHours interface since we're only using it in this component
 interface OperatingHours {
   id: number;
