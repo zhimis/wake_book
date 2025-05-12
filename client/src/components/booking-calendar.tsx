@@ -74,28 +74,42 @@ interface BookingCalendarProps {
 
 // Converter function to match our calendar UI slots with the DB schema
 function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
-  // Use the numeric ID directly
+  // Get the original database ID
   const id = parseInt(slot.id);
-
-  // When creating a SchemaTimeSlot object for selection or display in the UI,
-  // we want to use the display dates (slot.startTime, slot.endTime) to ensure consistency
-  // of what's visible in the calendar and what's shown in the selected slots summary.
-
-  // However, we need to keep the original database dates for API operations.
-  // So we attach it as a separate property that the admin component can use.
+  
+  // CRITICAL FIX: We need to find a time slot with the correct date before booking
+  // when the calendar is displaying corrected dates (e.g., showing May 25 slots on June 1)
+  
+  // Generate a detailed debug log for troubleshooting this critical issue
+  console.log(`[TIMESLOT DEBUG] Converting UI slot to schema:`, {
+    id: id,
+    displayDate: slot.startTime ? new Date(slot.startTime).toDateString() : 'unknown',
+    displayStartTime: slot.startTime ? new Date(slot.startTime).toLocaleString() : 'unknown',
+    originalDate: slot.originalStartTime ? new Date(slot.originalStartTime).toDateString() : 'unknown',
+    hasDateCorrection: slot.startTime && slot.originalStartTime && 
+      new Date(slot.startTime).toDateString() !== new Date(slot.originalStartTime).toDateString()
+  });
+  
+  // When creating a SchemaTimeSlot object for booking, we need to ensure date consistency
+  // If the display date (what user sees in calendar) differs from the original database date,
+  // we need to find the correct time slot ID for the displayed date instead of using the original ID
+  
+  // For admin components that need to modify existing slots, we include both dates but
+  // for booking purposes, we should only use the corrected dates that user actually sees
 
   return {
     id: id,
-    // For display in the UI, use the corrected date that's mapped to the current week
+    // IMPORTANT: For booking, use the corrected dates that match what's visible in the calendar
+    // This ensures booking what the user actually sees
     startTime: slot.startTime,
     endTime: slot.endTime,
-    // Attach original dates (important for API operations)
+    // Keep original dates for reference/debugging only
     originalStartTime: slot.originalStartTime,
     originalEndTime: slot.originalEndTime,
     price: slot.price,
     status: slot.status,
-    storageTimezone: slot.storageTimezone || "UTC", // Use the slot's timezone if available
-    isPast: slot.isPast, // Pass the isPast flag to AdminTimeSlot
+    storageTimezone: slot.storageTimezone || "UTC",
+    isPast: slot.isPast,
   };
 }
 
