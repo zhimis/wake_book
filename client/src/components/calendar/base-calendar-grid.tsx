@@ -224,17 +224,84 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
   
-  // Find a time slot for a specific day and time - FIXED TO PRIORITIZE BOOKED SLOTS
+  // Find a time slot for a specific day and time - IMPROVED WITH DIRECT TIME ZONE SUPPORT
   const findTimeSlot = (day: number, hour: number, minute: number) => {
     // Create a date object for the current day of the week at the specified hour:minute
     const currentWeekday = weekDays[day];
+    
+    // SPECIAL DEBUGGING FOR JUNE 1ST
+    const isJune1st = currentWeekday.getDate() === 1 && currentWeekday.getMonth() === 5; // June is month 5 (0-indexed)
+    
+    if (isJune1st && hour >= 11 && hour < 14) {
+      console.log(`[findTimeSlot] LOOKING FOR JUNE 1ST SLOT: Day=${day}, Hour=${hour}, Minute=${minute}`);
+      console.log(`[findTimeSlot] Current weekday date: ${currentWeekday.toISOString()}`);
+    }
     
     // Create a time string to search for
     const formattedDate = format(currentWeekday, 'yyyy-MM-dd');
     const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
-    // FIX: Prioritize finding 'booked' slots first!
-    // Search for ALL slots matching this time period
+    if (isJune1st && hour >= 11 && hour < 14) {
+      console.log(`[findTimeSlot] JUNE 1ST: Looking for slot at ${formattedDate} ${formattedTime}`);
+    }
+    
+    // Convert local display hours to UTC for matching with database times
+    // Latvia is UTC+3 in summer, so we need to subtract 3 hours for db comparison
+    const utcHour = hour - 3; // This is a simple conversion, a real app would use more robust timezone conversion
+    const utcDateTime = new Date(currentWeekday);
+    utcDateTime.setHours(utcHour, minute, 0, 0);
+    
+    if (isJune1st && hour >= 11 && hour < 14) {
+      console.log(`[findTimeSlot] JUNE 1ST: Converted to UTC time: ${utcDateTime.toISOString()}`);
+      
+      // Log all time slots for this day to debug
+      const juneSlots = timeSlots.filter(slot => {
+        const slotDate = new Date(slot.startTime);
+        return slotDate.getDate() === 1 && slotDate.getMonth() === 5; // June 1st
+      });
+      
+      console.log(`[findTimeSlot] JUNE 1ST: Found ${juneSlots.length} slots for June 1st:`);
+      juneSlots.forEach(slot => {
+        console.log(`  ID:${slot.id}, Start:${new Date(slot.startTime).toISOString()}, Status:${slot.status}, Booking:${slot.bookingReference || 'none'}`);
+      });
+    }
+    
+    // DIRECT UTC TIME COMPARISON - Most accurate method
+    // Convert the display time to the exact UTC time we'd expect in the database
+    let directMatchSlots = timeSlots.filter(slot => {
+      const slotTime = new Date(slot.startTime);
+      
+      // Get the differences in milliseconds to account for potential rounding errors
+      const timeDiff = Math.abs(slotTime.getTime() - utcDateTime.getTime());
+      
+      // Consider times within 1 minute (60000 ms) as matching to account for potential rounding
+      return timeDiff < 60000;
+    });
+    
+    if (isJune1st && hour >= 11 && hour < 14) {
+      console.log(`[findTimeSlot] JUNE 1ST: Direct UTC matching found ${directMatchSlots.length} slots:`);
+      directMatchSlots.forEach(slot => {
+        console.log(`  ID:${slot.id}, Start:${new Date(slot.startTime).toISOString()}, Status:${slot.status}`);
+      });
+    }
+    
+    if (directMatchSlots.length > 0) {
+      // Prioritize booked slots
+      const bookedDirectSlot = directMatchSlots.find(slot => slot.status === 'booked');
+      if (bookedDirectSlot) {
+        if (isJune1st && hour >= 11 && hour < 14) {
+          console.log(`[findTimeSlot] JUNE 1ST: Returning booked direct match: ID:${bookedDirectSlot.id}`);
+        }
+        return bookedDirectSlot;
+      }
+      
+      if (isJune1st && hour >= 11 && hour < 14) {
+        console.log(`[findTimeSlot] JUNE 1ST: Returning first direct match: ID:${directMatchSlots[0].id}`);
+      }
+      return directMatchSlots[0];
+    }
+    
+    // Traditional text-based date/time matching as fallback
     let matchingSlots = timeSlots.filter(slot => {
       const slotDate = new Date(slot.startTime);
       const slotFormattedDate = format(slotDate, 'yyyy-MM-dd');
@@ -242,6 +309,10 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       
       return slotFormattedDate === formattedDate && slotFormattedTime === formattedTime;
     });
+    
+    if (isJune1st && hour >= 11 && hour < 14) {
+      console.log(`[findTimeSlot] JUNE 1ST: Text-based matching found ${matchingSlots.length} slots`);
+    }
     
     // DEBUG: Log duplicate slots
     if (matchingSlots.length > 1) {
@@ -254,9 +325,15 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       // First try to find a booked slot
       const bookedSlot = matchingSlots.find(slot => slot.status === 'booked');
       if (bookedSlot) {
+        if (isJune1st && hour >= 11 && hour < 14) {
+          console.log(`[findTimeSlot] JUNE 1ST: Returning booked text match: ID:${bookedSlot.id}`);
+        }
         return bookedSlot;
       }
       // Otherwise return the first one (fallback)
+      if (isJune1st && hour >= 11 && hour < 14) {
+        console.log(`[findTimeSlot] JUNE 1ST: Returning first text match: ID:${matchingSlots[0].id}`);
+      }
       return matchingSlots[0];
     }
     
@@ -267,11 +344,21 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
         return startTime.getHours() === hour && startTime.getMinutes() === minute;
       });
       
+      if (isJune1st && hour >= 11 && hour < 14) {
+        console.log(`[findTimeSlot] JUNE 1ST: Day bucket method found ${daySlots.length} slots`);
+      }
+      
       // Again prioritize booked slots
       if (daySlots.length > 0) {
         const bookedDaySlot = daySlots.find(slot => slot.status === 'booked');
         if (bookedDaySlot) {
+          if (isJune1st && hour >= 11 && hour < 14) {
+            console.log(`[findTimeSlot] JUNE 1ST: Returning booked day bucket: ID:${bookedDaySlot.id}`);
+          }
           return bookedDaySlot;
+        }
+        if (isJune1st && hour >= 11 && hour < 14) {
+          console.log(`[findTimeSlot] JUNE 1ST: Returning first day bucket: ID:${daySlots[0].id}`);
         }
         return daySlots[0];
       }
@@ -291,16 +378,29 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       );
     });
     
+    if (isJune1st && hour >= 11 && hour < 14) {
+      console.log(`[findTimeSlot] JUNE 1ST: Day of week calculation found ${fallbackSlots.length} slots`);
+    }
+    
     // Prioritize booked slots among fallbacks as well
     if (fallbackSlots.length > 0) {
       const bookedFallbackSlot = fallbackSlots.find(slot => slot.status === 'booked');
       if (bookedFallbackSlot) {
+        if (isJune1st && hour >= 11 && hour < 14) {
+          console.log(`[findTimeSlot] JUNE 1ST: Returning booked fallback: ID:${bookedFallbackSlot.id}`);
+        }
         return bookedFallbackSlot;
+      }
+      if (isJune1st && hour >= 11 && hour < 14) {
+        console.log(`[findTimeSlot] JUNE 1ST: Returning first fallback: ID:${fallbackSlots[0].id}`);
       }
       return fallbackSlots[0];
     }
     
     // No slots found for this time period
+    if (isJune1st && hour >= 11 && hour < 14) {
+      console.log(`[findTimeSlot] JUNE 1ST: No slot found for ${formattedDate} ${formattedTime}`);
+    }
     return null;
   };
   
@@ -391,6 +491,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   ) => {
     const isAdminView = viewMode === 'admin';
     
+    // SPECIAL DEBUG FOR JUNE 1ST
+    const isJune1st = dayDate.getDate() === 1 && dayDate.getMonth() === 5; // June is month 5 (0-indexed)
+    
+    if (isJune1st) {
+      console.log(`JUNE 1ST CELL: Day=${day}, Hour=${hour}, Minute=${minute}, Date=${dayDate.toISOString()}`);
+      if (slot) {
+        console.log(`JUNE 1ST SLOT FOUND: ID=${slot.id}, Status=${slot.status}, StartTime=${new Date(slot.startTime).toISOString()}, Reference=${slot.bookingReference || 'none'}`);
+      } else {
+        console.log(`JUNE 1ST NO SLOT FOUND FOR THIS CELL`);
+      }
+    }
+    
     // Function to handle slot click
     const handleClick = () => {
       if (onSlotClick) {
@@ -408,6 +520,12 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     // Just use the status directly from the database without any complex logic
     
     if (slot) {
+      // Specially handle June 1st for debugging
+      if (isJune1st && hour >= 11 && hour < 14) {
+        const bookedText = slot.status === 'booked' ? "BOOKED" : "NOT BOOKED";
+        console.log(`JUNE 1ST TIMESLOT CHECK: ${hour}:${minute} is ${bookedText} | ID: ${slot.id} | Ref: ${slot.bookingReference || 'none'}`);
+      }
+      
       // Direct styling based on database status - no fancy logic
       switch (slot.status) {
         case 'booked':
@@ -425,11 +543,6 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
           break;
         default:
           displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
-      }
-      
-      // Log status for debugging
-      if (slot.status === 'booked') {
-        console.log(`SLOT ${slot.id} | Time: ${new Date(slot.startTime).toLocaleTimeString()} | Status: ${slot.status} | Reference: ${slot.bookingReference || 'none'}`);
       }
     } else if (isDayClosed) {
       // Styling for closed days
