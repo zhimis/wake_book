@@ -84,11 +84,11 @@ const NewAdminPage = () => {
           </div>
         </div>
         
-        <Card>
+        <Card className="max-w-6xl mx-auto">
           <CardHeader>
             <CardTitle>Calendar View</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6">
             <AdminCalendarView 
               onSlotSelect={handleSlotSelection}
               onDateRangeChange={handleDateRangeChange}

@@ -514,7 +514,7 @@ const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
   }, [selectedSlots, makeAvailableMutation, generateSlotMutation, toast, onSlotsSelected]);
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto">
       {/* Info message for empty slots when in multi-select mode */}
       {enableMultiSelect && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
