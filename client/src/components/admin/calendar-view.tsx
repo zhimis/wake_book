@@ -1424,22 +1424,58 @@ const AdminCalendarView = () => {
         <>
           {viewMode === 'calendar' ? (
             <>
-              {/* Use a key to force completely new instance on date change */}
-              <div className="relative">
-                <BookingCalendar 
-                  key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
-                  onDateRangeChange={handleDateRangeChange}
-                  isAdmin={true}
-                  onAdminSlotSelect={handleTimeSlotSelect}
-                  adminSelectedSlots={selectedTimeSlots}
-                  initialDate={currentDateRange.start} // Pass current date directly to calendar component
-                  /* Use our custom navigation functions for consistent state management */
-                  customNavigation={{
-                    goToPrevious: () => handleNavigateDates('prev'),
-                    goToNext: () => handleNavigateDates('next'),
-                    goToToday: () => handleNavigateDates('today')
-                  }}
-                />
+              {/* Calendar and action buttons container using grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-4">
+                {/* Calendar */}
+                <div className="relative">
+                  <BookingCalendar 
+                    key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
+                    onDateRangeChange={handleDateRangeChange}
+                    isAdmin={true}
+                    onAdminSlotSelect={handleTimeSlotSelect}
+                    adminSelectedSlots={selectedTimeSlots}
+                    initialDate={currentDateRange.start} // Pass current date directly to calendar component
+                    /* Use our custom navigation functions for consistent state management */
+                    customNavigation={{
+                      goToPrevious: () => handleNavigateDates('prev'),
+                      goToNext: () => handleNavigateDates('next'),
+                      goToToday: () => handleNavigateDates('today')
+                    }}
+                  />
+                </div>
+                
+                {/* Action buttons - right side on lg screens, hidden on smaller screens */}
+                <div className="hidden lg:flex lg:flex-col lg:justify-start lg:mt-[102px] lg:gap-2 lg:min-w-[160px] lg:items-center">
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 w-full"
+                    onClick={handleCreateBooking}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Create Booking
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 w-full"
+                    onClick={handleBlockTimeSlots}
+                    disabled={selectedTimeSlots.length === 0}
+                    data-action="block-slots"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Block Slots
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 w-full"
+                    onClick={handleMakeAvailable}
+                    disabled={selectedTimeSlots.length === 0}
+                    data-action="make-available"
+                  >
+                    <Clock className="h-4 w-4 mr-1" />
+                    Make Available
+                  </Button>
+                </div>
               </div>
               
               {/* Display Selection Active alert between calendar and action buttons */}
@@ -1448,7 +1484,7 @@ const AdminCalendarView = () => {
                   <AlertTitle>Selection Active</AlertTitle>
                   <AlertDescription>
                     <div className="mb-2">
-                      {selectedTimeSlots.length} time slot(s) selected. Use the buttons below to create a booking or manage these slots.
+                      {selectedTimeSlots.length} time slot(s) selected. Use the action buttons to the right (or below on mobile) to create a booking or manage these slots.
                     </div>
                     <div className="text-xs text-muted-foreground mt-2 space-y-1">
                       <div className="font-semibold">Selected slots:</div>
@@ -1477,8 +1513,8 @@ const AdminCalendarView = () => {
                 </Alert>
               )}
               
-              {/* Action buttons - always at the bottom on all screens */}
-              <div className="mt-4 flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+              {/* Action buttons - only visible on smaller screens (mobile/tablet) */}
+              <div className="lg:hidden mt-4 flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                 <Button 
                   className="bg-primary hover:bg-primary/90"
                   onClick={handleCreateBooking}
