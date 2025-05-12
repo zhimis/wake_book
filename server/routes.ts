@@ -331,6 +331,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let timeSlotIds;
       let bookingData;
       
+      // ENHANCED BOOKING: Check for date correction info
+      const hasDateCorrectedSlots = req.body.hasDateCorrectedSlots || false;
+      const timeSlotInfoArray = req.body.timeSlotInfoArray || [];
+      
+      // Log enhanced time slot information for debugging
+      if (hasDateCorrectedSlots) {
+        console.log(`[BOOKING DEBUG] ENHANCED BOOKING with date-corrected slots detected`);
+        console.log(`[BOOKING DEBUG] Enhanced time slot information:`, JSON.stringify(timeSlotInfoArray, null, 2));
+      }
+      
       if (req.body.customerName) {
         // Admin is creating a booking
         console.log(`[BOOKING DEBUG] Processing as ADMIN booking`);
@@ -356,6 +366,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[BOOKING DEBUG] Time slot IDs received (${timeSlotIds.length}):`, timeSlotIds);
+      
+      // COMPREHENSIVE FIX: Handle date-corrected slots properly
+      // When we detect date-corrected slots, we need to find the ACTUAL time slots to book
+      // based on the display dates shown to the user, not the original database IDs
+      if (hasDateCorrectedSlots && timeSlotInfoArray.length > 0) {
+        console.log(`[BOOKING DEBUG] FIXING DATE-CORRECTED SLOTS - Finding correct time slots based on display dates`);
+        
+        // We'll replace timeSlotIds with the corrected ones
+        const correctedTimeSlotIds = [];
+        
+        for (const slotInfo of timeSlotInfoArray) {
+          if (slotInfo.isDateCorrected) {
+            console.log(`[BOOKING DEBUG] Processing date-corrected slot:`, {
+              originalId: slotInfo.id,
+              displayDate: new Date(slotInfo.displayDate).toDateString(),
+              hour: slotInfo.hour,
+              minute: slotInfo.minute
+            });
+            
+            // Find a time slot with matching date and time (instead of using the wrong ID)
+            const displayDate = new Date(slotInfo.displayDate);
+            // Set time to midnight to match the date part only
+            const startOfDay = new Date(displayDate);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(displayDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            // Query time slots for this specific day from database
+            console.log(`[BOOKING DEBUG] Searching for time slots on ${startOfDay.toISOString()} with hour=${slotInfo.hour}, minute=${slotInfo.minute}`);
+            const slotsForDay = await storage.getTimeSlotsForDateRange(startOfDay, endOfDay);
+            
+            // Find the slot that matches the time (hour, minute)
+            const matchingSlot = slotsForDay.find(slot => {
+              const slotDate = new Date(slot.startTime);
+              return slotDate.getHours() === slotInfo.hour && 
+                     slotDate.getMinutes() === slotInfo.minute;
+            });
+            
+            if (matchingSlot) {
+              console.log(`[BOOKING DEBUG] Found matching slot with correct date: ${matchingSlot.id}`);
+              correctedTimeSlotIds.push(matchingSlot.id);
+            } else {
+              console.log(`[BOOKING DEBUG] WARNING: No matching slot found for date-corrected slot!`);
+              // Fall back to original ID if no match found (should not happen if data is consistent)
+              correctedTimeSlotIds.push(slotInfo.id);
+            }
+          } else {
+            // For non-corrected slots, use the original ID
+            correctedTimeSlotIds.push(slotInfo.id);
+          }
+        }
+        
+        // Replace the time slot IDs with our corrected ones
+        console.log(`[BOOKING DEBUG] Using corrected time slot IDs:`, correctedTimeSlotIds);
+        timeSlotIds = correctedTimeSlotIds;
+      }
       
       // Process time slots - create new ones for "unallocated" slots with negative IDs
       const processedTimeSlotIds = [];

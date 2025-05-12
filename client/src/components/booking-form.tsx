@@ -153,12 +153,31 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
   });
 
   const onSubmit = (data: BookingFormData) => {
-    // Make sure to include the time slot IDs 
+    // CRITICAL FIX: Identify any date-corrected slots that need special handling
+    const hasDateCorrectedSlots = selectedTimeSlots.some(slot => slot.isDateCorrected);
+    
+    // For each slot, use either the ID or find the correct ID based on display date
+    const timeSlotInfoArray = selectedTimeSlots.map(slot => {
+      // Send enhanced slot information for date correction detection
+      return {
+        id: slot.id,
+        displayDate: new Date(slot.startTime).toISOString(),
+        originalDate: slot.originalStartTime ? new Date(slot.originalStartTime).toISOString() : null,
+        isDateCorrected: slot.isDateCorrected || false,
+        hour: slot.hour,
+        minute: slot.minute
+      };
+    });
+    
+    // Simple time slot IDs (for backward compatibility)
     const timeSlotIds = selectedTimeSlots.map((slot) => slot.id);
     
-    // Log detailed information about the time slots being booked
+    // COMPREHENSIVE DEBUGGING: Log detailed information about the time slots being booked
     console.log(`[BOOKING FORM DEBUG] ===== BOOKING SUBMISSION =====`);
-    console.log(`[BOOKING FORM DEBUG] Selected time slots (${selectedTimeSlots.length}):`);
+    console.log(`[BOOKING FORM DEBUG] Selected time slots (${selectedTimeSlots.length}), hasDateCorrected: ${hasDateCorrectedSlots}`);
+    
+    // Enhanced logging with date correction information
+    console.log(`[BOOKING FORM DEBUG] Full slot details:`, timeSlotInfoArray);
     
     // Group time slots by date for better debugging
     const slotsByDate = selectedTimeSlots.reduce((acc, slot) => {
@@ -167,7 +186,8 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       acc[date].push({
         id: slot.id,
         startTime: new Date(slot.startTime).toLocaleString(),
-        endTime: new Date(slot.endTime).toLocaleString()
+        endTime: new Date(slot.endTime).toLocaleString(),
+        isDateCorrected: slot.isDateCorrected || false,
       });
       return acc;
     }, {} as Record<string, any[]>);
@@ -185,12 +205,27 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       console.log(`[BOOKING FORM DEBUG] WARNING: Booking spans multiple days (${Object.keys(slotsByDate).length} days)`);
     }
     
+    // ENHANCED BOOKING CREATION: Send both simple IDs and enhanced slot information
+    // to ensure server can handle date-corrected slots correctly
     const formData = {
       ...data,
       timeSlotIds,
+      // Add enhanced time slot information with date correction flags
+      timeSlotInfoArray,
+      hasDateCorrectedSlots
     };
     
-    console.log(`[BOOKING FORM DEBUG] Form data to be submitted:`, formData);
+    // Show detailed debugging information for troubleshooting
+    console.log(`[BOOKING FORM DEBUG] Form data to be submitted:`, {
+      ...formData,
+      timeSlots: formData.timeSlotInfoArray.map(slot => ({
+        id: slot.id, 
+        displayDate: new Date(slot.displayDate).toLocaleString(),
+        isDateCorrected: slot.isDateCorrected
+      }))
+    });
+    
+    // Handle form submission with enhanced data
     bookingMutation.mutate(formData);
   };
 
