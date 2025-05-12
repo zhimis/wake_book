@@ -124,16 +124,39 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       slotsByDay[i] = [];
     }
     
+    // Build a map of which day of the week (0-6) corresponds to which date
+    const datesToDays = weekDays.reduce((map, date, index) => {
+      map.set(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`, index);
+      return map;
+    }, new Map<string, number>());
+    
     timeSlots.forEach((slot: TimeSlot) => {
       const slotDate = new Date(slot.startTime);
       
-      // CRITICAL FIX: Properly calculate day of week (0-6), where 0 is Monday, 6 is Sunday
-      // JavaScript day: 0=Sunday, 1=Monday, ..., 6=Saturday
-      // Our system day: 0=Monday, 1=Tuesday, ..., 6=Sunday
-      const jsDay = slotDate.getDay();
-      const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1;
+      // Create a key to look up which day in our week this date belongs to
+      const dateKey = `${slotDate.getFullYear()}-${slotDate.getMonth()}-${slotDate.getDate()}`;
       
-      slotsByDay[ourSystemDay].push(slot);
+      // Get the day index from our map, or fallback to traditional day-of-week calculation
+      let dayIndex = datesToDays.get(dateKey);
+      
+      if (dayIndex !== undefined) {
+        // We found an exact date match - this ensures slots are placed on the correct display day
+        slotsByDay[dayIndex].push(slot);
+      } else {
+        // FALLBACK: Traditional day-of-week calculation (less accurate)
+        const jsDay = slotDate.getDay();
+        const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1;
+        
+        // WARNING: Using this method can lead to wrong dates being included
+        // We're adding debug logging to track these occurrences
+        if (slotDate.getDate() === 1 && slotDate.getMonth() === 5) { // June 1st
+          console.log(`[WARNING] Fallback day assignment used for June 1st slot ID ${slot.id}!`);
+          console.log(`Date: ${slotDate.toISOString()}, Assigned to day index: ${ourSystemDay}`);
+        }
+        
+        // This is the old method that may put slots on wrong dates
+        slotsByDay[ourSystemDay].push(slot);
+      }
     });
     
     return slotsByDay;
@@ -266,12 +289,20 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       });
     }
     
-    // DIRECT UTC TIME COMPARISON - Most accurate method
+    // DIRECT UTC TIME COMPARISON WITH DATE VERIFICATION
     // Convert the display time to the exact UTC time we'd expect in the database
     let directMatchSlots = timeSlots.filter(slot => {
       const slotTime = new Date(slot.startTime);
       
-      // Get the differences in milliseconds to account for potential rounding errors
+      // FIRST, verify the date is the SAME as the weekday we're looking at
+      // This prevents matching slots from different dates (e.g., May 25 when viewing June 1)
+      if (slotTime.getFullYear() !== currentWeekday.getFullYear() ||
+          slotTime.getMonth() !== currentWeekday.getMonth() ||
+          slotTime.getDate() !== currentWeekday.getDate()) {
+        return false;
+      }
+      
+      // Then check the time component (hour and minute)
       const timeDiff = Math.abs(slotTime.getTime() - utcDateTime.getTime());
       
       // Consider times within 1 minute (60000 ms) as matching to account for potential rounding
@@ -302,11 +333,13 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     }
     
     // Traditional text-based date/time matching as fallback
+    // This is already correctly checking both date AND time
     let matchingSlots = timeSlots.filter(slot => {
       const slotDate = new Date(slot.startTime);
       const slotFormattedDate = format(slotDate, 'yyyy-MM-dd');
       const slotFormattedTime = format(slotDate, 'HH:mm');
       
+      // Double-check that the date matches the display date (not just any date with the same time)
       return slotFormattedDate === formattedDate && slotFormattedTime === formattedTime;
     });
     
@@ -337,10 +370,20 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return matchingSlots[0];
     }
     
-    // Method 2: Try the day bucket method as fallback
+    // Method 2: Try the day bucket method as fallback (now with date verification)
     if (timeSlotsByDay && timeSlotsByDay[day]) {
       const daySlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
         const startTime = new Date(slot.startTime);
+        
+        // CRITICAL FIX: First verify the date matches the display date
+        // This prevents booking slots from May 25th when viewing June 1st
+        if (startTime.getFullYear() !== currentWeekday.getFullYear() ||
+            startTime.getMonth() !== currentWeekday.getMonth() ||
+            startTime.getDate() !== currentWeekday.getDate()) {
+          return false;
+        }
+        
+        // Then check the time component
         return startTime.getHours() === hour && startTime.getMinutes() === minute;
       });
       
@@ -364,9 +407,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       }
     }
     
-    // Method 3: Last resort - day of week calculation
+    // Method 3: Last resort - day of week calculation WITH date verification
     let fallbackSlots = timeSlots.filter(slot => {
       const date = new Date(slot.startTime);
+      
+      // CRITICAL FIX: First verify that the date matches the current weekday's date
+      // This ensures we only get slots from the exact date displayed in the UI
+      if (date.getFullYear() !== currentWeekday.getFullYear() ||
+          date.getMonth() !== currentWeekday.getMonth() ||
+          date.getDate() !== currentWeekday.getDate()) {
+        return false;
+      }
+      
       const slotDay = date.getDay(); // 0 = Sunday
       // Convert to our calendar system (0 = Monday, 6 = Sunday)
       const calendarDay = slotDay === 0 ? 6 : slotDay - 1;
