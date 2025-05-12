@@ -10,7 +10,7 @@ import AdminBookingsPage from "@/pages/admin-bookings-page";
 import AdminUsersPage from "@/pages/admin-users-page";
 import AdminStatisticsPage from "@/pages/admin-statistics-page";
 import PublicPage from "@/pages/public-page";
-// Removed NewAdminPage import
+import NewAdminPage from "@/pages/new-admin-page";
 import SystemConfigPage from "@/pages/system-config-page";
 import PricesPage from "@/pages/prices-page";
 import ContactsPage from "@/pages/contacts-page";
@@ -65,7 +65,7 @@ function App() {
               <ProtectedRoute path="/admin/bookings" component={AdminBookingsPage} />
               <ProtectedRoute path="/admin/users" component={AdminUsersPage} />
               <ProtectedRoute path="/admin/statistics" component={AdminStatisticsPage} />
-              {/* Removed /admin/new route */}
+              <ProtectedRoute path="/admin/new" component={NewAdminPage} />
               <ProtectedRoute path="/admin/system-config" component={SystemConfigPage} />
               <Route component={NotFound} />
             </Switch>

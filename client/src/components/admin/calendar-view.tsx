@@ -1475,8 +1475,8 @@ const AdminCalendarView = () => {
                 </Alert>
               )}
               
-              {/* Action buttons below alert - only visible on mobile */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mt-4 md:hidden">
+              {/* Action buttons below alert - visible on all devices */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mt-4">
                 <Button 
                   className="bg-primary hover:bg-primary/90"
                   onClick={handleCreateBooking}

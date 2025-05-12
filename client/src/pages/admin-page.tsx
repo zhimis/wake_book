@@ -57,13 +57,10 @@ const AdminPage = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => {
-                              // Find and trigger the block slots handler
-                              const calendarView = document.querySelector('[data-admin-calendar-view]');
-                              const blockButton = calendarView?.querySelector('[data-action="block-slots"]');
-                              if (blockButton) {
-                                (blockButton as HTMLButtonElement).click();
-                              }
+                              // Redirect to the /admin/bookings page to make sure we're on the right page
+                              window.location.href = "/admin/bookings";
                             }}
+                            disabled={true}
                             className="w-full justify-start bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>
@@ -74,13 +71,10 @@ const AdminPage = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => {
-                              // Find and trigger the make available handler
-                              const calendarView = document.querySelector('[data-admin-calendar-view]');
-                              const makeAvailableButton = calendarView?.querySelector('[data-action="make-available"]');
-                              if (makeAvailableButton) {
-                                (makeAvailableButton as HTMLButtonElement).click();
-                              }
+                              // Redirect to the /admin/bookings page to make sure we're on the right page
+                              window.location.href = "/admin/bookings";
                             }}
+                            disabled={true}
                             className="w-full justify-start bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>
