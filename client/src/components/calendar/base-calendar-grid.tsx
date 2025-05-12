@@ -286,7 +286,40 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return slotHour === hour && slotMinute === minute;
     });
     
-    return matchingSlots[0] || null;
+    // If we found an exact match for this time slot, return it
+    if (matchingSlots.length > 0) {
+      return matchingSlots[0];
+    }
+    
+    // If no exact match found and this is for the admin view, check if this time falls within a booking span
+    if (viewMode === 'admin') {
+      // Look for any slot in this day that might contain this time 
+      // (for multi-slot bookings that should appear as one continuous block)
+      for (const slot of timeSlotsByDay[day]) {
+        if (slot.status === 'booked') {
+          // Convert slot start and end times to Latvia timezone
+          const slotStartDate = toLatviaTime(slot.startTime);
+          const slotEndDate = toLatviaTime(slot.endTime);
+          
+          // Create a date object for the requested time
+          const requestedTimeDate = new Date(slotStartDate);
+          requestedTimeDate.setHours(hour, minute, 0, 0);
+          
+          // Check if the requested time falls within this slot's time range
+          // We add a small buffer (1 minute) to the end time to handle edge cases
+          const slotEndWithBuffer = new Date(slotEndDate);
+          slotEndWithBuffer.setMinutes(slotEndDate.getMinutes() + 1);
+          
+          if (requestedTimeDate >= slotStartDate && requestedTimeDate < slotEndWithBuffer) {
+            console.log(`Found booking span match for day ${day}, time ${hour}:${minute}`);
+            // Return this slot to indicate this time is part of a booked slot
+            return slot;
+          }
+        }
+      }
+    }
+    
+    return null;
   };
 
   // Format time for display (00:00 format)

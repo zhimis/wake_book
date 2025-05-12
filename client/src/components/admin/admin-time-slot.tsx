@@ -61,6 +61,22 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     isPast
   });
   
+  // Check if this slot is part of a multi-slot booking by examining the start and end times
+  // This is used to apply visual cues for slots that are part of the same booking
+  const isPartOfMultiSlotBooking = () => {
+    if (slot.status !== 'booked') return false;
+    
+    // Check the duration of this slot
+    const startTime = new Date(slot.startTime);
+    const endTime = new Date(slot.endTime);
+    
+    // Calculate duration in minutes
+    const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+    
+    // If duration is greater than a standard 30-minute slot, this is a multi-slot booking
+    return durationMinutes > 30;
+  };
+  
   // Get CSS class for time slot based on status and whether it's in the past
   const getSlotClass = (status: TimeSlotStatus) => {
     // Debug what the status is
@@ -102,11 +118,14 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     flexDirection: 'column',
   };
 
+  // Check if this is part of a multi-slot booking
+  const isMultiSlot = isPartOfMultiSlotBooking();
+
   return (
     <div 
       className={cn(
         "relative cursor-pointer border-r border-b border-gray-200",
-        externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus)
+        externalGetSlotClass ? externalGetSlotClass(slot.status as TimeSlotStatus, isSelected, isPast) : getSlotClass(slot.status as TimeSlotStatus),
       )} 
       style={baseStyle}
       onClick={() => onToggle(slot.id.toString(), slot.status as TimeSlotStatus)}
@@ -115,12 +134,18 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
         {slot.status === 'booked' ? (
           // Booked slots styling
           <>
+            {/* For multi-slot bookings, add an indicator to show they are connected */}
+            {isMultiSlot && (
+              <div className="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
+            )}
+            
             <Badge variant="outline" className={cn(
               "px-1 h-4 text-[10px]",
               isPast && "bg-amber-50 border-amber-700"
             )}>
               €{slot.price}
             </Badge>
+            
             {isPast && (
               <div className="absolute top-0 left-0 -mt-1 -ml-1">
                 <Badge className="w-4 h-4 flex items-center justify-center p-0 bg-amber-700 text-white">
