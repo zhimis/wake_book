@@ -230,6 +230,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     // This gives us an exact time reference for the current calendar cell
     const currentWeekday = weekDays[day];
     
+    // --- DEBUG LOGGING START ---
+    const isPotentiallyProblematicCell = 
+      currentWeekday.getFullYear() === 2025 &&
+      currentWeekday.getMonth() === 5 && // June
+      currentWeekday.getDate() === 1 && // 1st
+      hour >= 11 && hour <= 14; // Around the expected booking time (Latvia Time)
+      
+    if (isPotentiallyProblematicCell) {
+      console.log(`[findTimeSlot DEBUG] Checking cell: Day ${day}, Time ${hour}:${minute}, Date: ${currentWeekday.toISOString()}`);
+    }
+    // --- DEBUG LOGGING END ---
+    
     // Create a time string to search for
     const formattedDate = format(currentWeekday, 'yyyy-MM-dd');
     const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -274,6 +286,12 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       );
     });
     
+    // --- DEBUG LOGGING START ---
+    if (isPotentiallyProblematicCell) {
+      const result = fallbackSlot || null;
+      console.log(`[findTimeSlot DEBUG] Result for cell ${hour}:${minute}:`, result ? `Slot ID ${result.id}` : 'null');
+    }
+    // --- DEBUG LOGGING END ---
     return fallbackSlot || null;
   };
   
@@ -352,8 +370,15 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return null;
     }
     
-    // For all other bookings, use the normal connected slots logic
+    // Find all connected slots in this booking sequence using our improved logic
     const connectedSlots = findConnectedTimeSlots(slot);
+
+    // --- DEBUG LOGGING START ---
+    if (slot.bookingReference === 'WB-L_7LG1SG') {
+      console.log(`[getSlotPosition DEBUG] Called for Slot ID: ${slot.id}`);
+      console.log(`[getSlotPosition DEBUG] Connected slots found by findConnectedTimeSlots:`, connectedSlots.map(s => ({ id: s.id, time: s.startTime })) );
+    }
+    // --- DEBUG LOGGING END ---
     
     if (connectedSlots.length <= 1) {
       return null; // Not part of a sequence
