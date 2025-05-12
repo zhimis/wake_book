@@ -153,12 +153,44 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
   });
 
   const onSubmit = (data: BookingFormData) => {
-    // Make sure to include the time slot IDs
+    // Make sure to include the time slot IDs 
+    const timeSlotIds = selectedTimeSlots.map((slot) => slot.id);
+    
+    // Log detailed information about the time slots being booked
+    console.log(`[BOOKING FORM DEBUG] ===== BOOKING SUBMISSION =====`);
+    console.log(`[BOOKING FORM DEBUG] Selected time slots (${selectedTimeSlots.length}):`);
+    
+    // Group time slots by date for better debugging
+    const slotsByDate = selectedTimeSlots.reduce((acc, slot) => {
+      const date = new Date(slot.startTime).toDateString();
+      if (!acc[date]) acc[date] = [];
+      acc[date].push({
+        id: slot.id,
+        startTime: new Date(slot.startTime).toLocaleString(),
+        endTime: new Date(slot.endTime).toLocaleString()
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
+    
+    // Log slots grouped by date
+    Object.entries(slotsByDate).forEach(([date, slots]) => {
+      console.log(`[BOOKING FORM DEBUG] Date: ${date}, Slots: ${slots.length}`);
+      slots.forEach(slot => {
+        console.log(`[BOOKING FORM DEBUG]   - ID: ${slot.id}, Time: ${slot.startTime} - ${slot.endTime}`);
+      });
+    });
+    
+    // Check if slots span multiple days
+    if (Object.keys(slotsByDate).length > 1) {
+      console.log(`[BOOKING FORM DEBUG] WARNING: Booking spans multiple days (${Object.keys(slotsByDate).length} days)`);
+    }
+    
     const formData = {
       ...data,
-      timeSlotIds: selectedTimeSlots.map((slot) => slot.id),
+      timeSlotIds,
     };
-
+    
+    console.log(`[BOOKING FORM DEBUG] Form data to be submitted:`, formData);
     bookingMutation.mutate(formData);
   };
 

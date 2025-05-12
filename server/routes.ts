@@ -360,6 +360,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process time slots - create new ones for "unallocated" slots with negative IDs
       const processedTimeSlotIds = [];
       
+      // Log raw time slot IDs with date info for better debugging
+      console.log(`[BOOKING DEBUG] Processing time slot IDs - checking for any unusual patterns`);
+      
+      // Check if time slot IDs appear in sequence
+      const sortedIds = [...timeSlotIds].sort((a, b) => Number(a) - Number(b));
+      console.log(`[BOOKING DEBUG] Time slots sorted by ID:`, sortedIds);
+      
+      // Count negative IDs (unallocated slots) if any
+      const negativeIds = timeSlotIds.filter(id => Number(id) < 0).length;
+      if (negativeIds > 0) {
+        console.log(`[BOOKING DEBUG] Found ${negativeIds} unallocated slots (negative IDs)`);
+      }
+      
       for (const id of timeSlotIds) {
         // Check if this is an unallocated slot (negative ID)
         const numericId = Number(id);
@@ -439,6 +452,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           alreadyBookedSlots: alreadyBookedSlots.map(slot => slot?.id)
         });
       }
+      
+      // DEBUGGING: Check if booking spans multiple days and log detailed information
+      const slotDates = new Map<string, number[]>();
+      const validSlots = timeSlots.filter(slot => slot !== null) as any[];
+      
+      for (const slot of validSlots) {
+        const startTime = new Date(slot.startTime);
+        const dateStr = startTime.toISOString().split('T')[0];
+        
+        if (!slotDates.has(dateStr)) {
+          slotDates.set(dateStr, []);
+        }
+        
+        slotDates.get(dateStr)!.push(slot.id);
+      }
+      
+      console.log(`[BOOKING DEBUG] Time slots span across ${slotDates.size} different days:`);
+      for (const [date, slotIds] of slotDates.entries()) {
+        console.log(`[BOOKING DEBUG] - ${date}: ${slotIds.length} slots (IDs: ${slotIds.join(', ')})`);
+      }
+      
+      // This is just for debugging - we don't need to block multi-day bookings yet
       
       // Create the booking
       const booking = await storage.createBooking({
