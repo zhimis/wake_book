@@ -489,6 +489,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Time slots for booking:", timeSlots);
       
+      // CRITICAL CROSS-DATE PROTECTION: Check if the booking spans multiple days
+      // Group time slots by date to detect cross-date bookings
+      const slotsByDate = timeSlots.reduce((acc, slot) => {
+        if (!slot) return acc;
+        
+        const date = new Date(slot.startTime).toISOString().split('T')[0];
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(slot.id);
+        return acc;
+      }, {} as Record<string, number[]>);
+      
+      // Check if booking spans across multiple dates
+      if (Object.keys(slotsByDate).length > 1) {
+        console.log(`[BOOKING DEBUG] Time slots span across ${Object.keys(slotsByDate).length} different days:`);
+        
+        // Log the days and slot counts for debugging
+        Object.entries(slotsByDate).forEach(([date, slots]) => {
+          console.log(`[BOOKING DEBUG] - ${date}: ${slots.length} slots (IDs: ${slots.join(', ')})`);
+        });
+        
+        // Prevent cross-date bookings
+        return res.status(400).json({
+          error: "Cross-date bookings are not allowed. Please select time slots from a single day only.",
+          dates: Object.keys(slotsByDate)
+        });
+      }
+      
       // Check if any time slots are already booked or unavailable
       // No temporary reservation logic - just check if slots are available
       const alreadyBookedSlots = timeSlots.filter(
@@ -664,6 +693,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Time slot conflicts detected with existing bookings",
           conflicts,
           alreadyBookedSlots: conflicts.map(c => c.conflictingSlot.id)
+        });
+      }
+      
+      // CRITICAL CROSS-DATE PROTECTION: Check if the booking spans multiple days
+      // Group time slots by date to detect cross-date bookings
+      const slotsByDate = timeSlots.reduce((acc, slot) => {
+        const date = new Date(slot.startTime).toISOString().split('T')[0];
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(slot);
+        return acc;
+      }, {} as Record<string, Array<any>>);
+      
+      // Check if booking spans across multiple dates
+      if (Object.keys(slotsByDate).length > 1) {
+        console.log(`[BOOKING DEBUG] Admin booking spans across ${Object.keys(slotsByDate).length} different days:`);
+        
+        // Log the days and slot counts for debugging
+        Object.entries(slotsByDate).forEach(([date, slots]) => {
+          console.log(`[BOOKING DEBUG] - ${date}: ${slots.length} slots`);
+        });
+        
+        // Prevent cross-date bookings
+        return res.status(400).json({
+          error: "Cross-date bookings are not allowed. Please select time slots from a single day only.",
+          dates: Object.keys(slotsByDate)
         });
       }
       
