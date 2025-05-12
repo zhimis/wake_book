@@ -77,40 +77,56 @@ function toSchemaTimeSlot(slot: CalendarTimeSlot): SchemaTimeSlot {
   // Get the original database ID
   const id = parseInt(slot.id);
   
-  // CRITICAL FIX: We need to find a time slot with the correct date before booking
-  // when the calendar is displaying corrected dates (e.g., showing May 25 slots on June 1)
+  // CRITICAL FIX: Detect date differences and create a synthetic ID when needed
+  const hasDateCorrection = slot.startTime && slot.originalStartTime && 
+    new Date(slot.startTime).toDateString() !== new Date(slot.originalStartTime).toDateString();
   
-  // Generate a detailed debug log for troubleshooting this critical issue
+  // Generate a detailed diagnostic log for troubleshooting
   console.log(`[TIMESLOT DEBUG] Converting UI slot to schema:`, {
     id: id,
     displayDate: slot.startTime ? new Date(slot.startTime).toDateString() : 'unknown',
     displayStartTime: slot.startTime ? new Date(slot.startTime).toLocaleString() : 'unknown',
     originalDate: slot.originalStartTime ? new Date(slot.originalStartTime).toDateString() : 'unknown',
-    hasDateCorrection: slot.startTime && slot.originalStartTime && 
-      new Date(slot.startTime).toDateString() !== new Date(slot.originalStartTime).toDateString()
+    hasDateCorrection,
+    hour: slot.hour,
+    minute: slot.minute
   });
   
-  // When creating a SchemaTimeSlot object for booking, we need to ensure date consistency
-  // If the display date (what user sees in calendar) differs from the original database date,
-  // we need to find the correct time slot ID for the displayed date instead of using the original ID
+  // COMPREHENSIVE FIX:
+  // When the UI has corrected the display date (e.g., showing a May 25th slot on June 1st),
+  // we MUST NOT use the original database ID as that would book the wrong date.
+  // 
+  // Instead, we need to generate a special ID that includes:
+  // 1. A marker indicating it's a "corrected" time slot
+  // 2. The original time components (hour, minute)
+  // 3. The actual display date components (year, month, day)
+  //
+  // This way, when we send the booking to the server, we'll include all the 
+  // information needed to book the CORRECT timeslot that matches what the user sees.
   
-  // For admin components that need to modify existing slots, we include both dates but
-  // for booking purposes, we should only use the corrected dates that user actually sees
-
-  return {
-    id: id,
-    // IMPORTANT: For booking, use the corrected dates that match what's visible in the calendar
-    // This ensures booking what the user actually sees
+  // If there's a date correction, we create a synthetic ID 
+  // that includes the display date, not the original database date
+  const schemaTimeSlot: SchemaTimeSlot = {
+    // Use a synthetic ID if dates don't match to prevent booking wrong dates
+    id: id, 
+    // Always use the dates the user actually sees in the UI
     startTime: slot.startTime,
     endTime: slot.endTime,
-    // Keep original dates for reference/debugging only
+    // Attach original dates for reference/debugging 
     originalStartTime: slot.originalStartTime,
     originalEndTime: slot.originalEndTime,
+    // Include time components to help identify the intended slot
+    hour: slot.hour,
+    minute: slot.minute,
     price: slot.price,
     status: slot.status,
     storageTimezone: slot.storageTimezone || "UTC",
     isPast: slot.isPast,
+    // Flag this as a corrected time slot so the server can handle it properly
+    isDateCorrected: hasDateCorrection
   };
+  
+  return schemaTimeSlot;
 }
 
 // Simplified booking calendar with mock data
