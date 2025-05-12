@@ -9,11 +9,13 @@ import {
   blockTimeSlotSchema, 
   timeSlots, 
   operatingHours,
-  leadTimeSettingsFormSchema
+  leadTimeSettingsFormSchema,
+  bookings,
+  bookingTimeSlots
 } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
 import { db } from "./db";
-import { gte, eq, sql } from "drizzle-orm";
+import { gte, eq, sql, inArray, and, lte, not } from "drizzle-orm";
 
 // Import server-side timezone utilities
 import { 
@@ -69,7 +71,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Fetching time slots from ${formatInLatviaTime(startDate, 'yyyy-MM-dd HH:mm:ss')} to ${formatInLatviaTime(endDate, 'yyyy-MM-dd HH:mm:ss')} (Latvia time)`);
       
-      const timeSlots = await storage.getTimeSlotsByDateRange(startDate, endDate);
+      // Get time slots from the database
+      let timeSlots = await storage.getTimeSlotsByDateRange(startDate, endDate);
+      
+      try {
+        // Get all bookingTimeSlots for this date range
+        const bookingSlotJoins = await db.select()
+          .from(bookingTimeSlots)
+          .where(
+            inArray(
+              bookingTimeSlots.timeSlotId,
+              timeSlots.map(slot => slot.id)
+            )
+          );
+          
+        console.log(`Found ${bookingSlotJoins.length} booking-timeslot joins to process`);
+        
+        // Get all booking IDs from these joins
+        const bookingIds = [...new Set(bookingSlotJoins.map(join => join.bookingId))];
+        
+        // Get actual bookings
+        const relevantBookings = await db.select()
+          .from(bookings)
+          .where(
+            inArray(bookings.id, bookingIds)
+          );
+          
+        console.log(`Found ${relevantBookings.length} bookings in the time range`);
+        
+        // Create lookup map for booking references
+        const bookingMap = new Map();
+        relevantBookings.forEach(booking => {
+          bookingMap.set(booking.id, booking.reference);
+        });
+        
+        // Create lookup map for time slot to booking ID
+        const timeSlotToBookingMap = new Map();
+        bookingSlotJoins.forEach(join => {
+          timeSlotToBookingMap.set(join.timeSlotId, join.bookingId);
+        });
+        
+        // Enhance time slots with booking references
+        timeSlots = timeSlots.map(slot => {
+          const bookingId = timeSlotToBookingMap.get(slot.id);
+          const bookingReference = bookingId ? bookingMap.get(bookingId) : null;
+          
+          return {
+            ...slot,
+            bookingReference,
+            bookingId
+          };
+        });
+        
+        console.log(`Enhanced ${timeSlots.length} time slots with booking references`);
+      } catch (err) {
+        console.error("Error enhancing time slots with booking data:", err);
+        // Continue with original time slots if there's an error
+      }
       
       res.json({
         startDate,

@@ -293,8 +293,62 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     
     // If no exact match found and this is for the admin view, check if this time falls within a booking span
     if (viewMode === 'admin') {
-      // Look for any slot in this day that might contain this time 
-      // (for multi-slot bookings that should appear as one continuous block)
+      // First, look for other slots in this day that have the same booking reference
+      // to handle multi-slot bookings
+      const bookedSlotsInDay = timeSlotsByDay[day].filter(slot => 
+        slot.status === 'booked' && slot.bookingReference
+      );
+      
+      // Group slots by booking reference
+      const bookingGroups = new Map<string, TimeSlot[]>();
+      bookedSlotsInDay.forEach(slot => {
+        if (!slot.bookingReference) return;
+        
+        if (!bookingGroups.has(slot.bookingReference)) {
+          bookingGroups.set(slot.bookingReference, []);
+        }
+        bookingGroups.get(slot.bookingReference)?.push(slot);
+      });
+      
+      // For each booking group, check if this time falls within the span
+      for (const [reference, slots] of bookingGroups.entries()) {
+        if (slots.length <= 1) continue; // Skip single-slot bookings
+        
+        // Sort slots by start time
+        slots.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+        
+        // Get the earliest start time and latest end time for this booking
+        const earliestSlot = slots[0];
+        const latestSlot = slots[slots.length - 1];
+        
+        const bookingStartTime = toLatviaTime(earliestSlot.startTime);
+        const bookingEndTime = toLatviaTime(latestSlot.endTime);
+        
+        // Create a date object for the requested time
+        const requestedTimeDate = new Date(bookingStartTime);
+        requestedTimeDate.setHours(hour, minute, 0, 0);
+        
+        // If the requested time is within this booking span, return the appropriate slot
+        if (requestedTimeDate >= bookingStartTime && requestedTimeDate < bookingEndTime) {
+          console.log(`Found multi-slot booking match for day ${day}, time ${hour}:${minute}, booking ${reference}`);
+          
+          // Find the exact slot this time falls into, or the nearest previous slot
+          const matchingSlot = slots.find(slot => {
+            const slotStart = toLatviaTime(slot.startTime);
+            const slotEnd = toLatviaTime(slot.endTime);
+            return requestedTimeDate >= slotStart && requestedTimeDate < slotEnd;
+          }) || earliestSlot; // Default to earliest slot if exact match not found
+          
+          // Add information that this is part of a multi-slot booking
+          return {
+            ...matchingSlot,
+            isPartOfMultiSlotBooking: true,
+            bookingSpanLength: slots.length
+          };
+        }
+      }
+      
+      // If no booking group match, check individual slots (legacy approach)
       for (const slot of timeSlotsByDay[day]) {
         if (slot.status === 'booked') {
           // Convert slot start and end times to Latvia timezone
@@ -311,7 +365,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
           slotEndWithBuffer.setMinutes(slotEndDate.getMinutes() + 1);
           
           if (requestedTimeDate >= slotStartDate && requestedTimeDate < slotEndWithBuffer) {
-            console.log(`Found booking span match for day ${day}, time ${hour}:${minute}`);
+            console.log(`Found individual slot match for day ${day}, time ${hour}:${minute}`);
             // Return this slot to indicate this time is part of a booked slot
             return slot;
           }
