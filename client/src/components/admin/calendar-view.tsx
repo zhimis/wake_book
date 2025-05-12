@@ -1425,20 +1425,22 @@ const AdminCalendarView = () => {
           {viewMode === 'calendar' ? (
             <>
               {/* Use a key to force completely new instance on date change */}
-              <BookingCalendar 
-                key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
-                onDateRangeChange={handleDateRangeChange}
-                isAdmin={true}
-                onAdminSlotSelect={handleTimeSlotSelect}
-                adminSelectedSlots={selectedTimeSlots}
-                initialDate={currentDateRange.start} // Pass current date directly to calendar component
-                /* Use our custom navigation functions for consistent state management */
-                customNavigation={{
-                  goToPrevious: () => handleNavigateDates('prev'),
-                  goToNext: () => handleNavigateDates('next'),
-                  goToToday: () => handleNavigateDates('today')
-                }}
-              />
+              <div className="relative">
+                <BookingCalendar 
+                  key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
+                  onDateRangeChange={handleDateRangeChange}
+                  isAdmin={true}
+                  onAdminSlotSelect={handleTimeSlotSelect}
+                  adminSelectedSlots={selectedTimeSlots}
+                  initialDate={currentDateRange.start} // Pass current date directly to calendar component
+                  /* Use our custom navigation functions for consistent state management */
+                  customNavigation={{
+                    goToPrevious: () => handleNavigateDates('prev'),
+                    goToNext: () => handleNavigateDates('next'),
+                    goToToday: () => handleNavigateDates('today')
+                  }}
+                />
+              </div>
               
               {/* Display Selection Active alert between calendar and action buttons */}
               {selectedTimeSlots.length > 0 && (
@@ -1475,20 +1477,20 @@ const AdminCalendarView = () => {
                 </Alert>
               )}
               
-              {/* Action buttons below alert - visible on all devices */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mt-4">
+              {/* Action buttons - responsive layout: bottom on mobile, right on larger screens */}
+              <div className="md:absolute md:top-4 md:right-4 md:w-auto mt-4 md:mt-0 flex flex-col sm:flex-row md:flex-col sm:items-center md:items-stretch sm:space-x-2 md:space-x-0 space-y-2 sm:space-y-0 md:space-y-2">
                 <Button 
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 md:w-full"
                   onClick={handleCreateBooking}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Create Booking
                 </Button>
                 
-                <div className="grid grid-cols-2 gap-2 w-full">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-1 gap-2 w-full">
                   <Button 
                     variant="outline" 
-                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 md:w-full"
                     onClick={handleBlockTimeSlots}
                     disabled={selectedTimeSlots.length === 0}
                     data-action="block-slots"
@@ -1499,7 +1501,7 @@ const AdminCalendarView = () => {
                   
                   <Button 
                     variant="outline" 
-                    className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+                    className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 md:w-full"
                     onClick={handleMakeAvailable}
                     disabled={selectedTimeSlots.length === 0}
                     data-action="make-available"
