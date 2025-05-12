@@ -1,0 +1,52 @@
+booking-calendar.tsx:470 Time slot 5935: {rawStart: '2025-05-25T14:00:00.000Z', latviaStart: '2025-05-25 17:00:00', convertedHour: 17}
+booking-calendar.tsx:470 Time slot 5936: {rawStart: '2025-05-25T14:30:00.000Z', latviaStart: '2025-05-25 17:30:00', convertedHour: 17}
+booking-calendar.tsx:470 Time slot 5937: {rawStart: '2025-05-25T15:00:00.000Z', latviaStart: '2025-05-25 18:00:00', convertedHour: 18}
+booking-calendar.tsx:470 Time slot 5938: {rawStart: '2025-05-25T15:30:00.000Z', latviaStart: '2025-05-25 18:30:00', convertedHour: 18}
+booking-calendar.tsx:470 Time slot 5939: {rawStart: '2025-05-25T16:00:00.000Z', latviaStart: '2025-05-25 19:00:00', convertedHour: 19}
+booking-calendar.tsx:470 Time slot 5940: {rawStart: '2025-05-25T16:30:00.000Z', latviaStart: '2025-05-25 19:30:00', convertedHour: 19}
+booking-calendar.tsx:470 Time slot 5941: {rawStart: '2025-05-25T17:00:00.000Z', latviaStart: '2025-05-25 20:00:00', convertedHour: 20}
+booking-calendar.tsx:470 Time slot 5942: {rawStart: '2025-05-25T17:30:00.000Z', latviaStart: '2025-05-25 20:30:00', convertedHour: 20}
+booking-calendar.tsx:470 Time slot 5932: {rawStart: '2025-05-25T12:30:00.000Z', latviaStart: '2025-05-25 15:30:00', convertedHour: 15}
+booking-calendar.tsx:470 Time slot 5929: {rawStart: '2025-05-25T11:00:00.000Z', latviaStart: '2025-05-25 14:00:00', convertedHour: 14}
+booking-calendar.tsx:470 Time slot 5934: {rawStart: '2025-05-25T13:30:00.000Z', latviaStart: '2025-05-25 16:30:00', convertedHour: 16}
+booking-calendar.tsx:470 Time slot 5921: {rawStart: '2025-05-25T07:00:00.000Z', latviaStart: '2025-05-25 10:00:00', convertedHour: 10}
+booking-calendar.tsx:470 Time slot 5922: {rawStart: '2025-05-25T07:30:00.000Z', latviaStart: '2025-05-25 10:30:00', convertedHour: 10}
+booking-calendar.tsx:470 Time slot 5923: {rawStart: '2025-05-25T08:00:00.000Z', latviaStart: '2025-05-25 11:00:00', convertedHour: 11}
+booking-calendar.tsx:470 Time slot 5924: {rawStart: '2025-05-25T08:30:00.000Z', latviaStart: '2025-05-25 11:30:00', convertedHour: 11}
+booking-calendar.tsx:470 Time slot 5925: {rawStart: '2025-05-25T09:00:00.000Z', latviaStart: '2025-05-25 12:00:00', convertedHour: 12}
+booking-calendar.tsx:470 Time slot 5926: {rawStart: '2025-05-25T09:30:00.000Z', latviaStart: '2025-05-25 12:30:00', convertedHour: 12}
+booking-calendar.tsx:470 Time slot 5927: {rawStart: '2025-05-25T10:00:00.000Z', latviaStart: '2025-05-25 13:00:00', convertedHour: 13}
+booking-calendar.tsx:470 Time slot 5928: {rawStart: '2025-05-25T10:30:00.000Z', latviaStart: '2025-05-25 13:30:00', convertedHour: 13}
+booking-calendar.tsx:470 Time slot 5933: {rawStart: '2025-05-25T13:00:00.000Z', latviaStart: '2025-05-25 16:00:00', convertedHour: 16}
+booking-calendar.tsx:470 Time slot 5930: {rawStart: '2025-05-25T11:30:00.000Z', latviaStart: '2025-05-25 14:30:00', convertedHour: 14}
+booking-calendar.tsx:470 Time slot 5931: {rawStart: '2025-05-25T12:00:00.000Z', latviaStart: '2025-05-25 15:00:00', convertedHour: 15}
+admin-time-slot.tsx:55 Slot 5929 isPast check: {slotDate: '2025-05-25T11:00:00.000Z', now: '2025-05-12T15:44:09.382Z', isPastDay: false, isToday: false, isPastTime: false, …}
+admin-time-slot.tsx:55 Slot 5930 isPast check: {slotDate: '2025-05-25T11:30:00.000Z', now: '2025-05-12T15:44:09.384Z', isPastDay: false, isToday: false, isPastTime: false, …}
+admin-time-slot.tsx:55 Slot 5931 isPast check: {slotDate: '2025-05-25T12:00:00.000Z', now: '2025-05-12T15:44:09.385Z', isPastDay: false, isToday: false, isPastTime: false, …}
+admin-time-slot.tsx:55 Slot 5934 isPast check: {slotDate: '2025-05-25T13:30:00.000Z', now: '2025-05-12T15:44:09.391Z', isPastDay: false, isToday: false, isPastTime: false, …}
+booking-calendar.tsx:470 Time slot 5935: {rawStart: '2025-05-25T14:00:00.000Z', latviaStart: '2025-05-25 17:00:00', convertedHour: 17}
+booking-calendar.tsx:470 Time slot 5936: {rawStart: '2025-05-25T14:30:00.000Z', latviaStart: '2025-05-25 17:30:00', convertedHour: 17}
+booking-calendar.tsx:470 Time slot 5937: {rawStart: '2025-05-25T15:00:00.000Z', latviaStart: '2025-05-25 18:00:00', convertedHour: 18}
+booking-calendar.tsx:470 Time slot 5938: {rawStart: '2025-05-25T15:30:00.000Z', latviaStart: '2025-05-25 18:30:00', convertedHour: 18}
+booking-calendar.tsx:470 Time slot 5939: {rawStart: '2025-05-25T16:00:00.000Z', latviaStart: '2025-05-25 19:00:00', convertedHour: 19}
+booking-calendar.tsx:470 Time slot 5940: {rawStart: '2025-05-25T16:30:00.000Z', latviaStart: '2025-05-25 19:30:00', convertedHour: 19}
+booking-calendar.tsx:470 Time slot 5941: {rawStart: '2025-05-25T17:00:00.000Z', latviaStart: '2025-05-25 20:00:00', convertedHour: 20}
+booking-calendar.tsx:470 Time slot 5942: {rawStart: '2025-05-25T17:30:00.000Z', latviaStart: '2025-05-25 20:30:00', convertedHour: 20}
+booking-calendar.tsx:470 Time slot 5932: {rawStart: '2025-05-25T12:30:00.000Z', latviaStart: '2025-05-25 15:30:00', convertedHour: 15}
+booking-calendar.tsx:470 Time slot 5929: {rawStart: '2025-05-25T11:00:00.000Z', latviaStart: '2025-05-25 14:00:00', convertedHour: 14}
+booking-calendar.tsx:470 Time slot 5934: {rawStart: '2025-05-25T13:30:00.000Z', latviaStart: '2025-05-25 16:30:00', convertedHour: 16}
+booking-calendar.tsx:470 Time slot 5921: {rawStart: '2025-05-25T07:00:00.000Z', latviaStart: '2025-05-25 10:00:00', convertedHour: 10}
+booking-calendar.tsx:470 Time slot 5922: {rawStart: '2025-05-25T07:30:00.000Z', latviaStart: '2025-05-25 10:30:00', convertedHour: 10}
+booking-calendar.tsx:470 Time slot 5923: {rawStart: '2025-05-25T08:00:00.000Z', latviaStart: '2025-05-25 11:00:00', convertedHour: 11}
+booking-calendar.tsx:470 Time slot 5924: {rawStart: '2025-05-25T08:30:00.000Z', latviaStart: '2025-05-25 11:30:00', convertedHour: 11}
+booking-calendar.tsx:470 Time slot 5925: {rawStart: '2025-05-25T09:00:00.000Z', latviaStart: '2025-05-25 12:00:00', convertedHour: 12}
+booking-calendar.tsx:470 Time slot 5926: {rawStart: '2025-05-25T09:30:00.000Z', latviaStart: '2025-05-25 12:30:00', convertedHour: 12}
+booking-calendar.tsx:470 Time slot 5927: {rawStart: '2025-05-25T10:00:00.000Z', latviaStart: '2025-05-25 13:00:00', convertedHour: 13}
+booking-calendar.tsx:470 Time slot 5928: {rawStart: '2025-05-25T10:30:00.000Z', latviaStart: '2025-05-25 13:30:00', convertedHour: 13}
+booking-calendar.tsx:470 Time slot 5933: {rawStart: '2025-05-25T13:00:00.000Z', latviaStart: '2025-05-25 16:00:00', convertedHour: 16}
+booking-calendar.tsx:470 Time slot 5930: {rawStart: '2025-05-25T11:30:00.000Z', latviaStart: '2025-05-25 14:30:00', convertedHour: 14}
+booking-calendar.tsx:470 Time slot 5931: {rawStart: '2025-05-25T12:00:00.000Z', latviaStart: '2025-05-25 15:00:00', convertedHour: 15}
+admin-time-slot.tsx:55 Slot 5929 isPast check: {slotDate: '2025-05-25T11:00:00.000Z', now: '2025-05-12T15:44:09.530Z', isPastDay: false, isToday: false, isPastTime: false, …}
+admin-time-slot.tsx:55 Slot 5930 isPast check: {slotDate: '2025-05-25T11:30:00.000Z', now: '2025-05-12T15:44:09.531Z', isPastDay: false, isToday: false, isPastTime: false, …}
+admin-time-slot.tsx:55 Slot 5931 isPast check: {slotDate: '2025-05-25T12:00:00.000Z', now: '2025-05-12T15:44:09.533Z', isPastDay: false, isToday: false, isPastTime: false, …}
+admin-time-slot.tsx:55 Slot 5934 isPast check: {slotDate: '2025-05-25T13:30:00.000Z', now: '2025-05-12T15:44:09.538Z', isPastDay: false, isToday: false, isPastTime: false, …}

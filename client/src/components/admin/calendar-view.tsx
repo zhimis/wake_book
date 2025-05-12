@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format, parseISO, addDays, subDays } from "date-fns";
+import { 
+  format, 
+  parseISO, 
+  addDays, 
+  subDays, 
+  startOfWeek,
+  endOfWeek,
+  startOfDay,
+  endOfDay,
+  isWithinInterval
+} from "date-fns";
 import { useLocation } from "wouter";
 
 import { apiRequest, queryClient } from "@/lib/queryClient";

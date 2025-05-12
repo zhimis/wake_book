@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { format, addDays, subDays, isToday } from "date-fns";
+import { 
+  format, 
+  addDays, 
+  subDays, 
+  isToday,
+  startOfWeek,
+  endOfWeek,
+  startOfDay,
+  endOfDay,
+  isWithinInterval
+} from "date-fns";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -458,15 +468,43 @@ const BookingCalendar = ({
       return slots;
     }
 
-    // Create calendar time slots ONLY from database time slots
-    dbTimeSlots.timeSlots.forEach((dbSlot: SchemaTimeSlot) => {
+    // First, determine the start and end dates of the current week
+    const currentWeekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
+    const currentWeekEnd = endOfWeek(currentDate, { weekStartsOn: 1 }); // Sunday
+    
+    // Apply strict date filtering to ensure only slots from the current week are processed
+    const currentWeekSlots = dbTimeSlots.timeSlots.filter((dbSlot: SchemaTimeSlot) => {
+      const slotDate = toLatviaTime(dbSlot.startTime);
+      const slotYear = slotDate.getFullYear();
+      const slotMonth = slotDate.getMonth();
+      const slotDay = slotDate.getDate();
+      
+      // Check if this slot falls within the current week's date range (inclusive)
+      const isInCurrentWeek = isWithinInterval(slotDate, {
+        start: startOfDay(currentWeekStart),
+        end: endOfDay(currentWeekEnd)
+      });
+      
+      // Special debug for problematic dates
+      if ((slotDay === 25 && slotMonth === 4) || (slotDay === 1 && slotMonth === 5)) {
+        console.log(`[DATE FILTER] Slot ${dbSlot.id} date ${slotYear}-${slotMonth+1}-${slotDay} is ${isInCurrentWeek ? 'IN' : 'NOT IN'} current week (${currentWeekStart.toDateString()} to ${currentWeekEnd.toDateString()})`);
+      }
+      
+      return isInCurrentWeek;
+    });
+    
+    // Process only slots from the current week
+    currentWeekSlots.forEach((dbSlot: SchemaTimeSlot) => {
       // Convert dates from UTC to Latvia time zone
       // This is crucial to ensure times display correctly in the UI
       const startTime = toLatviaTime(dbSlot.startTime);
       const endTime = toLatviaTime(dbSlot.endTime);
 
-      // Debug log to help diagnose timezone issues
-      if (isAdmin) {
+      // Debug log but limited to help diagnose timezone issues without cluttering console
+      const isMay25orJune1 = (startTime.getDate() === 25 && startTime.getMonth() === 4) || 
+                            (startTime.getDate() === 1 && startTime.getMonth() === 5);
+                            
+      if (isAdmin && isMay25orJune1) {
         console.log(`Time slot ${dbSlot.id}:`, {
           rawStart: dbSlot.startTime,
           latviaStart: formatInLatviaTime(
