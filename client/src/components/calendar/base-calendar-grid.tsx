@@ -236,47 +236,33 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   
   // Find a time slot for a specific day and time
   const findTimeSlot = (day: number, hour: number, minute: number) => {
-    // CRITICAL FIX: Special handling for June 1st to ensure we find the right slots
-    // June 1st, 2025 is a Sunday, which should be day 6 in our system
-    // This is just a check if we're showing June 1st on the calendar
-    const isJune2025Week = timeSlots.some(slot => {
-      const date = new Date(slot.startTime);
-      return date.getMonth() === 5 && date.getDate() === 1 && date.getFullYear() === 2025;
-    });
-    
-    if (day === 6 && isJune2025Week && (hour >= 11 && hour < 14)) {
-      // Check if we have the WB-L_7LG1SG booking at this time
-      const juneFirstSlot = timeSlots.find(slot => {
-        if (slot.bookingReference !== 'WB-L_7LG1SG') {
-          return false;
-        }
-        
-        const slotTime = new Date(slot.startTime);
-        return slotTime.getHours() === hour && slotTime.getMinutes() === minute;
+    // First check if there's a slot in the organized day buckets
+    if (timeSlotsByDay && timeSlotsByDay[day]) {
+      const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
+        const startTime = new Date(slot.startTime);
+        return startTime.getHours() === hour && startTime.getMinutes() === minute;
       });
       
-      if (juneFirstSlot) {
-        console.log(`🔍 Found June 1st slot for hour ${hour}:${minute}`);
-        return juneFirstSlot;
+      if (matchingSlots.length > 0) {
+        return matchingSlots[0];
       }
     }
     
-    // Standard slot finding logic for other days/times
-    if (!timeSlotsByDay || !timeSlotsByDay[day]) {
-      return null;
-    }
-    
-    const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
-      const startTime = new Date(slot.startTime);
-      return startTime.getHours() === hour && startTime.getMinutes() === minute;
+    // As a fallback (to catch any missed slots), search through all time slots
+    const fallbackSlot = timeSlots.find(slot => {
+      const date = new Date(slot.startTime);
+      const slotDay = date.getDay(); // 0 = Sunday
+      // Convert to our calendar system (0 = Monday, 6 = Sunday)
+      const calendarDay = slotDay === 0 ? 6 : slotDay - 1;
+      
+      return (
+        calendarDay === day && 
+        date.getHours() === hour && 
+        date.getMinutes() === minute
+      );
     });
     
-    // If we find any booking called WB-L_7LG1SG, log it for debugging
-    if (matchingSlots.some(slot => slot.bookingReference === 'WB-L_7LG1SG')) {
-      console.log(`🔍 Found June 1st booking in day ${day} at ${hour}:${minute}`);
-    }
-    
-    return matchingSlots.length > 0 ? matchingSlots[0] : null;
+    return fallbackSlot || null;
   };
   
   // Find all time slots in a sequence (used for showing consecutive bookings)
@@ -285,53 +271,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return [];
     }
     
-    // CRITICAL FIX: Special handling for the June 1st booking we're debugging
-    if (slot.bookingReference === 'WB-L_7LG1SG') {
-      console.log('🔍 Processing June 1st booking slots');
-      
-      // Find ALL slots with this booking reference from the original timeSlots array
-      const juneFirstSlots = timeSlots.filter(s => 
-        s.bookingReference === 'WB-L_7LG1SG'
-      );
-      
-      if (juneFirstSlots.length > 0) {
-        console.log(`🔍 Found ${juneFirstSlots.length} slots for June 1st booking in raw data`);
-        
-        // Log each slot with all its details
-        juneFirstSlots.forEach(s => {
-          const date = new Date(s.startTime);
-          console.log(`🔍 Slot ${s.id}: ${date.toISOString()}, JS Day: ${date.getDay()}, Our Day: ${date.getDay() === 0 ? 6 : date.getDay() - 1}`);
-        });
-        
-        // Let's make sure to return ALL slots for this specific booking
-        // sort by start time
-        juneFirstSlots.sort((a, b) => {
-          return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-        });
-        
-        return juneFirstSlots;
-      }
-    }
-    
-    // First, get all slots with the same booking reference
-    const allSlotsForBooking = [];
-    
-    for (const [_, daySlots] of Object.entries(timeSlotsByDay)) {
-      const matchingSlots = daySlots.filter((s: TimeSlot) => 
-        s.bookingReference && s.bookingReference === slot.bookingReference
-      );
-      
-      if (matchingSlots.length > 0) {
-        allSlotsForBooking.push(...matchingSlots);
-      }
-    }
+    // Direct search in raw time slots for connected slots
+    // This bypasses any day organization issues and finds ALL slots with matching reference
+    const connectedSlots = timeSlots.filter(s => 
+      s.bookingReference && s.bookingReference === slot.bookingReference
+    );
     
     // Sort the slots by start time to ensure we process them in order
-    allSlotsForBooking.sort((a, b) => {
+    connectedSlots.sort((a, b) => {
       return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
     
-    return allSlotsForBooking;
+    return connectedSlots;
   };
   
   // Determine if a slot should be rendered as part of a sequence
@@ -340,44 +291,14 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return false;
     }
     
-    // CRITICAL FIX: For June 1st booking, always use direct detection to avoid issues
-    if (slot.bookingReference === 'WB-L_7LG1SG') {
-      // Get all slots for this booking, sorted by time
-      const juneFirstSlots = timeSlots
-        .filter(s => s.bookingReference === 'WB-L_7LG1SG')
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-        
-      // Log what we found
-      console.log(`🔍 Checking sequence position for slot ${slot.id}`);
-      
-      // Determine position
-      if (position === 'first') {
-        const isFirst = slot.id === juneFirstSlots[0]?.id;
-        console.log(`🔍 Slot ${slot.id} is${isFirst ? '' : ' not'} first in sequence`);
-        return isFirst;
-      } else if (position === 'last') {
-        const isLast = slot.id === juneFirstSlots[juneFirstSlots.length - 1]?.id;
-        console.log(`🔍 Slot ${slot.id} is${isLast ? '' : ' not'} last in sequence`);
-        return isLast;
-      } else { // middle
-        const isMiddle = slot.id !== juneFirstSlots[0]?.id && 
-                         slot.id !== juneFirstSlots[juneFirstSlots.length - 1]?.id;
-        console.log(`🔍 Slot ${slot.id} is${isMiddle ? '' : ' not'} in the middle of sequence`);
-        return isMiddle;
-      }
-    }
-    
-    // Standard logic for other bookings
+    // Get all slots in this booking sequence
     const connectedSlots = findConnectedTimeSlots(slot);
     
     if (connectedSlots.length <= 1) {
       return false;
     }
     
-    // Sort slots by time
-    connectedSlots.sort((a, b) => 
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
+    // Slots are already sorted by time in findConnectedTimeSlots
     
     // Determine if the slot is first, middle, or last in the sequence
     if (position === 'first') {
@@ -421,54 +342,36 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     let displayClass = "p-2 h-10 w-full";
     
     if (slot) {
-      // CRITICAL FIX: Direct handling for June 1st booking to ensure correct rendering
-      if (slot.bookingReference === 'WB-L_7LG1SG') {
-        // For June 1st booking, all slots should be blue and show reference
-        displayClass += " bg-blue-500 text-white";
-        
-        // Get all slots for this booking to determine position
-        const allSlots = timeSlots
-          .filter(s => s.bookingReference === 'WB-L_7LG1SG')
-          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-        
-        // Position-based styling
-        if (slot.id === allSlots[0]?.id) {
-          displayClass += " rounded-t"; // First slot
-        } else if (slot.id === allSlots[allSlots.length - 1]?.id) {
-          displayClass += " rounded-b"; // Last slot
-        }
-      } else {
-        // Standard styling for other bookings
-        const isPartOfBooking = slot.bookingReference && slot.status === 'booked';
-        const isFirst = isPartOfBooking && isPartOfSequence(slot, 'first');
-        const isMiddle = isPartOfBooking && isPartOfSequence(slot, 'middle');
-        const isLast = isPartOfBooking && isPartOfSequence(slot, 'last');
-        
-        // Styling for different slot statuses
-        switch (slot.status) {
-          case 'available':
-            displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
-            break;
-          case 'booked':
-            if (isFirst) {
-              displayClass += " bg-blue-500 text-white rounded-t";
-            } else if (isLast) {
-              displayClass += " bg-blue-500 text-white rounded-b";
-            } else if (isMiddle) {
-              displayClass += " bg-blue-500 text-white";
-            } else {
-              displayClass += " bg-blue-500 text-white rounded";
-            }
-            break;
-          case 'reserved':
-            displayClass += " bg-yellow-100 hover:bg-yellow-200 cursor-pointer";
-            break;
-          case 'unavailable':
-            displayClass += " bg-gray-100 text-gray-400";
-            break;
-          default:
-            displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
-        }
+      // Standard styling for all bookings
+      const isPartOfBooking = slot.bookingReference && slot.status === 'booked';
+      const isFirst = isPartOfBooking && isPartOfSequence(slot, 'first');
+      const isMiddle = isPartOfBooking && isPartOfSequence(slot, 'middle');
+      const isLast = isPartOfBooking && isPartOfSequence(slot, 'last');
+      
+      // Styling for different slot statuses
+      switch (slot.status) {
+        case 'available':
+          displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
+          break;
+        case 'booked':
+          if (isFirst) {
+            displayClass += " bg-blue-500 text-white rounded-t";
+          } else if (isLast) {
+            displayClass += " bg-blue-500 text-white rounded-b";
+          } else if (isMiddle) {
+            displayClass += " bg-blue-500 text-white";
+          } else {
+            displayClass += " bg-blue-500 text-white rounded";
+          }
+          break;
+        case 'reserved':
+          displayClass += " bg-yellow-100 hover:bg-yellow-200 cursor-pointer";
+          break;
+        case 'unavailable':
+          displayClass += " bg-gray-100 text-gray-400";
+          break;
+        default:
+          displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
       }
     } else if (isDayClosed) {
       // Styling for closed days
