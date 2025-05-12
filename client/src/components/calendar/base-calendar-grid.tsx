@@ -236,7 +236,29 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   
   // Find a time slot for a specific day and time
   const findTimeSlot = (day: number, hour: number, minute: number) => {
-    // First check if there's a slot in the organized day buckets
+    // Create a date object for the current day of the week at the specified hour:minute
+    // This gives us an exact time reference for the current calendar cell
+    const currentWeekday = weekDays[day];
+    
+    // Create a time string to search for
+    const formattedDate = format(currentWeekday, 'yyyy-MM-dd');
+    const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    
+    // Method 1: Direct search through all time slots (most reliable method)
+    let slots = timeSlots.filter(slot => {
+      const slotDate = new Date(slot.startTime);
+      const slotFormattedDate = format(slotDate, 'yyyy-MM-dd');
+      const slotFormattedTime = format(slotDate, 'HH:mm');
+      
+      return slotFormattedDate === formattedDate && slotFormattedTime === formattedTime;
+    });
+    
+    // We found an exact match by date and time
+    if (slots.length > 0) {
+      return slots[0];
+    }
+    
+    // Method 2: Try the day bucket method (faster but less reliable)
     if (timeSlotsByDay && timeSlotsByDay[day]) {
       const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
         const startTime = new Date(slot.startTime);
@@ -248,7 +270,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       }
     }
     
-    // As a fallback (to catch any missed slots), search through all time slots
+    // Method 3: Last resort - day of week calculation (most error-prone)
     const fallbackSlot = timeSlots.find(slot => {
       const date = new Date(slot.startTime);
       const slotDay = date.getDay(); // 0 = Sunday
@@ -271,15 +293,21 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return [];
     }
     
-    // Direct search in raw time slots for connected slots
-    // This bypasses any day organization issues and finds ALL slots with matching reference
+    // Force a fresh query using raw API data - this ensures we get ALL slots for this booking
     const connectedSlots = timeSlots.filter(s => 
       s.bookingReference && s.bookingReference === slot.bookingReference
     );
     
-    // Sort the slots by start time to ensure we process them in order
+    if (slot.bookingReference === 'WB-L_7LG1SG') {
+      console.log(`Found ${connectedSlots.length} slots for booking ${slot.bookingReference}`);
+      console.log("Connected slots:", connectedSlots);
+    }
+    
+    // Sort the slots chronologically by start time
     connectedSlots.sort((a, b) => {
-      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      const aTime = new Date(a.startTime).getTime();
+      const bTime = new Date(b.startTime).getTime();
+      return aTime - bTime;
     });
     
     return connectedSlots;
@@ -298,17 +326,24 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return false;
     }
     
-    // Slots are already sorted by time in findConnectedTimeSlots
+    // If this is our problematic June 1st booking, log the sequence determination
+    if (slot.bookingReference === 'WB-L_7LG1SG') {
+      console.log(`Checking sequence position '${position}' for slot ID ${slot.id}`);
+      console.log(`First slot ID: ${connectedSlots[0].id}, Last slot ID: ${connectedSlots[connectedSlots.length - 1].id}`);
+    }
     
-    // Determine if the slot is first, middle, or last in the sequence
+    // Determine position in sequence using timestamps instead of IDs (more reliable)
+    const slotTime = new Date(slot.startTime).getTime();
+    const firstTime = new Date(connectedSlots[0].startTime).getTime();
+    const lastTime = new Date(connectedSlots[connectedSlots.length - 1].startTime).getTime();
+    
     if (position === 'first') {
-      return slot.id === connectedSlots[0].id;
+      return slotTime === firstTime;
     } else if (position === 'last') {
-      return slot.id === connectedSlots[connectedSlots.length - 1].id;
+      return slotTime === lastTime;
     } else {
       // Middle slot: not first and not last
-      return slot.id !== connectedSlots[0].id && 
-             slot.id !== connectedSlots[connectedSlots.length - 1].id;
+      return slotTime !== firstTime && slotTime !== lastTime;
     }
   };
   
@@ -342,11 +377,21 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     let displayClass = "p-2 h-10 w-full";
     
     if (slot) {
+      // Is this the June 1st booking we're trying to debug?
+      const isJune1stBooking = slot.bookingReference === 'WB-L_7LG1SG';
+      
       // Standard styling for all bookings
       const isPartOfBooking = slot.bookingReference && slot.status === 'booked';
+      
+      // Determine if this slot is part of a sequence
       const isFirst = isPartOfBooking && isPartOfSequence(slot, 'first');
       const isMiddle = isPartOfBooking && isPartOfSequence(slot, 'middle');
       const isLast = isPartOfBooking && isPartOfSequence(slot, 'last');
+      
+      // Special debugging for the June 1st booking
+      if (isJune1stBooking) {
+        console.log(`Slot ${slot.id} position: ${isFirst ? 'first' : isMiddle ? 'middle' : isLast ? 'last' : 'single'}`);
+      }
       
       // Styling for different slot statuses
       switch (slot.status) {
@@ -354,6 +399,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
           displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
           break;
         case 'booked':
+          // Apply special styling for sequences
           if (isFirst) {
             displayClass += " bg-blue-500 text-white rounded-t";
           } else if (isLast) {
@@ -361,7 +407,13 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
           } else if (isMiddle) {
             displayClass += " bg-blue-500 text-white";
           } else {
+            // Single slot (not part of a sequence)
             displayClass += " bg-blue-500 text-white rounded";
+          }
+          
+          // Special visual enhancement for our problem booking to make it stand out
+          if (isJune1stBooking) {
+            displayClass += " !bg-blue-700 font-medium";
           }
           break;
         case 'reserved':
@@ -472,17 +524,26 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
 
                 {/* Day columns */}
                 {weekDays.map((day, dayIndex) => {
-                  // CRITICAL FIX: Convert JavaScript day to our system day
+                  // Map JavaScript's day (0=Sunday) to our calendar system (0=Monday)
                   const jsDay = day.getDay(); // 0=Sunday, 1=Monday, etc.
                   const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1; // 0=Monday, 6=Sunday
                   
-                  const slot = findTimeSlot(ourSystemDay, hour, minute);
+                  // Special debug for June 1st
+                  const isJune1st = day.getMonth() === 5 && day.getDate() === 1;
+                  
+                  // Find the time slot for this day/hour/minute cell
+                  const slot = findTimeSlot(dayIndex, hour, minute);
+                  
+                  // Extra debugging for June 1st
+                  if (isJune1st && slot && slot.bookingReference === 'WB-L_7LG1SG') {
+                    console.log(`Found June 1st slot at ${hour}:${minute} with ID ${slot.id}`);
+                  }
                   
                   return (
                     <div key={dayIndex} className="border-r last:border-r-0">
                       {renderSlotCell 
-                        ? renderSlotCell(slot, ourSystemDay, formatTime(hour, minute), day, hour, minute)
-                        : defaultRenderSlotCell(slot, ourSystemDay, formatTime(hour, minute), day, hour, minute)
+                        ? renderSlotCell(slot, dayIndex, formatTime(hour, minute), day, hour, minute)
+                        : defaultRenderSlotCell(slot, dayIndex, formatTime(hour, minute), day, hour, minute)
                       }
                     </div>
                   );
