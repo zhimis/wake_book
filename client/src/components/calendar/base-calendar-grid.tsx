@@ -333,64 +333,81 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return [];
     }
     
-    // Force a fresh query using raw API data - this ensures we get ALL slots for this booking
-    const connectedSlots = timeSlots.filter(s => 
+    // Step 1: Get all slots with the same booking reference
+    const sameBookingSlots = timeSlots.filter(s => 
       s.bookingReference && s.bookingReference === slot.bookingReference
     );
     
-    if (slot.bookingReference === 'WB-L_7LG1SG') {
-      console.log(`Found ${connectedSlots.length} slots for booking ${slot.bookingReference}`);
-      console.log("Connected slots:", connectedSlots);
-    }
+    // Step 2: Build a graph of connected time slots (connected = consecutive times)
+    // For each slot, find all other slots that are consecutive (30 min apart)
+    const slotGraph = new Map<number, number[]>();
     
-    // Sort the slots chronologically by start time
-    connectedSlots.sort((a, b) => {
-      const aTime = new Date(a.startTime).getTime();
-      const bTime = new Date(b.startTime).getTime();
-      return aTime - bTime;
+    // Initialize the graph with empty connections for each slot
+    sameBookingSlots.forEach(s => {
+      slotGraph.set(s.id, []);
     });
     
-    return connectedSlots;
+    // Fill in the connections by checking consecutive slots
+    sameBookingSlots.forEach(s1 => {
+      sameBookingSlots.forEach(s2 => {
+        if (s1.id !== s2.id && areSlotsConsecutive(s1, s2)) {
+          // Add connection from s1 to s2
+          const connections = slotGraph.get(s1.id) || [];
+          if (!connections.includes(s2.id)) {
+            connections.push(s2.id);
+            slotGraph.set(s1.id, connections);
+          }
+        }
+      });
+    });
+    
+    // Step 3: Find the connected component containing our slot
+    const visited = new Set<number>();
+    const component: TimeSlot[] = [];
+    
+    // Depth-first search to find all connected slots
+    const dfs = (id: number) => {
+      if (visited.has(id)) return;
+      visited.add(id);
+      
+      // Add the current slot to the component
+      const currentSlot = sameBookingSlots.find(s => s.id === id);
+      if (currentSlot) {
+        component.push(currentSlot);
+      }
+      
+      // Visit all connected slots
+      const connections = slotGraph.get(id) || [];
+      for (const connectedId of connections) {
+        dfs(connectedId);
+      }
+    };
+    
+    // Start DFS from our slot
+    dfs(slot.id);
+    
+    // Sort the component by start time
+    component.sort((a, b) => {
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+    });
+    
+    // Log for debugging
+    if (component.length > 1) {
+      console.log(`Found ${component.length} connected slots for booking ${slot.bookingReference}`);
+    }
+    
+    return component;
   };
   
-  // CRITICAL FIX: Special handling for the June 1st, 2025 booking that isn't displaying properly
-  // This function directly checks the timestamp to determine if it's part of the June 1st booking
-  const isJune1stSlot = (slot: TimeSlot): boolean => {
-    if (!slot || !slot.bookingReference || slot.bookingReference !== 'WB-L_7LG1SG') {
-      return false;
-    }
+  // General purpose function to determine if two time slots are consecutive (30 min apart)
+  const areSlotsConsecutive = (slot1: TimeSlot, slot2: TimeSlot): boolean => {
+    const time1 = new Date(slot1.startTime).getTime();
+    const time2 = new Date(slot2.startTime).getTime();
     
-    const date = new Date(slot.startTime);
-    return date.getUTCFullYear() === 2025 && date.getUTCMonth() === 5 && date.getUTCDate() === 1;
-  };
-  
-  // HARD-CODED TIME SLOT POSITION FOR JUNE 1ST
-  // This approach doesn't rely on relative time comparisons which might be failing
-  const getJune1stPosition = (slot: TimeSlot): 'first' | 'middle' | 'last' | null => {
-    if (!isJune1stSlot(slot)) return null;
-    
-    // Get UTC hours and minutes
-    const utcHours = new Date(slot.startTime).getUTCHours();
-    const utcMinutes = new Date(slot.startTime).getUTCMinutes();
-    
-    // Manual position determination for the problematic booking
-    if (utcHours === 11 && utcMinutes === 0) {
-      console.log("FOUND FIRST SLOT OF JUNE 1ST BOOKING AT 11:00", slot.id);
-      return 'first';
-    } 
-    else if (utcHours === 13 && utcMinutes === 30) {
-      console.log("FOUND LAST SLOT OF JUNE 1ST BOOKING AT 13:30", slot.id);
-      return 'last';
-    }
-    else if ((utcHours === 11 && utcMinutes === 30) || 
-             (utcHours === 12 && utcMinutes === 0) || 
-             (utcHours === 12 && utcMinutes === 30) ||
-             (utcHours === 13 && utcMinutes === 0)) {
-      console.log(`FOUND MIDDLE SLOT OF JUNE 1ST BOOKING AT ${utcHours}:${utcMinutes}`, slot.id);
-      return 'middle';
-    }
-    
-    return null;
+    // Check if the slots are exactly 30 minutes apart (standard slot duration)
+    // 30 minutes = 30 * 60 * 1000 = 1,800,000 milliseconds
+    const timeDiff = Math.abs(time1 - time2);
+    return timeDiff === 1800000;
   };
   
   // Get slot position in a booking sequence - can be first, middle, or last
@@ -399,13 +416,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return null;
     }
     
-    // Direct check for June 1st booking with exact time comparison
-    const june1stPosition = getJune1stPosition(slot);
-    if (june1stPosition) {
-      return june1stPosition;
-    }
-    
-    // For all other bookings, use the normal connected slots logic
+    // Find all connected slots in this booking sequence using our improved graph algorithm
     const connectedSlots = findConnectedTimeSlots(slot);
     
     if (connectedSlots.length <= 1) {
@@ -464,49 +475,27 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     let displayClass = "p-2 h-10 w-full";
     
     if (slot) {
-      // Is this the June 1st booking we're trying to debug?
-      const isJune1stBooking = slot.bookingReference === 'WB-L_7LG1SG';
-      
-      // Special handling for our known problematic booking
+      // Track position flags for all bookings in a uniform way
       let isFirst = false;
       let isMiddle = false;
       let isLast = false;
       
-      // Simplified approach that avoids LSP errors
-      // Since we have a known problem with the June 1st booking, we'll use a direct approach
-      
-      // Special handling for the June 1st booking
+      // Generalized approach for all bookings
       const isPartOfBooking = !!slot.bookingReference && slot.status === 'booked';
       
-      if (isJune1stBooking) {
-        // Hard-coded position determination based on timestamps from database
-        const date = new Date(slot.startTime);
-        const hours = date.getUTCHours();
-        const minutes = date.getUTCMinutes();
-        
-        // Direct time check for each position
-        if (hours === 11 && minutes === 0) {
-          isFirst = true;
-          console.log("RENDERING FIRST SLOT OF JUNE 1 BOOKING", slot.id);
-        } 
-        else if (hours === 13 && minutes === 30) {
-          isLast = true;
-          console.log("RENDERING LAST SLOT OF JUNE 1 BOOKING", slot.id);
-        }
-        else if ((hours === 11 && minutes === 30) || 
-                 (hours === 12 && minutes === 0) || 
-                 (hours === 12 && minutes === 30) ||
-                 (hours === 13 && minutes === 0)) {
-          isMiddle = true;
-          console.log(`RENDERING MIDDLE SLOT OF JUNE 1 BOOKING AT ${hours}:${minutes}`, slot.id);
-        }
-      }
-      // For all other bookings, use the normal sequence detection
-      else if (isPartOfBooking) {
+      if (isPartOfBooking) {
+        // Get the position of this slot in its booking sequence
         const position = getSlotPosition(slot);
+        
+        // Set position flags based on result
         isFirst = position === 'first';
         isMiddle = position === 'middle';
         isLast = position === 'last';
+        
+        // Add debugging for all multi-slot bookings
+        if (position) {
+          console.log(`Booking ${slot.bookingReference} - Slot ${slot.id} at ${new Date(slot.startTime).toISOString()} position: ${position}`);
+        }
       }
       
       // Styling for different slot statuses
