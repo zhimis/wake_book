@@ -1491,6 +1491,7 @@ const AdminCalendarView = () => {
                     className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                     onClick={handleBlockTimeSlots}
                     disabled={selectedTimeSlots.length === 0}
+                    data-action="block-slots"
                   >
                     <AlertTriangle className="h-4 w-4 mr-1" />
                     Block Slots
@@ -1501,6 +1502,7 @@ const AdminCalendarView = () => {
                     className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
                     onClick={handleMakeAvailable}
                     disabled={selectedTimeSlots.length === 0}
+                    data-action="make-available"
                   >
                     <Clock className="h-4 w-4 mr-1" />
                     Make Available
