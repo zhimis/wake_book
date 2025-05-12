@@ -8,76 +8,6 @@ import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { TimeSlot } from "@shared/schema";
 import { LATVIA_TIMEZONE, toLatviaTime } from "@/lib/utils";
 
-// Global debug function to analyze June 1st booking from browser console
-(window as any).debugJune1stBooking = () => {
-  // Fetch the June 1st time slots directly
-  fetch('/api/timeslots?startDate=2025-06-01T00:00:00.000Z&endDate=2025-06-09T00:00:00.000Z')
-    .then(res => res.json())
-    .then(data => {
-      const juneFirstBooking = 'WB-L_7LG1SG';
-      
-      // Filter to get only the June 1st booking slots
-      const targetSlots = data.timeSlots.filter((slot: any) => 
-        slot.bookingReference === juneFirstBooking
-      );
-      
-      // Log the found slots
-      console.log(`FOUND JUNE 1ST BOOKING SLOTS: ${targetSlots.length}`, targetSlots);
-      
-      // For each slot, log the date and day of week
-      targetSlots.forEach((slot: any) => {
-        const jsDate = new Date(slot.startTime);
-        const jsDay = jsDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        const latvianDay = jsDay === 0 ? 6 : jsDay - 1; // Convert to our system
-        
-        console.log(`SLOT ${slot.id}:
-          - JS Date: ${jsDate.toISOString()}
-          - JS Day of Week: ${jsDay} (0=Sun, 1=Mon, etc.)
-          - Our System Day: ${latvianDay} (0=Mon, 1=Tue, etc.)
-          - Status: ${slot.status}
-          - Reference: ${slot.bookingReference}
-        `);
-      });
-      
-      // Manually test our day organization logic
-      console.log("\n--- MANUAL DAY ORGANIZATION TEST ---");
-      
-      // Initialize day buckets (our system: 0=Monday, 6=Sunday)
-      const dayBuckets = {
-        0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []
-      };
-      
-      // Organize slots into day buckets
-      targetSlots.forEach(slot => {
-        const slotDate = new Date(slot.startTime);
-        const jsDay = slotDate.getDay(); // 0=Sunday
-        const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1; // Convert
-        
-        // Add to the appropriate day bucket
-        if (dayBuckets[ourSystemDay]) {
-          dayBuckets[ourSystemDay].push(slot);
-        } else {
-          console.error(`Invalid day bucket: ${ourSystemDay}`);
-        }
-      });
-      
-      // Log the organized slots
-      for (let day = 0; day < 7; day++) {
-        const slotsForDay = dayBuckets[day];
-        console.log(`Day ${day} (${day === 6 ? 'Sunday' : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}): ${slotsForDay.length} slots`);
-        
-        if (slotsForDay.length > 0) {
-          slotsForDay.forEach(slot => {
-            console.log(`  - Slot ${slot.id}: ${new Date(slot.startTime).toISOString()}`);
-          });
-        }
-      }
-    })
-    .catch(err => {
-      console.error("Error fetching June 1st slots:", err);
-    });
-};
-
 // Define internal OperatingHours interface since we're only using it in this component
 interface OperatingHours {
   id: number;
@@ -85,6 +15,11 @@ interface OperatingHours {
   openTime: string;
   closeTime: string;
   isClosed: boolean;
+}
+
+// Define configuration interface
+interface Config {
+  operatingHours: OperatingHours[];
 }
 
 export interface BaseCalendarProps {
@@ -121,85 +56,61 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   renderSlotCell,
   onSlotClick,
   onDateChange,
-  initialDate = new Date(),
+  initialDate,
   fixedTimeRange
 }) => {
-  // State for calendar navigation
-  const [currentDate, setCurrentDate] = useState(initialDate);
+  // State for managing the current date and calendar range
+  const [currentDate, setCurrentDate] = useState<Date>(initialDate || new Date());
   
-  // Calculate week start/end dates (using Monday as first day of week)
+  // Calculate start of week for fetching data - always goes from Monday to Sunday
   const startDate = useMemo(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+    // Get the Monday of the current week (in Latvia time)
+    const start = toLatviaTime(startOfWeek(toLatviaTime(currentDate), { weekStartsOn: 1 }));
     return start;
   }, [currentDate]);
   
   const endDate = useMemo(() => {
-    return endOfWeek(startDate, { weekStartsOn: 1 });
-  }, [startDate]);
-
-  // Notify parent when date range changes
-  useEffect(() => {
-    if (onDateChange) {
-      onDateChange(startDate, endDate);
-    }
-  }, [startDate, endDate, onDateChange]);
-
+    // Get the Sunday of the current week (in Latvia time)
+    const end = toLatviaTime(endOfWeek(toLatviaTime(currentDate), { weekStartsOn: 1 }));
+    return end;
+  }, [currentDate]);
+  
+  // Fetch configuration from API
+  const { data: config, isLoading: configLoading } = useQuery({
+    queryKey: ['/api/config'],
+    select: (data: Config) => data
+  });
+  
   // Fetch time slots for the current week
-  const { data: timeSlotsResponse, isLoading: timeSlotsLoading } = useQuery({
-    queryKey: ['/api/timeslots', { startDate: startDate.toISOString(), endDate: endDate.toISOString() }],
+  const { data: timeSlotsData, isLoading: timeSlotsLoading } = useQuery({
+    queryKey: ['/api/timeslots', startDate.toISOString(), endDate.toISOString()],
+    enabled: !!startDate && !!endDate,
     queryFn: async () => {
-      console.log(`Fetching time slots from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-      const res = await fetch(`/api/timeslots?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
-      if (!res.ok) throw new Error('Failed to fetch time slots');
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
+      const res = await fetch(`/api/timeslots?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch time slots');
+      }
       return res.json();
     }
   });
   
-  // Extract the actual time slots array from the response
-  const timeSlots = useMemo(() => {
-    if (!timeSlotsResponse) return [];
-    
-    // The API returns { startDate, endDate, timeSlots: [] }
-    if (timeSlotsResponse.timeSlots && Array.isArray(timeSlotsResponse.timeSlots)) {
-      console.log(`Successfully extracted ${timeSlotsResponse.timeSlots.length} time slots from API response`);
-      
-      // CRITICAL DEBUG: Look specifically for our June 1st booking
-      const juneFirstSlots = timeSlotsResponse.timeSlots.filter(slot => 
-        slot.bookingReference === 'WB-L_7LG1SG'
-      );
-      
-      if (juneFirstSlots.length > 0) {
-        console.log(`🔍 FOUND ${juneFirstSlots.length} SLOTS FOR JUNE 1ST BOOKING:`, juneFirstSlots);
-        
-        // Check the date range we're viewing
-        const startDateString = timeSlotsResponse.startDate || 'unknown';
-        const endDateString = timeSlotsResponse.endDate || 'unknown';
-        console.log(`Current view date range: ${startDateString} to ${endDateString}`);
-      }
-      
-      return timeSlotsResponse.timeSlots;
-    } 
-    
-    // Fallback in case the API changes in the future
-    if (Array.isArray(timeSlotsResponse)) {
-      console.log(`Received ${timeSlotsResponse.length} time slots directly as array`);
-      return timeSlotsResponse;
+  // Extract timeSlots from the data
+  const timeSlots: TimeSlot[] = useMemo(() => {
+    return timeSlotsData?.timeSlots || [];
+  }, [timeSlotsData]);
+  
+  // Notify parent of date range change
+  useEffect(() => {
+    if (onDateChange && startDate && endDate) {
+      onDateChange(startDate, endDate);
     }
-    
-    console.log("Could not extract time slots from response:", timeSlotsResponse);
-    return [];
-  }, [timeSlotsResponse]);
-
-  // Fetch operating hours and pricing rules
-  const { data: config, isLoading: configLoading } = useQuery({
-    queryKey: ['/api/config'],
-    queryFn: async () => {
-      const res = await fetch('/api/config');
-      if (!res.ok) throw new Error('Failed to fetch config');
-      return res.json();
-    }
-  });
-
+  }, [startDate, endDate, onDateChange]);
+  
   // Organize time slots by day of the week (0-6 where 0 is Monday in our case)
   const timeSlotsByDay: TimeSlotByDay = useMemo(() => {
     if (!timeSlots || !Array.isArray(timeSlots)) {
@@ -213,6 +124,16 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       slotsByDay[i] = [];
     }
     
+    // CRITICAL FIX: Explicitly look for the June 1st booking and log it
+    const juneFirstBookings = timeSlots.filter(slot => {
+      const date = new Date(slot.startTime);
+      return date.getMonth() === 5 && date.getDate() === 1;
+    });
+    
+    if (juneFirstBookings.length > 0) {
+      console.log(`Found ${juneFirstBookings.length} slots for June 1st:`, juneFirstBookings);
+    }
+    
     timeSlots.forEach((slot: TimeSlot) => {
       const slotDate = new Date(slot.startTime);
       
@@ -222,472 +143,312 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       const jsDay = slotDate.getDay();
       const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1;
       
-      // Debug log the day conversions
-      console.log(`Timeslot ${slot.id} date: ${slotDate.toISOString()}, JS day: ${jsDay}, our system day: ${ourSystemDay}`);
-      
       slotsByDay[ourSystemDay].push(slot);
     });
     
-    // DEBUG: Check if our June 1st booking got assigned to the correct day
-    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-      const juneFirstSlotsInDay = slotsByDay[dayIndex].filter(slot => 
-        slot.bookingReference === 'WB-L_7LG1SG'
-      );
-      
-      if (juneFirstSlotsInDay.length > 0) {
-        console.log(`⚠️ DAY ${dayIndex} contains ${juneFirstSlotsInDay.length} slots for our June 1st booking`);
-        juneFirstSlotsInDay.forEach(slot => {
-          const slotDate = new Date(slot.startTime);
-          console.log(`  - Slot ${slot.id}: ${slotDate.toISOString()}, JS day: ${slotDate.getDay()}`);
-        });
-      }
-    }
-    
     return slotsByDay;
   }, [timeSlots]);
-
+  
   // Generate array of days for the current week (in Latvia time)
   const weekDays = useMemo(() => {
     const days = [];
+    const weekStart = toLatviaTime(startOfWeek(toLatviaTime(currentDate), { weekStartsOn: 1 }));
+    
     for (let i = 0; i < 7; i++) {
-      // Convert to Latvia time to ensure we have the correct day
-      const localDay = addDays(startDate, i);
-      const latviaDay = toLatviaTime(localDay);
-      days.push(latviaDay);
+      days.push(addDays(weekStart, i));
     }
+    
     return days;
-  }, [startDate]);
-
-  // Generate time slots for the grid
+  }, [currentDate]);
+  
+  // Generate the time slots grid
   const timeSlotGrid = useMemo(() => {
-    if (!config || configLoading) return [];
+    const timeGrid = [];
     
-    // Determine min/max hours for the calendar grid
-    let minHour = 24;
-    let maxHour = 0;
+    // Use fixed time range if provided, otherwise determine from operating hours
+    let startHour = 8; // Default opening hour
+    let endHour = 18; // Default closing hour
     
-    console.log("DEBUG: FULL CONFIG DATA:", JSON.stringify(config, null, 2));
-    
-    // FIXED REQUIREMENTS:
-    // - Admin view: always show 8:00-22:00
-    // - Public view: show all rows between earliest and latest available slots
-    if (viewMode === 'admin') {
-      // For admin view, show fixed range 8:00-22:00
-      minHour = 8;   // 8am
-      maxHour = 22;  // 10pm
-      console.log(`Using fixed admin time range: ${minHour}:00-${maxHour}:00`);
-    } else if (fixedTimeRange) {
-      // If explicitly provided time range, use that
-      minHour = fixedTimeRange.start;
-      maxHour = fixedTimeRange.end;
-      // Time range log removed
-    } else if (viewMode === 'public' && timeSlots && timeSlots.length > 0) {
-      // For public view - determine range based on available time slots
-      // First - get all slots that are available
-      const availableSlots = timeSlots.filter((slot: TimeSlot) => slot.status === 'available');
-      
-      // Available slots log removed
-      
-      if (availableSlots.length > 0) {
-        // Find the earliest and latest time slots
-        let earliestHour = 24;
-        let latestHour = 0;
+    if (fixedTimeRange) {
+      startHour = fixedTimeRange.start;
+      endHour = fixedTimeRange.end;
+    } else if (config && !configLoading) {
+      // Find earliest opening and latest closing hours across all days
+      if (viewMode === 'public') {
+        // For public view, only include times for days that aren't closed
+        const availableSlots = timeSlots.filter((slot: TimeSlot) => slot.status === 'available');
         
-        availableSlots.forEach((slot: TimeSlot) => {
-          const slotDate = toLatviaTime(slot.startTime);
-          const slotEndDate = toLatviaTime(slot.endTime);
-          const hour = slotDate.getHours();
-          const endHour = slotEndDate.getHours();
-          const endMinute = slotEndDate.getMinutes();
+        if (availableSlots.length > 0) {
+          // Use the earliest and latest times from available slots
+          startHour = Math.min(...availableSlots.map(slot => new Date(slot.startTime).getHours()));
+          endHour = Math.max(...availableSlots.map(slot => new Date(slot.endTime).getHours()));
+        } else if (config.operatingHours && config.operatingHours.length > 0) {
+          // Fall back to configured operating hours
+          const activeDays = config.operatingHours.filter((oh: OperatingHours) => !oh.isClosed);
           
-          earliestHour = Math.min(earliestHour, hour);
-          
-          // Adjust end hour if minutes > 0
-          const adjustedEndHour = endMinute > 0 ? endHour + 1 : endHour;
-          latestHour = Math.max(latestHour, adjustedEndHour);
-          
-          console.log(`Slot at ${hour}:${slotDate.getMinutes()} to ${endHour}:${endMinute} (Latvia time)`);
-        });
-        
-        // Set range based on available slots
-        minHour = Math.max(8, earliestHour); // Don't go earlier than 8am
-        maxHour = Math.min(23, latestHour);  // Don't go later than 11pm
-        
-        // Public view range log removed
-      } else if (config?.operatingHours && Array.isArray(config.operatingHours)) {
-        // Fallback to operating hours if no available slots
-        // No available slots log removed
-        
-        // Find all non-closed days
-        const activeDays = config.operatingHours.filter((oh: OperatingHours) => !oh.isClosed);
-        
-        if (activeDays.length === 0) {
-          // If all days are closed, use default 10am-6pm range
-          minHour = 10;
-          maxHour = 18;
-          // Default range log removed
-        } else {
-          // Process the active operating hours
-          activeDays.forEach((oh: OperatingHours) => {
-            const openHour = parseInt(oh.openTime.split(':')[0]);
-            const closeHour = parseInt(oh.closeTime.split(':')[0]);
-            const closeMinute = parseInt(oh.closeTime.split(':')[1]);
+          if (activeDays.length > 0) {
+            const openHours = activeDays
+              .map(oh => parseInt(oh.openTime.split(':')[0]))
+              .filter(h => !isNaN(h));
+              
+            const closeHours = activeDays
+              .map(oh => parseInt(oh.closeTime.split(':')[0]))
+              .filter(h => !isNaN(h));
             
-            minHour = Math.min(minHour, openHour);
-            
-            // Fix for 24 hour display - if closeHour is 24 (midnight), keep it as 24
-            let adjustedCloseHour = closeHour;
-            if (closeHour === 0 && (oh.closeTime === "00:00" || oh.closeTime === "0:00" || oh.closeTime === "00:00:00")) {
-              adjustedCloseHour = 24;
-            }
-            
-            // Add 1 to the close hour if there are minutes, to include the partial hour
-            maxHour = Math.max(maxHour, adjustedCloseHour + (closeMinute > 0 ? 1 : 0));
-          });
+            if (openHours.length > 0) startHour = Math.min(...openHours);
+            if (closeHours.length > 0) endHour = Math.max(...closeHours);
+          }
         }
       } else {
-        // Fallback if no config or time slots
-        minHour = 10;
-        maxHour = 21;
-        console.log("No config or time slots available, using default 10:00-21:00 range");
-      }
-    } else {
-      // Fallback if no other method applied
-      minHour = 10;
-      maxHour = 21;
-      console.log("Using default time range: 10:00-21:00");
-    }
-    
-    // Ensure maxHour is at least minHour + 1 to show something
-    if (maxHour <= minHour) {
-      maxHour = minHour + 1;
-    }
-    
-    console.log(`FINAL HOUR RANGE: ${minHour}:00 - ${maxHour}:00`);
-    
-    // Create time slots at 30-minute intervals
-    const times = [];
-    for (let hour = minHour; hour < maxHour; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        times.push({ hour, minute });
+        // For admin view, include all configured times regardless of closed status
+        const allConfiguredHours = config.operatingHours || [];
+        
+        const openHours = allConfiguredHours
+          .map(oh => parseInt(oh.openTime.split(':')[0]))
+          .filter(h => !isNaN(h));
+          
+        const closeHours = allConfiguredHours
+          .map(oh => parseInt(oh.closeTime.split(':')[0]))
+          .filter(h => !isNaN(h));
+        
+        if (openHours.length > 0) startHour = Math.min(...openHours);
+        if (closeHours.length > 0) endHour = Math.max(...closeHours);
       }
     }
     
-    return times;
+    // Add a buffer hour at the end for timeslots ending in that hour
+    endHour = Math.min(endHour + 1, 24);
+    
+    // Generate timeslots at 30-minute intervals
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute of [0, 30]) {
+        timeGrid.push({ hour, minute });
+      }
+    }
+    
+    return timeGrid;
   }, [config, configLoading, fixedTimeRange, timeSlots, viewMode]);
-
-  // Find matching time slot for a given day and time
-  const findTimeSlot = (day: number, hour: number, minute: number): TimeSlot | null => {
-    if (!timeSlotsByDay[day]) return null;
-    
-    // Filter slots for the requested time
-    const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
-      // Convert the UTC slot time to Latvia timezone
-      const slotLatviaDate = toLatviaTime(slot.startTime);
-      
-      // Extract hours and minutes from the Latvia time
-      const slotHour = slotLatviaDate.getHours();
-      const slotMinute = slotLatviaDate.getMinutes();
-      
-      // Check if this slot matches the requested hour and minute
-      return slotHour === hour && slotMinute === minute;
-    });
-    
-    // If we found an exact match for this time slot, return it
-    if (matchingSlots.length > 0) {
-      return matchingSlots[0];
-    }
-    
-    // If no exact match found and this is for the admin view, check if this time falls within a booking span
-    if (viewMode === 'admin') {
-      // First, look for other slots in this day that have the same booking reference
-      // to handle multi-slot bookings
-      const bookedSlotsInDay = timeSlotsByDay[day].filter(slot => 
-        slot.status === 'booked' && slot.bookingReference
-      );
-      
-      // Add debug information
-      console.log(`Looking for slots in day ${day} at time ${hour}:${minute}`);
-      console.log(`Found ${bookedSlotsInDay.length} booked slots in day ${day}`);
-      
-      // MAJOR FIX: First, check for bookingReferences across ALL days
-      // This ensures we connect slots from the same booking even if they're in different days
-      const allBookingRefs = new Set<string>();
-      
-      // Find all booking references in this view to include in cross-day checks
-      Object.values(timeSlotsByDay).forEach(daySlots => {
-        daySlots.forEach(slot => {
-          if (slot.bookingReference) {
-            allBookingRefs.add(slot.bookingReference);
-          }
-        });
-      });
-      
-      console.log(`Found ${allBookingRefs.size} unique booking references across all days`);
-      
-      // Group slots by booking reference - NEW APPROACH: Group all booked slots by reference regardless of day
-      const bookingGroups = new Map<string, TimeSlot[]>();
-      
-      // Gather matching slots from all days for each booking reference
-      allBookingRefs.forEach(ref => {
-        // Initialize an empty array for this booking reference
-        bookingGroups.set(ref, []);
-        
-        // Look through all days to find slots with this booking reference
-        Object.values(timeSlotsByDay).forEach(daySlots => {
-          const matchingSlots = daySlots.filter(slot => slot.bookingReference === ref);
-          
-          // Add these slots to the group
-          const group = bookingGroups.get(ref);
-          if (group) {
-            group.push(...matchingSlots);
-          }
-        });
-      });
-      
-      // Debug booking groups
-      console.log(`Found ${bookingGroups.size} booking groups across all days`);
-      bookingGroups.forEach((slots, ref) => {
-        console.log(`Booking ${ref} has ${slots.length} slots total`);
-      });
-      
-      // Log the slots for our specific day of interest
-      bookedSlotsInDay.forEach(s => {
-        console.log(`Slot ID ${s.id} in day ${day} starts at ${toLatviaTime(s.startTime).toLocaleTimeString()} with reference ${s.bookingReference || 'none'}`);
-      });
-      
-      // Now check if any of these bookings include the current time slot we're looking for
-      for (const [reference, slots] of bookingGroups.entries()) {
-        // Skip single-slot bookings - they're not part of a multi-slot booking
-        if (slots.length <= 1) {
-          console.log(`Skipping booking ${reference} with only ${slots.length} slots`);
-          continue;
-        }
-        
-        // Sort slots by start time
-        slots.sort((a, b) => {
-          const aTime = new Date(a.startTime).getTime();
-          const bTime = new Date(b.startTime).getTime(); 
-          return aTime - bTime;
-        });
-        
-        // Get the earliest start time and latest end time for this booking
-        const earliestSlot = slots[0];
-        const latestSlot = slots[slots.length - 1];
-        
-        // Find slots for this specific day and time
-        const slotsForCurrentDay = slots.filter(slot => {
-          const slotDate = toLatviaTime(slot.startTime);
-          
-          // CRITICAL FIX: JavaScript day to our calendar day conversion
-          // JavaScript: 0=Sunday, 1=Monday, ..., 6=Saturday
-          // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
-          const jsDay = slotDate.getDay(); // 0-6 (Sun-Sat)
-          
-          // Log the actual date and day number to verify conversions
-          console.log(`Slot ${slot.id} date: ${slotDate.toISOString()}, JS day: ${jsDay}, our day index: ${day}`);
-          
-          // This is the critical fix - Sunday (0) in JS is day 6 in our system
-          // All other days shift by 1 (JS day - 1)
-          const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1; // 0-6 (Mon-Sun) where 6=Sunday
-          
-          // Additional logging to debug
-          console.log(`Slot ${slot.id} conversion: JS day ${jsDay} → our day ${ourSystemDay}, comparing to ${day}`);
-          
-          // Direct comparison to the requested day
-          return ourSystemDay === day;
-        });
-        
-        if (slotsForCurrentDay.length === 0) {
-          continue; // No slots for this day, skip to next booking
-        }
-        
-        console.log(`Booking ${reference} has ${slotsForCurrentDay.length} slots for day ${day}`);
-        
-        // Check if any of these slots match our time
-        const matchingSlot = slotsForCurrentDay.find(slot => {
-          const slotStart = toLatviaTime(slot.startTime);
-          const slotEnd = toLatviaTime(slot.endTime);
-          
-          const slotStartHour = slotStart.getHours();
-          const slotStartMinute = slotStart.getMinutes();
-          const slotEndHour = slotEnd.getHours();
-          const slotEndMinute = slotEnd.getMinutes();
-          
-          // Debug time values
-          console.log(`Checking if ${hour}:${minute} is within slot ${slotStartHour}:${slotStartMinute}-${slotEndHour}:${slotEndMinute}`);
-          
-          // Check if the requested time falls within this slot
-          return (hour === slotStartHour && minute >= slotStartMinute) || // Same start hour
-                 (hour === slotEndHour && minute < slotEndMinute) ||      // Same end hour
-                 (hour > slotStartHour && hour < slotEndHour);            // Between start and end hours
-        });
-        
-        if (matchingSlot) {
-          console.log(`Found exact matching slot ${matchingSlot.id} for time ${hour}:${minute} in booking ${reference}`);
-          
-          // Return the matching slot with multi-slot booking info attached
-          return {
-            ...matchingSlot,
-            isPartOfMultiSlotBooking: true,
-            bookingSpanLength: slots.length
-          };
-        } else if (slotsForCurrentDay.length > 0) {
-          // If there are slots for this day but none match this time exactly,
-          // check if time is within the range of slots for this day
-          const firstSlotOfDay = slotsForCurrentDay[0];
-          const lastSlotOfDay = slotsForCurrentDay[slotsForCurrentDay.length - 1];
-          
-          const firstSlotStartTime = toLatviaTime(firstSlotOfDay.startTime);
-          const lastSlotEndTime = toLatviaTime(lastSlotOfDay.endTime);
-          
-          const firstHour = firstSlotStartTime.getHours();
-          const firstMinute = firstSlotStartTime.getMinutes();
-          const lastHour = lastSlotEndTime.getHours();
-          const lastMinute = lastSlotEndTime.getMinutes();
-          
-          // Check if time is within the range of slots for this day
-          if ((hour > firstHour || (hour === firstHour && minute >= firstMinute)) &&
-              (hour < lastHour || (hour === lastHour && minute < lastMinute))) {
-            
-            console.log(`Time ${hour}:${minute} is between ${firstHour}:${firstMinute} and ${lastHour}:${lastMinute} for booking ${reference}`);
-            
-            // Find the closest slot in time (either the one before or after our target time)
-            return {
-              ...firstSlotOfDay, // Default to the first slot if no better match
-              isPartOfMultiSlotBooking: true,
-              bookingSpanLength: slots.length
-            };
-          }
-        }
-      }
-      
-      // If no booking group match, check individual slots (legacy approach)
-      for (const slot of timeSlotsByDay[day]) {
-        if (slot.status === 'booked') {
-          // Convert slot start and end times to Latvia timezone
-          const slotStartDate = toLatviaTime(slot.startTime);
-          const slotEndDate = toLatviaTime(slot.endTime);
-          
-          // Create a date object for the requested time
-          const requestedTimeDate = new Date(slotStartDate);
-          requestedTimeDate.setHours(hour, minute, 0, 0);
-          
-          // Check if the requested time falls within this slot's time range
-          // We add a small buffer (1 minute) to the end time to handle edge cases
-          const slotEndWithBuffer = new Date(slotEndDate);
-          slotEndWithBuffer.setMinutes(slotEndDate.getMinutes() + 1);
-          
-          if (requestedTimeDate >= slotStartDate && requestedTimeDate < slotEndWithBuffer) {
-            console.log(`Found individual slot match for day ${day}, time ${hour}:${minute}`);
-            // Return this slot to indicate this time is part of a booked slot
-            return slot;
-          }
-        }
-      }
-    }
-    
-    return null;
-  };
-
-  // Format time for display (00:00 format)
-  const formatTime = (hour: number, minute: number): string => {
+  
+  // Helper function to format time
+  const formatTime = (hour: number, minute: number) => {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
-
-  // Navigation handlers
-  const goToPreviousWeek = () => {
-    setCurrentDate(subWeeks(currentDate, 1));
+  
+  // Find a time slot for a specific day and time
+  const findTimeSlot = (day: number, hour: number, minute: number) => {
+    if (!timeSlotsByDay || !timeSlotsByDay[day]) {
+      return null;
+    }
+    
+    const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
+      const startTime = new Date(slot.startTime);
+      return startTime.getHours() === hour && startTime.getMinutes() === minute;
+    });
+    
+    return matchingSlots.length > 0 ? matchingSlots[0] : null;
   };
-
-  const goToNextWeek = () => {
-    setCurrentDate(addWeeks(currentDate, 1));
+  
+  // Find all time slots in a sequence (used for showing consecutive bookings)
+  const findConnectedTimeSlots = (slot: TimeSlot) => {
+    if (!slot || !slot.bookingReference) {
+      return [];
+    }
+    
+    // First, get all slots with the same booking reference
+    const allSlotsForBooking = [];
+    
+    for (const [_, daySlots] of Object.entries(timeSlotsByDay)) {
+      const matchingSlots = daySlots.filter((s: TimeSlot) => 
+        s.bookingReference && s.bookingReference === slot.bookingReference
+      );
+      
+      if (matchingSlots.length > 0) {
+        allSlotsForBooking.push(...matchingSlots);
+      }
+    }
+    
+    // Sort the slots by start time to ensure we process them in order
+    allSlotsForBooking.sort((a, b) => {
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+    });
+    
+    return allSlotsForBooking;
   };
-
-  const goToToday = () => {
-    setCurrentDate(new Date());
+  
+  // Determine if a slot should be rendered as part of a sequence
+  const isPartOfSequence = (slot: TimeSlot, position: 'first' | 'middle' | 'last') => {
+    if (!slot || !slot.bookingReference) {
+      return false;
+    }
+    
+    const connectedSlots = findConnectedTimeSlots(slot);
+    
+    if (connectedSlots.length <= 1) {
+      return false;
+    }
+    
+    // Sort slots by time
+    connectedSlots.sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+    
+    // Determine if the slot is first, middle, or last in the sequence
+    if (position === 'first') {
+      return slot.id === connectedSlots[0].id;
+    } else if (position === 'last') {
+      return slot.id === connectedSlots[connectedSlots.length - 1].id;
+    } else {
+      // Middle slot: not first and not last
+      return slot.id !== connectedSlots[0].id && 
+             slot.id !== connectedSlots[connectedSlots.length - 1].id;
+    }
   };
-
-  // Default renderers
-  const defaultRenderTimeCell = (time: string) => {
-    return <div className="text-sm font-medium text-gray-500">{time}</div>;
-  };
-
+  
+  // Default render function for time cells
+  const defaultRenderTimeCell = (time: string) => (
+    <div className="text-xs text-gray-600">{time}</div>
+  );
+  
+  // Default render function for slot cells
   const defaultRenderSlotCell = (
     slot: TimeSlot | null, 
     day: number, 
-    time: string,
+    time: string, 
     dayDate: Date,
     hour: number,
     minute: number
   ) => {
+    const isAdminView = viewMode === 'admin';
+    
+    // Function to handle slot click
+    const handleClick = () => {
+      if (onSlotClick) {
+        onSlotClick(slot, day, hour, minute, dayDate);
+      }
+    };
+    
+    // Check if the day is closed based on operating hours
+    const isDayClosed = config?.operatingHours?.find(oh => oh.dayOfWeek === day)?.isClosed;
+    
+    // Display class based on slot status or day being closed
+    let displayClass = "p-2 h-10 w-full";
+    
+    if (slot) {
+      const isPartOfBooking = slot.bookingReference && slot.status === 'booked';
+      const isFirst = isPartOfBooking && isPartOfSequence(slot, 'first');
+      const isMiddle = isPartOfBooking && isPartOfSequence(slot, 'middle');
+      const isLast = isPartOfBooking && isPartOfSequence(slot, 'last');
+      
+      // Styling for different slot statuses
+      switch (slot.status) {
+        case 'available':
+          displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
+          break;
+        case 'booked':
+          if (isFirst) {
+            displayClass += " bg-blue-500 text-white rounded-t";
+          } else if (isLast) {
+            displayClass += " bg-blue-500 text-white rounded-b";
+          } else if (isMiddle) {
+            displayClass += " bg-blue-500 text-white";
+          } else {
+            displayClass += " bg-blue-500 text-white rounded";
+          }
+          break;
+        case 'reserved':
+          displayClass += " bg-yellow-100 hover:bg-yellow-200 cursor-pointer";
+          break;
+        case 'unavailable':
+          displayClass += " bg-gray-100 text-gray-400";
+          break;
+        default:
+          displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
+      }
+    } else if (isDayClosed) {
+      // Styling for closed days
+      displayClass += " bg-gray-50 text-gray-300";
+    } else {
+      // Styling for empty slots
+      displayClass += isAdminView 
+        ? " bg-white hover:bg-gray-50 cursor-pointer" 
+        : " bg-gray-50";
+    }
+    
     return (
       <div 
-        className={`h-10 border border-gray-200 ${slot ? 'bg-blue-50' : 'bg-gray-50'}`}
-        onClick={() => handleSlotClick(slot, day, hour, minute, dayDate)}
+        className={displayClass}
+        onClick={handleClick}
       >
-        {slot && <div className="text-xs text-center">{slot.status}</div>}
+        {slot && slot.status === 'booked' && (
+          <div className="text-xs truncate">{slot.bookingReference}</div>
+        )}
       </div>
     );
   };
-
-  // Handle slot click with optional callback
-  const handleSlotClick = (
-    slot: TimeSlot | null, 
-    day: number, 
-    hour: number, 
-    minute: number,
-    dayDate: Date
-  ) => {
-    if (onSlotClick) {
-      onSlotClick(slot, day, hour, minute, dayDate);
-    }
+  
+  // Go to previous week
+  const goToPreviousWeek = () => {
+    setCurrentDate(prevDate => subWeeks(prevDate, 1));
   };
-
-  if (timeSlotsLoading || configLoading) {
-    return (
-      <div className="p-4 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-700"></div>
-      </div>
-    );
-  }
-
+  
+  // Go to next week
+  const goToNextWeek = () => {
+    setCurrentDate(prevDate => addWeeks(prevDate, 1));
+  };
+  
+  // Go to current week
+  const goToCurrentWeek = () => {
+    setCurrentDate(new Date());
+  };
+  
   return (
-    <Card className="overflow-hidden">
-      <div className="flex justify-between items-center p-4 border-b">
-        <div className="text-lg font-semibold">
-          {formatInTimeZone(toLatviaTime(startDate), LATVIA_TIMEZONE, 'MMM d')} - {formatInTimeZone(toLatviaTime(endDate), LATVIA_TIMEZONE, 'MMM d, yyyy')}
-          <span className="text-xs text-gray-500 ml-2">(Latvia time)</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="icon" onClick={goToPreviousWeek}>
+    <Card className="w-full overflow-x-auto shadow-sm border">
+      <CardContent className="p-4">
+        {/* Calendar Header */}
+        <div className="flex justify-between items-center mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToPreviousWeek}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={goToToday}>
-            <Calendar className="h-4 w-4 mr-2" />
-            Today
-          </Button>
-          <Button variant="outline" size="icon" onClick={goToNextWeek}>
+          
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">
+              {format(startDate, "dd MMMM yyyy")} - {format(endDate, "dd MMMM yyyy")}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToCurrentWeek}
+            >
+              <Calendar className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToNextWeek}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-      <CardContent className="p-0 overflow-auto">
-        <div className="min-w-full">
-          {/* Day headers */}
-          <div className="grid grid-cols-8 bg-gray-50">
-            <div className="p-2 border-b border-r"></div>
-            {weekDays.map((day, index) => (
-              <div 
-                key={index} 
-                className={`p-2 border-b text-center ${isSameDay(day, new Date()) ? 'bg-blue-50 font-bold' : ''}`}
-              >
-                <div>{formatInTimeZone(day, LATVIA_TIMEZONE, 'EEE')}</div>
-                <div>{formatInTimeZone(day, LATVIA_TIMEZONE, 'd MMM')}</div>
+        
+        {/* Calendar Grid */}
+        <div className="border rounded overflow-hidden">
+          {/* Days of the week header */}
+          <div className="grid grid-cols-8 bg-slate-50">
+            <div className="p-2 border-r border-b"></div>
+            {weekDays.map((date, index) => (
+              <div key={index} className="p-2 text-center border-r border-b last:border-r-0 font-medium">
+                <div>{format(date, "EEE")}</div>
+                <div className="text-xs">{format(date, "d MMM")}</div>
               </div>
             ))}
           </div>
-
+          
           {/* Time slots grid */}
           <div>
             {timeSlotGrid.map(({ hour, minute }, timeIndex) => (
@@ -702,14 +463,17 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
 
                 {/* Day columns */}
                 {weekDays.map((day, dayIndex) => {
-                  const dayOfWeek = (day.getDay() + 6) % 7; // Convert to 0-6 where 0 is Monday
-                  const slot = findTimeSlot(dayOfWeek, hour, minute);
+                  // CRITICAL FIX: Convert JavaScript day to our system day
+                  const jsDay = day.getDay(); // 0=Sunday, 1=Monday, etc.
+                  const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1; // 0=Monday, 6=Sunday
+                  
+                  const slot = findTimeSlot(ourSystemDay, hour, minute);
                   
                   return (
                     <div key={dayIndex} className="border-r last:border-r-0">
                       {renderSlotCell 
-                        ? renderSlotCell(slot, dayOfWeek, formatTime(hour, minute), day, hour, minute)
-                        : defaultRenderSlotCell(slot, dayOfWeek, formatTime(hour, minute), day, hour, minute)
+                        ? renderSlotCell(slot, ourSystemDay, formatTime(hour, minute), day, hour, minute)
+                        : defaultRenderSlotCell(slot, ourSystemDay, formatTime(hour, minute), day, hour, minute)
                       }
                     </div>
                   );
@@ -718,6 +482,16 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
             ))}
           </div>
         </div>
+        
+        {/* Loading state */}
+        {(timeSlotsLoading || configLoading) && (
+          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+              <div className="text-sm text-gray-600">Loading...</div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
