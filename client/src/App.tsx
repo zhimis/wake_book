@@ -16,6 +16,7 @@ import PricesPage from "@/pages/prices-page";
 import ContactsPage from "@/pages/contacts-page";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
+import DebugPage from "@/pages/debug";
 
 import Header from "./components/header";
 import Footer from "./components/footer";
@@ -67,6 +68,7 @@ function App() {
               <ProtectedRoute path="/admin/statistics" component={AdminStatisticsPage} />
               <ProtectedRoute path="/admin/new" component={NewAdminPage} />
               <ProtectedRoute path="/admin/system-config" component={SystemConfigPage} />
+              <ProtectedRoute path="/admin/debug" component={DebugPage} />
               <Route component={NotFound} />
             </Switch>
           </div>
