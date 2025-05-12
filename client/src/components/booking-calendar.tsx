@@ -908,7 +908,12 @@ const BookingCalendar = ({
       return;
     }
 
-    // Log the slot details for debugging
+    // Log the slot details for debugging with enhanced date debugging
+    const displayDate = slot.startTime ? new Date(slot.startTime).toDateString() : 'unknown';
+    const originalDate = slot.originalStartTime ? new Date(slot.originalStartTime).toDateString() : 'unknown';
+    const hasDateCorrection = slot.startTime && slot.originalStartTime && 
+      new Date(slot.startTime).toDateString() !== new Date(slot.originalStartTime).toDateString();
+      
     console.log(`[CALENDAR DEBUG] Slot details:`, {
       id: slot.id,
       day: slot.day,
@@ -916,6 +921,10 @@ const BookingCalendar = ({
       minute: slot.minute,
       startTime: slot.startTime?.toLocaleString(),
       endTime: slot.endTime?.toLocaleString(),
+      displayDate,
+      originalDate,
+      hasDateCorrection,
+      dateMismatch: hasDateCorrection ? "WARNING: Display date doesn't match original date!" : null,
       isPast: slot.isPast,
       status: slot.status,
       isLeadTimeRestricted: !isAdmin && isSlotRestrictedByLeadTime(slot)

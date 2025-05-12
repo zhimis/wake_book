@@ -6,6 +6,8 @@ import {
   ReactNode
 } from "react";
 import { TimeSlot } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { formatInLatviaTime } from "@/lib/utils";
 
 type BookingContextType = {
   selectedTimeSlots: TimeSlot[];
@@ -17,6 +19,7 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 export function BookingProvider({ children }: { children: ReactNode }) {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[]>([]);
+  const { toast } = useToast();
   
   // Toggle time slot selection - with cross-date protection
   const toggleTimeSlot = useCallback((timeSlot: TimeSlot) => {
@@ -45,8 +48,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
             console.log(`[BOOKING DEBUG] Existing slots date: ${existingDate}`);
             console.log(`[BOOKING DEBUG] New slot date: ${newDate}`);
             
-            // We don't allow mixing dates - show a toast message in the future
-            // For now, just log the error and don't add the slot
+            // Show a clear user-friendly toast message
+            toast({
+              title: "Only one day at a time",
+              description: "You can only book time slots for a single day. Please complete this booking first or clear your selection.",
+              variant: "destructive",
+              duration: 5000
+            });
+            
             return prev;
           }
         }
@@ -54,7 +63,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         return [...prev, timeSlot];
       }
     });
-  }, []);
+  }, [toast]);
   
   // Clear selected time slots
   const clearSelectedTimeSlots = useCallback(() => {
