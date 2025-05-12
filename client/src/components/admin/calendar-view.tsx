@@ -55,6 +55,7 @@ import {
   Clock, 
   Calendar, 
   AlertTriangle,
+  AlertCircle,
   Loader2,
   RefreshCw
 } from "lucide-react";
@@ -1427,122 +1428,32 @@ const AdminCalendarView = () => {
           {viewMode === 'calendar' ? (
             <>
               {/* Main container with max-width - similar to public view */}
-              <div className="max-w-7xl mx-auto p-1">
-                <div className="flex flex-col lg:flex-row border rounded-md shadow-sm overflow-hidden">
-                  {/* Calendar column */}
-                  <div className="lg:flex-1">
-                    <BookingCalendar 
-                      key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
-                      onDateRangeChange={handleDateRangeChange}
-                      isAdmin={true}
-                      onAdminSlotSelect={handleTimeSlotSelect}
-                      adminSelectedSlots={selectedTimeSlots}
-                      initialDate={currentDateRange.start} // Pass current date directly to calendar component
-                      /* Use our custom navigation functions for consistent state management */
-                      customNavigation={{
-                        goToPrevious: () => handleNavigateDates('prev'),
-                        goToNext: () => handleNavigateDates('next'),
-                        goToToday: () => handleNavigateDates('today')
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Right column with calendar actions - visible on desktop */}
-                  <div className="hidden lg:block lg:w-[260px] lg:flex-none lg:border-l">
-                    <div className="p-5">
-                      <h3 className="text-lg font-medium">Calendar Actions</h3>
-                      <p className="text-sm text-muted-foreground mb-4">Manage bookings and time slots</p>
-                      
-                      <div className="space-y-3">
-                        <Button 
-                          className="bg-primary hover:bg-primary/90 w-full"
-                          onClick={handleCreateBooking}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Create Booking
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 w-full"
-                          onClick={handleBlockTimeSlots}
-                          disabled={selectedTimeSlots.length === 0}
-                          data-action="block-slots"
-                        >
-                          <AlertTriangle className="h-4 w-4 mr-1" />
-                          Block Slots
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 w-full"
-                          onClick={handleMakeAvailable}
-                          disabled={selectedTimeSlots.length === 0}
-                          data-action="make-available"
-                        >
-                          <Clock className="h-4 w-4 mr-1" />
-                          Make Available
-                        </Button>
-                      </div>
-                      
-                      <div className="mt-4 pt-3 border-t text-sm text-muted-foreground">
-                        {selectedTimeSlots.length > 0 ? (
-                          <div>{selectedTimeSlots.length} slots selected</div>
-                        ) : (
-                          <div>Select time slots to enable actions</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+              <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+                {/* Calendar column */}
+                <div className="lg:flex-1">
+                  <BookingCalendar 
+                    key={formatInLatviaTime(currentDateRange.start, "yyyy-MM-dd")}
+                    onDateRangeChange={handleDateRangeChange}
+                    isAdmin={true}
+                    onAdminSlotSelect={handleTimeSlotSelect}
+                    adminSelectedSlots={selectedTimeSlots}
+                    initialDate={currentDateRange.start} // Pass current date directly to calendar component
+                    /* Use our custom navigation functions for consistent state management */
+                    customNavigation={{
+                      goToPrevious: () => handleNavigateDates('prev'),
+                      goToNext: () => handleNavigateDates('next'),
+                      goToToday: () => handleNavigateDates('today')
+                    }}
+                  />
                 </div>
-              </div>
-              
-              {/* Display Selection Active alert between calendar and action buttons */}
-              {selectedTimeSlots.length > 0 && (
-                <div className="max-w-7xl mx-auto p-1 mt-4 mb-1">
-                  <Alert>
-                    <AlertTitle>Selection Active</AlertTitle>
-                    <AlertDescription>
-                      <div className="mb-2">
-                        {selectedTimeSlots.length} time slot(s) selected. Use the action buttons to the right (or below on mobile) to create a booking or manage these slots.
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                        <div className="font-semibold">Selected slots:</div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
-                          {selectedTimeSlots.map((slot) => {
-                            // Use time slots directly from the current calendar week to ensure consistency
-                            const startTime = new Date(slot.startTime);
-                            const endTime = new Date(slot.endTime);
-                            
-                            // Get the Latvia timezone version for display
-                            const adjustedStartTime = toLatviaTime(startTime);
-                            const adjustedEndTime = toLatviaTime(endTime);
-                            
-                            return (
-                              <div key={slot.id} className="text-xs flex gap-1">
-                                <span>{formatInLatviaTime(adjustedStartTime, "EEE, MMM d")}</span>
-                                <span>•</span>
-                                <span>{formatInLatviaTime(adjustedStartTime, "HH:mm")}-
-                                      {formatInLatviaTime(adjustedEndTime, "HH:mm")}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
-              
-              {/* Action buttons - only visible on smaller screens (mobile/tablet) */}
-              <div className="max-w-7xl mx-auto p-1 lg:hidden">
-                <Card className="mt-4">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Calendar Actions</CardTitle>
-                    <CardDescription>Manage bookings and time slots</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                
+                {/* Right column with calendar actions - visible on desktop */}
+                <div className="hidden lg:block lg:w-[260px]">
+                  <div className="sticky top-4 p-4 bg-white rounded-md border shadow-sm">
+                    <h3 className="text-lg font-medium">Calendar Actions</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Manage bookings and time slots</p>
+                    
+                    <div className="space-y-3">
                       <Button 
                         className="bg-primary hover:bg-primary/90 w-full"
                         onClick={handleCreateBooking}
@@ -1573,15 +1484,99 @@ const AdminCalendarView = () => {
                         Make Available
                       </Button>
                     </div>
-                  </CardContent>
-                  <CardFooter className="border-t pt-3 text-sm text-muted-foreground">
+                    
+                    <div className="mt-4 pt-3 border-t text-sm text-muted-foreground">
+                      {selectedTimeSlots.length > 0 ? (
+                        <div>{selectedTimeSlots.length} slots selected</div>
+                      ) : (
+                        <div>Select time slots to enable actions</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Display Selection Active alert between calendar and action buttons */}
+              {selectedTimeSlots.length > 0 && (
+                <div className="max-w-7xl mx-auto mt-4">
+                  <Alert variant="default" className="border-blue-200 bg-blue-50">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mr-2" />
+                    <AlertTitle className="text-blue-700">Selection Active</AlertTitle>
+                    <AlertDescription className="text-blue-600">
+                      <div className="mb-2">
+                        {selectedTimeSlots.length} time slot(s) selected. Use the action buttons to manage these slots.
+                      </div>
+                      {selectedTimeSlots.length <= 6 && (
+                        <div className="text-xs mt-2 space-y-1">
+                          <div className="font-semibold">Selected slots:</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+                            {selectedTimeSlots.map((slot) => {
+                              const startTime = toLatviaTime(new Date(slot.startTime));
+                              const endTime = toLatviaTime(new Date(slot.endTime));
+                              
+                              return (
+                                <div key={slot.id} className="text-xs flex gap-1">
+                                  <span>{formatInLatviaTime(startTime, "EEE, MMM d")}</span>
+                                  <span>•</span>
+                                  <span>{formatInLatviaTime(startTime, "HH:mm")}-
+                                        {formatInLatviaTime(endTime, "HH:mm")}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+              
+              {/* Action buttons - only visible on smaller screens (mobile/tablet) */}
+              <div className="max-w-7xl mx-auto mt-6 lg:hidden">
+                <div className="bg-white rounded-md border shadow-sm p-4">
+                  <h3 className="text-lg font-medium mb-1">Calendar Actions</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Manage bookings and time slots</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Button 
+                      className="bg-primary hover:bg-primary/90 w-full"
+                      onClick={handleCreateBooking}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Create Booking
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 w-full"
+                      onClick={handleBlockTimeSlots}
+                      disabled={selectedTimeSlots.length === 0}
+                      data-action="block-slots"
+                    >
+                      <AlertTriangle className="h-4 w-4 mr-1" />
+                      Block Slots
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 w-full"
+                      onClick={handleMakeAvailable}
+                      disabled={selectedTimeSlots.length === 0}
+                      data-action="make-available"
+                    >
+                      <Clock className="h-4 w-4 mr-1" />
+                      Make Available
+                    </Button>
+                  </div>
+                  
+                  <div className="mt-4 pt-3 border-t text-sm text-muted-foreground">
                     {selectedTimeSlots.length > 0 ? (
                       <div>{selectedTimeSlots.length} slots selected</div>
                     ) : (
                       <div>Select time slots to enable actions</div>
                     )}
-                  </CardFooter>
-                </Card>
+                  </div>
+                </div>
               </div>
             </>
           ) : (
