@@ -450,8 +450,8 @@ export class DatabaseStorage implements IStorage {
     return allSlots;
   }
 
-  // Public method to regenerate time slots with timezone awareness - IMPROVED VERSION
-  async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[], duplicatesPrevented: number }> {
+  // Public method to regenerate time slots with timezone awareness - ENHANCED VERSION WITH STRICT DUPLICATE PREVENTION
+  async regenerateTimeSlots(): Promise<{ success: boolean, preservedBookings: number, conflicts: any[], duplicatesPrevented: number, outOfHoursBookings: number }> {
     try {
       // Import timezone utilities
       const { toLatviaTime, fromLatviaTime, formatInLatviaTime, LATVIA_TIMEZONE } = await import('./utils/timezone');
@@ -467,6 +467,9 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Regenerating time slots from ${formatInLatviaTime(today, 'yyyy-MM-dd')} onwards (Latvia time)`);
       
+      // Get current operating hours for validation
+      const operatingHoursData = await this.getOperatingHours();
+      
       // Find ALL future time slots with bookings to preserve them
       const bookedTimeSlots = await db.select()
         .from(timeSlots)
@@ -479,10 +482,61 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Found ${bookedTimeSlots.length} booked time slots to preserve during regeneration`);
       
-      // Create a set of all start times (in ISO format) that are already booked
-      // We'll use this set to prevent generating duplicates for these time periods
+      // Identify any booked time slots that are now outside operating hours
+      // We still preserve these, but we can log them for the admin's information
+      let outOfHoursBookings = 0;
+      for (const slot of bookedTimeSlots) {
+        const slotDateInLatvia = toLatviaTime(new Date(slot.startTime));
+        const dayOfWeek = slotDateInLatvia.getDay(); // 0 = Sunday, 1-6 = Monday-Saturday
+        
+        // Convert to our calendar system (0 = Monday, 6 = Sunday)
+        const calendarDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        
+        // Check if the slot falls within current operating hours
+        const dayHours = operatingHoursData.find(oh => oh.dayOfWeek === calendarDay);
+        let isWithinHours = false;
+        
+        if (dayHours && !dayHours.isClosed) {
+          // Get operating hours
+          const [openHour, openMinute] = dayHours.openTime.split(':').map(Number);
+          const [closeHour, closeMinute] = dayHours.closeTime.split(':').map(Number);
+          
+          // Compare with slot time
+          const slotHour = slotDateInLatvia.getHours();
+          const slotMinute = slotDateInLatvia.getMinutes();
+          
+          // Check if slot starts after opening time and before closing time
+          const startTimeInMinutes = slotHour * 60 + slotMinute;
+          const openTimeInMinutes = openHour * 60 + openMinute;
+          const closeTimeInMinutes = closeHour * 60 + closeMinute;
+          
+          isWithinHours = startTimeInMinutes >= openTimeInMinutes && startTimeInMinutes < closeTimeInMinutes;
+        }
+        
+        if (!isWithinHours) {
+          outOfHoursBookings++;
+          console.log(`IMPORTANT: Booked slot ID ${slot.id} is now outside operating hours (${formatInLatviaTime(new Date(slot.startTime), 'yyyy-MM-dd HH:mm')}), but will be preserved!`);
+        }
+      }
+      
+      if (outOfHoursBookings > 0) {
+        console.log(`WARNING: Found ${outOfHoursBookings} booked slots outside current operating hours. These will still be preserved.`);
+      }
+      
+      // Create sets for exact duplicate prevention
+      // 1. Set of ISO strings for exact time matching
       const bookedStartTimes = new Set(
         bookedTimeSlots.map(slot => new Date(slot.startTime).toISOString())
+      );
+      
+      // 2. Set of timestamps for more precise matching
+      const bookedStartTimestamps = new Set(
+        bookedTimeSlots.map(slot => new Date(slot.startTime).getTime())
+      );
+      
+      // 3. Set of time slot IDs for preserving exact slots
+      const bookedSlotIds = new Set(
+        bookedTimeSlots.map(slot => slot.id)
       );
       
       console.log(`Preserving ${bookedStartTimes.size} unique time periods with bookings`);
@@ -496,7 +550,37 @@ export class DatabaseStorage implements IStorage {
         price: slot.price
       }));
       
-      // IMPORTANT CHANGE: Delete all future time slots EXCEPT booked ones
+      // ENHANCED DELETION: Delete all non-booked future time slots PLUS any duplicates of booked slots
+      // First, find any duplicate available time slots that have the same start time as booked ones
+      const duplicateSlots = await db.select()
+        .from(timeSlots)
+        .where(
+          and(
+            gte(timeSlots.startTime, utcToday),
+            not(eq(timeSlots.status, "booked")),
+            inArray(
+              sql`DATE_TRUNC('minute', ${timeSlots.startTime})`,
+              bookedTimeSlots.map(slot => 
+                sql`DATE_TRUNC('minute', ${sql.raw(`TIMESTAMP '${new Date(slot.startTime).toISOString()}'`)})`
+              )
+            )
+          )
+        );
+      
+      if (duplicateSlots.length > 0) {
+        console.log(`Found ${duplicateSlots.length} non-booked duplicates of booked time slots - these will be removed`);
+        
+        // Delete these specific duplicates first
+        await db.delete(timeSlots)
+          .where(
+            inArray(
+              timeSlots.id,
+              duplicateSlots.map(slot => slot.id)
+            )
+          );
+      }
+      
+      // Now delete all remaining non-booked future time slots
       await db.delete(timeSlots)
         .where(
           and(
@@ -510,16 +594,27 @@ export class DatabaseStorage implements IStorage {
       // Now get the list of time slots that would normally be generated
       const newTimeSlots = await this.generateTimeSlotsPreview();
       
-      // Filter out any time slots that would overlap with already booked slots
-      // to prevent creating duplicates
+      // Enhanced filtering for duplicate prevention
       let duplicatesPrevented = 0;
       
       const filteredNewTimeSlots = newTimeSlots.filter(newSlot => {
-        // Convert slot start time to ISO string for comparison
+        // Convert slot start time to ISO string and timestamp for multi-level comparison
         const slotStartIso = new Date(newSlot.startTime).toISOString();
+        const slotStartTime = new Date(newSlot.startTime).getTime();
         
-        // Check if this time is already booked
-        const isDuplicate = bookedStartTimes.has(slotStartIso);
+        // Three-level check for duplicates:
+        // 1. Exact ISO string match
+        const isExactDuplicate = bookedStartTimes.has(slotStartIso);
+        
+        // 2. Timestamp match (handles millisecond differences)
+        const isTimestampDuplicate = bookedStartTimestamps.has(slotStartTime);
+        
+        // 3. Within 1 minute tolerance (handles rounding differences)
+        const isNearDuplicate = Array.from(bookedStartTimestamps).some(timestamp => {
+          return Math.abs(timestamp - slotStartTime) < 60000; // 60,000 ms = 1 minute
+        });
+        
+        const isDuplicate = isExactDuplicate || isTimestampDuplicate || isNearDuplicate;
         
         if (isDuplicate) {
           duplicatesPrevented++;
@@ -538,9 +633,30 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Inserted ${filteredNewTimeSlots.length} new time slots (avoiding duplicates)`);
       
-      // After regeneration, check for any conflicts 
-      const conflicts: { id: number, startTime: Date, conflictTime: string }[] = [];
+      // Final validation: Ensure no duplicates were created
+      const finalValidation = await db.execute(sql`
+        SELECT 
+          DATE_TRUNC('minute', start_time) as time_period,
+          COUNT(*) as slot_count
+        FROM 
+          time_slots
+        WHERE 
+          start_time >= ${utcToday}
+        GROUP BY 
+          DATE_TRUNC('minute', start_time)
+        HAVING 
+          COUNT(*) > 1
+      `);
       
+      const possibleDuplicates = finalValidation.rows.length;
+      if (possibleDuplicates > 0) {
+        console.log(`WARNING: Found ${possibleDuplicates} possible duplicate groups after regeneration!`);
+        console.log(`These will need to be manually fixed or the regeneration process improved.`);
+      } else {
+        console.log(`VALIDATION SUCCESS: No duplicate time slots were created during regeneration.`);
+      }
+      
+      // Log preserved booked slots for reference
       for (const bookedSlot of bookedSlotDetails) {
         // Format the dates for logs in Latvia timezone for better readability
         const formattedStart = formatInLatviaTime(bookedSlot.startTime, 'yyyy-MM-dd HH:mm:ss');
@@ -551,8 +667,9 @@ export class DatabaseStorage implements IStorage {
       return {
         success: true,
         preservedBookings: bookedTimeSlots.length,
-        conflicts,
-        duplicatesPrevented
+        conflicts: [],
+        duplicatesPrevented,
+        outOfHoursBookings
       };
     } catch (error) {
       console.error("Error regenerating time slots:", error);
