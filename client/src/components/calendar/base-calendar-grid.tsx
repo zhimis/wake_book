@@ -305,95 +305,27 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     return (time2 - time1) === 1800000;
   };
   
-  // Find all time slots in a sequence (used for showing consecutive bookings)
+  // Simpler approach to finding connected time slots
   const findConnectedTimeSlots = (slot: TimeSlot) => {
     if (!slot || !slot.bookingReference) {
       return [];
     }
     
-    // The key issue is that after "Regenerate All Time Slots", the IDs change
-    // and the time slots might not be consecutive. Let's use a more robust approach.
-    
-    // Step 1: Get all slots with the same booking reference
-    const sameBookingSlots = timeSlots.filter(s => 
+    // Just get all slots with the same booking reference
+    const allSlotsWithSameBooking = timeSlots.filter(s => 
       s.bookingReference && s.bookingReference === slot.bookingReference
     );
     
-    if (sameBookingSlots.length <= 1) {
-      return sameBookingSlots; // No sequence if 0 or 1 slot
-    }
-
-    // Step 2: Sort them by start time - this is critical
-    sameBookingSlots.sort((a, b) => {
+    // Sort them by start time
+    allSlotsWithSameBooking.sort((a, b) => {
       const aTime = new Date(a.startTime).getTime();
       const bTime = new Date(b.startTime).getTime();
       return aTime - bTime;
     });
     
-    // Logging for the June 1st booking to debug
-    if (slot.bookingReference === 'WB-L_7LG1SG') {
-      console.log(`[findConnectedTimeSlots DEBUG] Found ${sameBookingSlots.length} slots for booking ${slot.bookingReference}:`);
-      sameBookingSlots.forEach((s, i) => {
-        console.log(`   [${i}] Slot ID ${s.id}: ${new Date(s.startTime).toLocaleTimeString()} - ${new Date(s.endTime).toLocaleTimeString()}`);
-      });
-    }
+    console.log(`[DEBUG] Found ${allSlotsWithSameBooking.length} slots with reference ${slot.bookingReference}`);
     
-    // Approach change: Instead of using complex sequence detection,
-    // we'll build a graph to find connected components and detect
-    // the slots that form contiguous sequences.
-    
-    // Step 3: Build an adjacency graph where nodes are connected if they're sequential
-    const graph: Record<number, number[]> = {};
-    
-    // Initialize all nodes in the graph
-    sameBookingSlots.forEach(s => {
-      graph[s.id] = [];
-    });
-    
-    // Connect adjacent slots in the graph
-    for (let i = 0; i < sameBookingSlots.length; i++) {
-      for (let j = 0; j < sameBookingSlots.length; j++) {
-        if (i !== j && areSlotsConsecutive(sameBookingSlots[i], sameBookingSlots[j])) {
-          graph[sameBookingSlots[i].id].push(sameBookingSlots[j].id);
-        }
-      }
-    }
-    
-    // Step 4: Find all slots connected to our target slot using BFS
-    const connectedSlotIds = new Set<number>();
-    const queue: number[] = [slot.id];
-    connectedSlotIds.add(slot.id);
-    
-    while (queue.length > 0) {
-      const currentId = queue.shift()!;
-      const neighbors = graph[currentId] || [];
-      
-      for (const neighborId of neighbors) {
-        if (!connectedSlotIds.has(neighborId)) {
-          connectedSlotIds.add(neighborId);
-          queue.push(neighborId);
-        }
-      }
-    }
-    
-    // Get the slots corresponding to the connected IDs and sort them by time
-    const connectedSlots = sameBookingSlots
-      .filter(s => connectedSlotIds.has(s.id))
-      .sort((a, b) => {
-        const aTime = new Date(a.startTime).getTime();
-        const bTime = new Date(b.startTime).getTime();
-        return aTime - bTime;
-      });
-    
-    // Logging for the June 1st booking to debug
-    if (slot.bookingReference === 'WB-L_7LG1SG') {
-      console.log(`[findConnectedTimeSlots DEBUG] Found ${connectedSlots.length} connected slots for Slot ID ${slot.id}:`);
-      connectedSlots.forEach((s, i) => {
-        console.log(`   [${i}] Slot ID ${s.id}: ${new Date(s.startTime).toLocaleTimeString()} - ${new Date(s.endTime).toLocaleTimeString()}`);
-      });
-    }
-    
-    return connectedSlots; // Return all connected slots
+    return allSlotsWithSameBooking;
   };
   
   // Get slot position in a booking sequence - can be first, middle, or last
@@ -402,28 +334,26 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return null;
     }
     
-    // Find all connected slots in this booking sequence using our improved logic
-    const connectedSlots = findConnectedTimeSlots(slot);
-
-    // --- DEBUG LOGGING START ---
-    if (slot.bookingReference === 'WB-L_7LG1SG') {
-      console.log(`[getSlotPosition DEBUG] Called for Slot ID: ${slot.id}`);
-      console.log(`[getSlotPosition DEBUG] Connected slots found by findConnectedTimeSlots:`, connectedSlots.map(s => ({ id: s.id, time: s.startTime })) );
-    }
-    // --- DEBUG LOGGING END ---
+    // Find all slots with the same booking reference
+    const sameBookingSlots = findConnectedTimeSlots(slot);
     
-    if (connectedSlots.length <= 1) {
+    console.log(`[DEBUG] Finding position for slot ID ${slot.id} among ${sameBookingSlots.length} slots`);
+    
+    if (sameBookingSlots.length <= 1) {
       return null; // Not part of a sequence
     }
     
-    // Determine position in sequence using timestamps (more reliable than using IDs)
-    const slotTime = new Date(slot.startTime).getTime();
-    const firstTime = new Date(connectedSlots[0].startTime).getTime();
-    const lastTime = new Date(connectedSlots[connectedSlots.length - 1].startTime).getTime();
+    // Sort the slots by start time
+    sameBookingSlots.sort((a, b) => {
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+    });
     
-    if (slotTime === firstTime) {
+    // Find this slot's position in the sorted array
+    const index = sameBookingSlots.findIndex(s => s.id === slot.id);
+    
+    if (index === 0) {
       return 'first';
-    } else if (slotTime === lastTime) {
+    } else if (index === sameBookingSlots.length - 1) {
       return 'last';
     } else {
       return 'middle';
@@ -466,50 +396,52 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     let displayClass = "p-2 h-10 w-full";
     
     if (slot) {
-      // Special handling for our known problematic booking
-      let isFirst = false;
-      let isMiddle = false;
-      let isLast = false;
+      // Simply detect if the slot is booked
+      const isBooked = slot.status === 'booked';
       
-      // Simplified approach that avoids LSP errors
-      // Since we have a known problem with the June 1st booking, we'll use a direct approach
-      
-      // Special handling for the June 1st booking
-      const isPartOfBooking = !!slot.bookingReference && slot.status === 'booked';
-      
-      if (isPartOfBooking) {
-        const position = getSlotPosition(slot);
-        isFirst = position === 'first';
-        isMiddle = position === 'middle';
-        isLast = position === 'last';
-      }
-      
-      // Styling for different slot statuses
-      switch (slot.status) {
-        case 'available':
-          displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
-          break;
-        case 'booked':
-          // Apply special styling for sequences
-          if (isFirst) {
+      // SIMPLIFIED APPROACH: Force all slots with a booking reference to be styled properly
+      if (isBooked && slot.bookingReference) {
+        // Get all slots for this booking to determine position
+        const allSlots = findConnectedTimeSlots(slot);
+        
+        if (allSlots.length > 1) {
+          // Sort slots by time
+          allSlots.sort((a, b) => {
+            return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+          });
+          
+          // Find this slot's index in the sorted array
+          const index = allSlots.findIndex(s => s.id === slot.id);
+          
+          if (index === 0) {
+            // First slot in a booking
             displayClass += " bg-blue-500 text-white rounded-t";
-          } else if (isLast) {
+          } else if (index === allSlots.length - 1) {
+            // Last slot in a booking
             displayClass += " bg-blue-500 text-white rounded-b";
-          } else if (isMiddle) {
-            displayClass += " bg-blue-500 text-white";
           } else {
-            // Single slot (not part of a sequence)
-            displayClass += " bg-blue-500 text-white rounded";
+            // Middle slot in a booking
+            displayClass += " bg-blue-500 text-white";
           }
-          break;
-        case 'reserved':
-          displayClass += " bg-yellow-100 hover:bg-yellow-200 cursor-pointer";
-          break;
-        case 'unavailable':
-          displayClass += " bg-gray-100 text-gray-400";
-          break;
-        default:
-          displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
+        } else {
+          // Single booked slot
+          displayClass += " bg-blue-500 text-white rounded";
+        }
+      } else {
+        // Styling for different statuses
+        switch (slot.status) {
+          case 'available':
+            displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
+            break;
+          case 'reserved':
+            displayClass += " bg-yellow-100 hover:bg-yellow-200 cursor-pointer";
+            break;
+          case 'unavailable':
+            displayClass += " bg-gray-100 text-gray-400";
+            break;
+          default:
+            displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
+        }
       }
     } else if (isDayClosed) {
       // Styling for closed days
