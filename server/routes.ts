@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allOperatingHours = await db.select().from(operatingHours);
       console.log("Current operating hours configuration:", JSON.stringify(allOperatingHours, null, 2));
       
-      // Call the improved regenerateTimeSlots method that prevents creating duplicates
+      // Call the enhanced regenerateTimeSlots method with strict duplicate prevention
       const result = await storage.regenerateTimeSlots();
       
       // Verify the time slots were generated properly
@@ -297,11 +297,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Preserved ${result.preservedBookings} existing bookings during regeneration`);
       console.log(`Prevented ${result.duplicatesPrevented || 0} duplicate slots for already booked time periods`);
       
+      // Create a formatted message including information about out-of-hours bookings if any
+      let message = `Time slots regenerated successfully. Preserved ${result.preservedBookings} bookings and prevented ${result.duplicatesPrevented || 0} duplicates.`;
+      
+      if (result.outOfHoursBookings && result.outOfHoursBookings > 0) {
+        message += ` Note: ${result.outOfHoursBookings} preserved bookings are outside current operating hours but were retained.`;
+      }
+      
+      // Return enhanced response with more information
       res.json({ 
-        success: true, 
-        message: `Time slots regenerated successfully. Preserved ${result.preservedBookings} bookings and prevented ${result.duplicatesPrevented || 0} duplicates.`,
+        success: true,
+        message,
         preservedBookings: result.preservedBookings,
-        duplicatesPrevented: result.duplicatesPrevented || 0
+        duplicatesPrevented: result.duplicatesPrevented || 0,
+        outOfHoursBookings: result.outOfHoursBookings || 0,
+        totalTimeSlots: timeSlotCount
       });
     } catch (error) {
       console.error("Error regenerating time slots:", error);
