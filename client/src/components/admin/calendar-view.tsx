@@ -1478,7 +1478,7 @@ const AdminCalendarView = () => {
               )}
               
               {/* Action buttons - responsive layout: bottom on mobile, right on larger screens */}
-              <div className="md:absolute md:top-4 md:right-4 md:w-auto mt-4 md:mt-0 flex flex-col sm:flex-row md:flex-col sm:items-center md:items-stretch sm:space-x-2 md:space-x-0 space-y-2 sm:space-y-0 md:space-y-2">
+              <div className="mt-4 md:mt-0 md:absolute md:top-[102px] md:right-4 md:w-auto md:flex md:flex-col flex flex-col sm:flex-row sm:items-center md:items-stretch sm:space-x-2 md:space-x-0 space-y-2 sm:space-y-0 md:space-y-2 z-10 md:bg-white/40 md:p-2 md:rounded-md md:shadow-sm">
                 <Button 
                   className="bg-primary hover:bg-primary/90 md:w-full"
                   onClick={handleCreateBooking}
@@ -1487,7 +1487,7 @@ const AdminCalendarView = () => {
                   Create Booking
                 </Button>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-1 gap-2 w-full">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-1 gap-2 w-full md:w-auto md:min-w-[140px]">
                   <Button 
                     variant="outline" 
                     className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 md:w-full"
