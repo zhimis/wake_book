@@ -1475,8 +1475,8 @@ const AdminCalendarView = () => {
                 </Alert>
               )}
               
-              {/* Action buttons below alert */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mt-4">
+              {/* Action buttons below alert - only visible on mobile */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mt-4 md:hidden">
                 <Button 
                   className="bg-primary hover:bg-primary/90"
                   onClick={handleCreateBooking}
@@ -1506,8 +1506,6 @@ const AdminCalendarView = () => {
                     Make Available
                   </Button>
                 </div>
-                
-                {/* We're now using the Create Booking button for both regular and advanced booking */}
               </div>
             </>
           ) : (
