@@ -1381,14 +1381,22 @@ const AdminCalendarView = () => {
     // Identify which time slots are unallocated (have negative IDs)
     const unallocatedSlots = selectedTimeSlots.filter(slot => 
       String(slot.id).startsWith('-')
-    );
+    ).map(slot => ({
+      id: slot.id,
+      startTime: slot.startTime,
+      endTime: slot.endTime
+    }));
+    
+    console.log("Making available with unallocated slots:", unallocatedSlots);
     
     // Prepare the data to send to the server
     const formData = {
       ...data,
-      timeSlotIds: selectedTimeSlots.map(slot => slot.id)
+      timeSlotIds: selectedTimeSlots.map(slot => slot.id),
+      unallocatedSlots: unallocatedSlots.length > 0 ? unallocatedSlots : undefined
     };
     
+    console.log("Submitting make available request:", formData);
     makeAvailableSlotsMutation.mutate(formData);
   };
   
