@@ -302,36 +302,59 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       // Add debug information
       console.log(`Looking for slots in day ${day} at time ${hour}:${minute}`);
       console.log(`Found ${bookedSlotsInDay.length} booked slots in day ${day}`);
-      bookedSlotsInDay.forEach(s => {
-        console.log(`Slot ID ${s.id} starts at ${toLatviaTime(s.startTime).toLocaleTimeString()} with reference ${s.bookingReference || 'none'}`);
+      
+      // MAJOR FIX: First, check for bookingReferences across ALL days
+      // This ensures we connect slots from the same booking even if they're in different days
+      const allBookingRefs = new Set<string>();
+      
+      // Find all booking references in this view to include in cross-day checks
+      Object.values(timeSlotsByDay).forEach(daySlots => {
+        daySlots.forEach(slot => {
+          if (slot.bookingReference) {
+            allBookingRefs.add(slot.bookingReference);
+          }
+        });
       });
       
-      // Group slots by booking reference
+      console.log(`Found ${allBookingRefs.size} unique booking references across all days`);
+      
+      // Group slots by booking reference - NEW APPROACH: Group all booked slots by reference regardless of day
       const bookingGroups = new Map<string, TimeSlot[]>();
-      bookedSlotsInDay.forEach(slot => {
-        if (!slot.bookingReference) return;
+      
+      // Gather matching slots from all days for each booking reference
+      allBookingRefs.forEach(ref => {
+        // Initialize an empty array for this booking reference
+        bookingGroups.set(ref, []);
         
-        if (!bookingGroups.has(slot.bookingReference)) {
-          bookingGroups.set(slot.bookingReference, []);
-        }
-        const group = bookingGroups.get(slot.bookingReference);
-        if (group) group.push(slot);
+        // Look through all days to find slots with this booking reference
+        Object.values(timeSlotsByDay).forEach(daySlots => {
+          const matchingSlots = daySlots.filter(slot => slot.bookingReference === ref);
+          
+          // Add these slots to the group
+          const group = bookingGroups.get(ref);
+          if (group) {
+            group.push(...matchingSlots);
+          }
+        });
       });
       
       // Debug booking groups
-      console.log(`Found ${bookingGroups.size} booking groups for day ${day}`);
+      console.log(`Found ${bookingGroups.size} booking groups across all days`);
       bookingGroups.forEach((slots, ref) => {
-        console.log(`Booking ${ref} has ${slots.length} slots`);
+        console.log(`Booking ${ref} has ${slots.length} slots total`);
       });
       
-      // For each booking group, check if this time falls within the span
-      const bookingEntries = Array.from(bookingGroups.entries());
-      for (let i = 0; i < bookingEntries.length; i++) {
-        const [reference, slots] = bookingEntries[i];
-        
+      // Log the slots for our specific day of interest
+      bookedSlotsInDay.forEach(s => {
+        console.log(`Slot ID ${s.id} in day ${day} starts at ${toLatviaTime(s.startTime).toLocaleTimeString()} with reference ${s.bookingReference || 'none'}`);
+      });
+      
+      // Now check if any of these bookings include the current time slot we're looking for
+      for (const [reference, slots] of bookingGroups.entries()) {
+        // Skip single-slot bookings - they're not part of a multi-slot booking
         if (slots.length <= 1) {
           console.log(`Skipping booking ${reference} with only ${slots.length} slots`);
-          continue; // Skip single-slot bookings
+          continue;
         }
         
         // Sort slots by start time
@@ -345,69 +368,75 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
         const earliestSlot = slots[0];
         const latestSlot = slots[slots.length - 1];
         
-        const bookingStartTime = toLatviaTime(earliestSlot.startTime);
-        const bookingEndTime = toLatviaTime(latestSlot.endTime);
-        
-        // Debug booking time span
-        console.log(`Booking ${reference} spans from ${bookingStartTime.toLocaleTimeString()} to ${bookingEndTime.toLocaleTimeString()}`);
-        
-        // Create a date object for the requested time
-        const currentDate = new Date();
-        const requestedTimeDate = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth(),
-          currentDate.getDate(),
-          hour, 
-          minute, 
-          0,
-          0
-        );
-        
-        // Format dates to make sure hour and minute are taken into account
-        const requestHourMin = `${hour}:${minute}`;
-        const startHourMin = `${bookingStartTime.getHours()}:${bookingStartTime.getMinutes()}`;
-        const endHourMin = `${bookingEndTime.getHours()}:${bookingEndTime.getMinutes()}`;
-        
-        console.log(`Checking if ${requestHourMin} is between ${startHourMin} and ${endHourMin}`);
-        
-        // If the requested time is within this booking span by checking hours and minutes
-        if ((hour > bookingStartTime.getHours() || 
-            (hour === bookingStartTime.getHours() && minute >= bookingStartTime.getMinutes())) &&
-           (hour < bookingEndTime.getHours() || 
-            (hour === bookingEndTime.getHours() && minute < bookingEndTime.getMinutes()))) {
-            
-          console.log(`Found multi-slot booking match for day ${day}, time ${hour}:${minute}, booking ${reference}`);
+        // Find slots for this specific day and time
+        const slotsForCurrentDay = slots.filter(slot => {
+          const slotDate = toLatviaTime(slot.startTime);
+          // For JavaScript, 0 = Sunday, 1 = Monday, etc.
+          // For our app using Latvian system, 0 = Monday
+          // Convert JS day to Latvian day index
+          const jsDay = slotDate.getDay(); // 0-6 (Sun-Sat)
+          const latvianDay = (jsDay === 0) ? 6 : jsDay - 1; // 0-6 (Mon-Sun)
           
-          // Find the exact slot this time falls into, or the nearest previous slot
-          const matchingSlot = slots.find(slot => {
-            const slotStart = toLatviaTime(slot.startTime);
-            const slotEnd = toLatviaTime(slot.endTime);
-            
-            const slotStartHourMin = `${slotStart.getHours()}:${slotStart.getMinutes()}`;
-            const slotEndHourMin = `${slotEnd.getHours()}:${slotEnd.getMinutes()}`;
-            
-            console.log(`Checking if ${requestHourMin} is within slot ${slotStartHourMin}-${slotEndHourMin}`);
-            
-            return (hour > slotStart.getHours() || 
-                   (hour === slotStart.getHours() && minute >= slotStart.getMinutes())) &&
-                   (hour < slotEnd.getHours() || 
-                   (hour === slotEnd.getHours() && minute < slotEnd.getMinutes()));
-          });
+          return latvianDay === day;
+        });
+        
+        if (slotsForCurrentDay.length === 0) {
+          continue; // No slots for this day, skip to next booking
+        }
+        
+        console.log(`Booking ${reference} has ${slotsForCurrentDay.length} slots for day ${day}`);
+        
+        // Check if any of these slots match our time
+        const matchingSlot = slotsForCurrentDay.find(slot => {
+          const slotStart = toLatviaTime(slot.startTime);
+          const slotEnd = toLatviaTime(slot.endTime);
           
-          if (matchingSlot) {
-            console.log(`Found exact matching slot ${matchingSlot.id} for time ${hour}:${minute}`);
+          const slotStartHour = slotStart.getHours();
+          const slotStartMinute = slotStart.getMinutes();
+          const slotEndHour = slotEnd.getHours();
+          const slotEndMinute = slotEnd.getMinutes();
+          
+          // Debug time values
+          console.log(`Checking if ${hour}:${minute} is within slot ${slotStartHour}:${slotStartMinute}-${slotEndHour}:${slotEndMinute}`);
+          
+          // Check if the requested time falls within this slot
+          return (hour === slotStartHour && minute >= slotStartMinute) || // Same start hour
+                 (hour === slotEndHour && minute < slotEndMinute) ||      // Same end hour
+                 (hour > slotStartHour && hour < slotEndHour);            // Between start and end hours
+        });
+        
+        if (matchingSlot) {
+          console.log(`Found exact matching slot ${matchingSlot.id} for time ${hour}:${minute} in booking ${reference}`);
+          
+          // Return the matching slot with multi-slot booking info attached
+          return {
+            ...matchingSlot,
+            isPartOfMultiSlotBooking: true,
+            bookingSpanLength: slots.length
+          };
+        } else if (slotsForCurrentDay.length > 0) {
+          // If there are slots for this day but none match this time exactly,
+          // check if time is within the range of slots for this day
+          const firstSlotOfDay = slotsForCurrentDay[0];
+          const lastSlotOfDay = slotsForCurrentDay[slotsForCurrentDay.length - 1];
+          
+          const firstSlotStartTime = toLatviaTime(firstSlotOfDay.startTime);
+          const lastSlotEndTime = toLatviaTime(lastSlotOfDay.endTime);
+          
+          const firstHour = firstSlotStartTime.getHours();
+          const firstMinute = firstSlotStartTime.getMinutes();
+          const lastHour = lastSlotEndTime.getHours();
+          const lastMinute = lastSlotEndTime.getMinutes();
+          
+          // Check if time is within the range of slots for this day
+          if ((hour > firstHour || (hour === firstHour && minute >= firstMinute)) &&
+              (hour < lastHour || (hour === lastHour && minute < lastMinute))) {
             
-            // Add information that this is part of a multi-slot booking
+            console.log(`Time ${hour}:${minute} is between ${firstHour}:${firstMinute} and ${lastHour}:${lastMinute} for booking ${reference}`);
+            
+            // Find the closest slot in time (either the one before or after our target time)
             return {
-              ...matchingSlot,
-              isPartOfMultiSlotBooking: true,
-              bookingSpanLength: slots.length
-            };
-          } else {
-            console.log(`No exact slot match found, using first slot in booking`);
-            // Default to earliest slot if exact match not found
-            return {
-              ...earliestSlot,
+              ...firstSlotOfDay, // Default to the first slot if no better match
               isPartOfMultiSlotBooking: true,
               bookingSpanLength: slots.length
             };
