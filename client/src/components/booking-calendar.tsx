@@ -1106,7 +1106,7 @@ const BookingCalendar = ({
   }
 
   return (
-    <Card className="w-full">
+    <Card className={isAdmin ? "max-w-4xl mx-auto" : "w-full"}>
       <CardHeader className="pb-1 pt-2 px-2">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">
