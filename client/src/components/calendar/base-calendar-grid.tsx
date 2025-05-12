@@ -311,6 +311,9 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return [];
     }
     
+    // The key issue is that after "Regenerate All Time Slots", the IDs change
+    // and the time slots might not be consecutive. Let's use a more robust approach.
+    
     // Step 1: Get all slots with the same booking reference
     const sameBookingSlots = timeSlots.filter(s => 
       s.bookingReference && s.bookingReference === slot.bookingReference
@@ -320,48 +323,77 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return sameBookingSlots; // No sequence if 0 or 1 slot
     }
 
-    // Step 2: Sort them by start time
+    // Step 2: Sort them by start time - this is critical
     sameBookingSlots.sort((a, b) => {
       const aTime = new Date(a.startTime).getTime();
       const bTime = new Date(b.startTime).getTime();
       return aTime - bTime;
     });
     
-    // Step 3: Group into consecutive sequences
-    const sequences: TimeSlot[][] = [];
-    let currentSequence: TimeSlot[] = [];
-
-    sameBookingSlots.forEach((currentSlot, index) => {
-      if (index === 0) {
-        // Always start the first sequence with the first slot
-        currentSequence.push(currentSlot);
-      } else {
-        const previousSlot = sameBookingSlots[index - 1];
-        // Check if the current slot is consecutive to the previous one
-        if (areSlotsConsecutive(previousSlot, currentSlot)) {
-          // Add to the current sequence
-          currentSequence.push(currentSlot);
-        } else {
-          // End the current sequence and start a new one
-          sequences.push(currentSequence);
-          currentSequence = [currentSlot];
-        }
-      }
-    });
-    // Add the last sequence
-    sequences.push(currentSequence);
-
-    // Step 4: Find the sequence containing the original input slot
-    const targetSequence = sequences.find(seq => 
-      seq.some(s => s.id === slot.id)
-    );
-    
-    // Log for debugging sequences
-    if (sequences.length > 1) {
-      console.log(`DEBUG: Found ${sequences.length} sequences for booking ${slot.bookingReference}`, sequences);
+    // Logging for the June 1st booking to debug
+    if (slot.bookingReference === 'WB-L_7LG1SG') {
+      console.log(`[findConnectedTimeSlots DEBUG] Found ${sameBookingSlots.length} slots for booking ${slot.bookingReference}:`);
+      sameBookingSlots.forEach((s, i) => {
+        console.log(`   [${i}] Slot ID ${s.id}: ${new Date(s.startTime).toLocaleTimeString()} - ${new Date(s.endTime).toLocaleTimeString()}`);
+      });
     }
     
-    return targetSequence || []; // Return the specific sequence or empty array
+    // Approach change: Instead of using complex sequence detection,
+    // we'll build a graph to find connected components and detect
+    // the slots that form contiguous sequences.
+    
+    // Step 3: Build an adjacency graph where nodes are connected if they're sequential
+    const graph: Record<number, number[]> = {};
+    
+    // Initialize all nodes in the graph
+    sameBookingSlots.forEach(s => {
+      graph[s.id] = [];
+    });
+    
+    // Connect adjacent slots in the graph
+    for (let i = 0; i < sameBookingSlots.length; i++) {
+      for (let j = 0; j < sameBookingSlots.length; j++) {
+        if (i !== j && areSlotsConsecutive(sameBookingSlots[i], sameBookingSlots[j])) {
+          graph[sameBookingSlots[i].id].push(sameBookingSlots[j].id);
+        }
+      }
+    }
+    
+    // Step 4: Find all slots connected to our target slot using BFS
+    const connectedSlotIds = new Set<number>();
+    const queue: number[] = [slot.id];
+    connectedSlotIds.add(slot.id);
+    
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      const neighbors = graph[currentId] || [];
+      
+      for (const neighborId of neighbors) {
+        if (!connectedSlotIds.has(neighborId)) {
+          connectedSlotIds.add(neighborId);
+          queue.push(neighborId);
+        }
+      }
+    }
+    
+    // Get the slots corresponding to the connected IDs and sort them by time
+    const connectedSlots = sameBookingSlots
+      .filter(s => connectedSlotIds.has(s.id))
+      .sort((a, b) => {
+        const aTime = new Date(a.startTime).getTime();
+        const bTime = new Date(b.startTime).getTime();
+        return aTime - bTime;
+      });
+    
+    // Logging for the June 1st booking to debug
+    if (slot.bookingReference === 'WB-L_7LG1SG') {
+      console.log(`[findConnectedTimeSlots DEBUG] Found ${connectedSlots.length} connected slots for Slot ID ${slot.id}:`);
+      connectedSlots.forEach((s, i) => {
+        console.log(`   [${i}] Slot ID ${s.id}: ${new Date(s.startTime).toLocaleTimeString()} - ${new Date(s.endTime).toLocaleTimeString()}`);
+      });
+    }
+    
+    return connectedSlots; // Return all connected slots
   };
   
   // Get slot position in a booking sequence - can be first, middle, or last
