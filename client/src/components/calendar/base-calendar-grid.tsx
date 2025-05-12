@@ -130,10 +130,17 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     
     timeSlots.forEach((slot: TimeSlot) => {
       const slotDate = new Date(slot.startTime);
-      // Calculate day of week (0-6), where 0 is Monday
-      const dayOfWeek = (slotDate.getDay() + 6) % 7; // Convert Sunday(0) to 6, Monday(1) to 0, etc.
       
-      slotsByDay[dayOfWeek].push(slot);
+      // CRITICAL FIX: Properly calculate day of week (0-6), where 0 is Monday, 6 is Sunday
+      // JavaScript day: 0=Sunday, 1=Monday, ..., 6=Saturday
+      // Our system day: 0=Monday, 1=Tuesday, ..., 6=Sunday
+      const jsDay = slotDate.getDay();
+      const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1;
+      
+      // Debug log the day conversions
+      console.log(`Timeslot ${slot.id} date: ${slotDate.toISOString()}, JS day: ${jsDay}, our system day: ${ourSystemDay}`);
+      
+      slotsByDay[ourSystemDay].push(slot);
     });
     
     return slotsByDay;
@@ -371,13 +378,24 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
         // Find slots for this specific day and time
         const slotsForCurrentDay = slots.filter(slot => {
           const slotDate = toLatviaTime(slot.startTime);
-          // For JavaScript, 0 = Sunday, 1 = Monday, etc.
-          // For our app using Latvian system, 0 = Monday
-          // Convert JS day to Latvian day index
-          const jsDay = slotDate.getDay(); // 0-6 (Sun-Sat)
-          const latvianDay = (jsDay === 0) ? 6 : jsDay - 1; // 0-6 (Mon-Sun)
           
-          return latvianDay === day;
+          // CRITICAL FIX: JavaScript day to our calendar day conversion
+          // JavaScript: 0=Sunday, 1=Monday, ..., 6=Saturday
+          // Our system: 0=Monday, 1=Tuesday, ..., 6=Sunday
+          const jsDay = slotDate.getDay(); // 0-6 (Sun-Sat)
+          
+          // Log the actual date and day number to verify conversions
+          console.log(`Slot ${slot.id} date: ${slotDate.toISOString()}, JS day: ${jsDay}, our day index: ${day}`);
+          
+          // This is the critical fix - Sunday (0) in JS is day 6 in our system
+          // All other days shift by 1 (JS day - 1)
+          const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1; // 0-6 (Mon-Sun) where 6=Sunday
+          
+          // Additional logging to debug
+          console.log(`Slot ${slot.id} conversion: JS day ${jsDay} → our day ${ourSystemDay}, comparing to ${day}`);
+          
+          // Direct comparison to the requested day
+          return ourSystemDay === day;
         });
         
         if (slotsForCurrentDay.length === 0) {
