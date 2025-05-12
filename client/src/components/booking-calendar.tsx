@@ -885,19 +885,38 @@ const BookingCalendar = ({
   };
 
   const handleSlotToggle = (slotId: string, status: TimeSlotStatus) => {
+    console.log(`[CALENDAR DEBUG] Toggle slot requested: ${slotId}, status: ${status}`);
+    
     // Find the actual slot object - compare both as strings
     const slot = timeSlots.find((s) => String(s.id) === slotId);
-    if (!slot) return;
+    if (!slot) {
+      console.log(`[CALENDAR DEBUG] ERROR: Slot ${slotId} not found in timeSlots array`);
+      return;
+    }
+
+    // Log the slot details for debugging
+    console.log(`[CALENDAR DEBUG] Slot details:`, {
+      id: slot.id,
+      day: slot.day,
+      hour: slot.hour,
+      minute: slot.minute,
+      startTime: slot.startTime?.toLocaleString(),
+      endTime: slot.endTime?.toLocaleString(),
+      isPast: slot.isPast,
+      status: slot.status,
+      isLeadTimeRestricted: !isAdmin && isSlotRestrictedByLeadTime(slot)
+    });
 
     // Check if the slot is in the past
     if (slot.isPast && !isAdmin) {
       // Regular users cannot interact with past slots
-      console.log(`Cannot select past slot ${slotId}`);
+      console.log(`[CALENDAR DEBUG] Cannot select past slot ${slotId}`);
       return;
     }
 
     // Check lead time restrictions (for non-admin users)
     if (!isAdmin && isSlotRestrictedByLeadTime(slot)) {
+      console.log(`[CALENDAR DEBUG] Slot ${slotId} restricted by lead time`);
       // Use a more subtle, non-destructive toast
       toast({
         title: "Booking needs planning",
@@ -911,17 +930,29 @@ const BookingCalendar = ({
 
     // Convert our UI slot to a schema slot before passing to context
     const schemaSlot = toSchemaTimeSlot(slot);
+    console.log(`[CALENDAR DEBUG] Converted to schema slot:`, {
+      id: schemaSlot.id,
+      startTime: new Date(schemaSlot.startTime).toLocaleString(),
+      endTime: new Date(schemaSlot.endTime).toLocaleString(),
+      status: schemaSlot.status,
+      price: schemaSlot.price
+    });
 
     // If in admin mode, pass to admin handler which will handle logic based on status
     if (isAdmin && onAdminSlotSelect) {
+      console.log(`[CALENDAR DEBUG] Handling as admin selection`);
       onAdminSlotSelect(schemaSlot);
       return;
     }
 
     // For regular users, only allow selecting available slots
-    if (status !== "available") return;
+    if (status !== "available") {
+      console.log(`[CALENDAR DEBUG] Ignoring non-available slot: ${status}`);
+      return;
+    }
 
     // Update booking context
+    console.log(`[CALENDAR DEBUG] Toggling slot in booking context`);
     toggleTimeSlot(schemaSlot);
   };
 

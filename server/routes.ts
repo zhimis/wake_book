@@ -322,7 +322,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a booking
   app.post("/api/bookings", async (req: Request, res: Response) => {
     try {
-      console.log(`Received booking request at ${formatInLatviaTime(new Date(), 'yyyy-MM-dd HH:mm:ss')} (Latvia time):`, req.body);
+      console.log(`[BOOKING DEBUG] ===== BOOKING REQUEST =====`);
+      console.log(`[BOOKING DEBUG] Received booking request at ${formatInLatviaTime(new Date(), 'yyyy-MM-dd HH:mm:ss')} (Latvia time)`);
+      console.log(`[BOOKING DEBUG] Request body:`, JSON.stringify(req.body, null, 2));
       
       // Check if this is an admin booking (e.g., has 'customerName' instead of 'fullName')
       let validatedData;
@@ -331,6 +333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (req.body.customerName) {
         // Admin is creating a booking
+        console.log(`[BOOKING DEBUG] Processing as ADMIN booking`);
         const schema = manualBookingSchema;
         validatedData = schema.parse(req.body);
         const { timeSlotIds: ids, ...rest } = validatedData;
@@ -344,6 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       } else {
         // Regular user booking
+        console.log(`[BOOKING DEBUG] Processing as USER booking`);
         const schema = bookingFormSchema;
         validatedData = schema.parse(req.body);
         const { timeSlotIds: ids, ...rest } = validatedData;
@@ -351,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingData = rest;
       }
       
-      console.log("Time slot IDs received:", timeSlotIds);
+      console.log(`[BOOKING DEBUG] Time slot IDs received (${timeSlotIds.length}):`, timeSlotIds);
       
       // Process time slots - create new ones for "unallocated" slots with negative IDs
       const processedTimeSlotIds = [];
