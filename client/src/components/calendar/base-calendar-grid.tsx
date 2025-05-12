@@ -224,30 +224,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
   
-  // Find a time slot for a specific day and time
+  // Find a time slot for a specific day and time - FIXED TO PRIORITIZE BOOKED SLOTS
   const findTimeSlot = (day: number, hour: number, minute: number) => {
     // Create a date object for the current day of the week at the specified hour:minute
-    // This gives us an exact time reference for the current calendar cell
     const currentWeekday = weekDays[day];
-    
-    // --- DEBUG LOGGING START ---
-    const isPotentiallyProblematicCell = 
-      currentWeekday.getFullYear() === 2025 &&
-      currentWeekday.getMonth() === 5 && // June
-      currentWeekday.getDate() === 1 && // 1st
-      hour >= 11 && hour <= 14; // Around the expected booking time (Latvia Time)
-      
-    if (isPotentiallyProblematicCell) {
-      console.log(`[findTimeSlot DEBUG] Checking cell: Day ${day}, Time ${hour}:${minute}, Date: ${currentWeekday.toISOString()}`);
-    }
-    // --- DEBUG LOGGING END ---
     
     // Create a time string to search for
     const formattedDate = format(currentWeekday, 'yyyy-MM-dd');
     const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     
-    // Method 1: Direct search through all time slots (most reliable method)
-    let slots = timeSlots.filter(slot => {
+    // FIX: Prioritize finding 'booked' slots first!
+    // Search for ALL slots matching this time period
+    let matchingSlots = timeSlots.filter(slot => {
       const slotDate = new Date(slot.startTime);
       const slotFormattedDate = format(slotDate, 'yyyy-MM-dd');
       const slotFormattedTime = format(slotDate, 'HH:mm');
@@ -255,25 +243,42 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return slotFormattedDate === formattedDate && slotFormattedTime === formattedTime;
     });
     
-    // We found an exact match by date and time
-    if (slots.length > 0) {
-      return slots[0];
+    // DEBUG: Log duplicate slots
+    if (matchingSlots.length > 1) {
+      console.log(`DUPLICATE SLOTS FOUND FOR ${formattedDate} ${formattedTime}:`, 
+        matchingSlots.map(s => `ID:${s.id}, Status:${s.status}, Booking:${s.bookingReference || 'none'}`));
     }
     
-    // Method 2: Try the day bucket method (faster but less reliable)
+    // If we have multiple slots for this time period (after regeneration), prioritize booked slots
+    if (matchingSlots.length > 0) {
+      // First try to find a booked slot
+      const bookedSlot = matchingSlots.find(slot => slot.status === 'booked');
+      if (bookedSlot) {
+        return bookedSlot;
+      }
+      // Otherwise return the first one (fallback)
+      return matchingSlots[0];
+    }
+    
+    // Method 2: Try the day bucket method as fallback
     if (timeSlotsByDay && timeSlotsByDay[day]) {
-      const matchingSlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
+      const daySlots = timeSlotsByDay[day].filter((slot: TimeSlot) => {
         const startTime = new Date(slot.startTime);
         return startTime.getHours() === hour && startTime.getMinutes() === minute;
       });
       
-      if (matchingSlots.length > 0) {
-        return matchingSlots[0];
+      // Again prioritize booked slots
+      if (daySlots.length > 0) {
+        const bookedDaySlot = daySlots.find(slot => slot.status === 'booked');
+        if (bookedDaySlot) {
+          return bookedDaySlot;
+        }
+        return daySlots[0];
       }
     }
     
-    // Method 3: Last resort - day of week calculation (most error-prone)
-    const fallbackSlot = timeSlots.find(slot => {
+    // Method 3: Last resort - day of week calculation
+    let fallbackSlots = timeSlots.filter(slot => {
       const date = new Date(slot.startTime);
       const slotDay = date.getDay(); // 0 = Sunday
       // Convert to our calendar system (0 = Monday, 6 = Sunday)
@@ -286,13 +291,17 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       );
     });
     
-    // --- DEBUG LOGGING START ---
-    if (isPotentiallyProblematicCell) {
-      const result = fallbackSlot || null;
-      console.log(`[findTimeSlot DEBUG] Result for cell ${hour}:${minute}:`, result ? `Slot ID ${result.id}` : 'null');
+    // Prioritize booked slots among fallbacks as well
+    if (fallbackSlots.length > 0) {
+      const bookedFallbackSlot = fallbackSlots.find(slot => slot.status === 'booked');
+      if (bookedFallbackSlot) {
+        return bookedFallbackSlot;
+      }
+      return fallbackSlots[0];
     }
-    // --- DEBUG LOGGING END ---
-    return fallbackSlot || null;
+    
+    // No slots found for this time period
+    return null;
   };
   
   // Helper function to check if two slots are exactly 30 minutes apart based on start times
@@ -371,7 +380,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     <div className="text-xs text-gray-600">{time}</div>
   );
   
-  // Default render function for slot cells
+  // Default render function for slot cells - DIRECT APPROACH
   const defaultRenderSlotCell = (
     slot: TimeSlot | null, 
     day: number, 
@@ -395,53 +404,32 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     // Display class based on slot status or day being closed
     let displayClass = "p-2 h-10 w-full";
     
+    // ULTRA-SIMPLE APPROACH:
+    // Just use the status directly from the database without any complex logic
+    
     if (slot) {
-      // Simply detect if the slot is booked
-      const isBooked = slot.status === 'booked';
+      // Direct styling based on database status - no fancy logic
+      switch (slot.status) {
+        case 'booked':
+          // This is the key change - use YELLOW for booked slots
+          displayClass += " bg-yellow-100 text-gray-800";
+          break;
+        case 'available':
+          displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
+          break;
+        case 'reserved':
+          displayClass += " bg-yellow-100 hover:bg-yellow-200 cursor-pointer";
+          break;
+        case 'unavailable':
+          displayClass += " bg-gray-100 text-gray-400";
+          break;
+        default:
+          displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
+      }
       
-      // SIMPLIFIED APPROACH: Force all slots with a booking reference to be styled properly
-      if (isBooked && slot.bookingReference) {
-        // Get all slots for this booking to determine position
-        const allSlots = findConnectedTimeSlots(slot);
-        
-        if (allSlots.length > 1) {
-          // Sort slots by time
-          allSlots.sort((a, b) => {
-            return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-          });
-          
-          // Find this slot's index in the sorted array
-          const index = allSlots.findIndex(s => s.id === slot.id);
-          
-          if (index === 0) {
-            // First slot in a booking
-            displayClass += " bg-blue-500 text-white rounded-t";
-          } else if (index === allSlots.length - 1) {
-            // Last slot in a booking
-            displayClass += " bg-blue-500 text-white rounded-b";
-          } else {
-            // Middle slot in a booking
-            displayClass += " bg-blue-500 text-white";
-          }
-        } else {
-          // Single booked slot
-          displayClass += " bg-blue-500 text-white rounded";
-        }
-      } else {
-        // Styling for different statuses
-        switch (slot.status) {
-          case 'available':
-            displayClass += " bg-green-100 hover:bg-green-200 cursor-pointer";
-            break;
-          case 'reserved':
-            displayClass += " bg-yellow-100 hover:bg-yellow-200 cursor-pointer";
-            break;
-          case 'unavailable':
-            displayClass += " bg-gray-100 text-gray-400";
-            break;
-          default:
-            displayClass += " bg-white hover:bg-gray-50 cursor-pointer";
-        }
+      // Log status for debugging
+      if (slot.status === 'booked') {
+        console.log(`SLOT ${slot.id} | Time: ${new Date(slot.startTime).toLocaleTimeString()} | Status: ${slot.status} | Reference: ${slot.bookingReference || 'none'}`);
       }
     } else if (isDayClosed) {
       // Styling for closed days
