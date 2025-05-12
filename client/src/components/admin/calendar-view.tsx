@@ -181,7 +181,12 @@ const blockTimeSlotSchema = z.object({
 // Schema for making time slots available
 const makeAvailableSchema = z.object({
   price: z.number().min(5, "Price must be at least €5"),
-  timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot")
+  timeSlotIds: z.array(z.number()).min(1, "Must select at least one time slot"),
+  unallocatedSlots: z.array(z.object({
+    id: z.number(),
+    startTime: z.union([z.string(), z.date()]),
+    endTime: z.union([z.string(), z.date()])
+  })).optional()
 });
 
 type ManualBookingFormData = z.infer<typeof manualBookingSchema>;
