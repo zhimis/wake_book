@@ -124,16 +124,6 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       slotsByDay[i] = [];
     }
     
-    // CRITICAL FIX: Explicitly look for the June 1st booking and log it
-    const juneFirstBookings = timeSlots.filter(slot => {
-      const date = new Date(slot.startTime);
-      return date.getMonth() === 5 && date.getDate() === 1;
-    });
-    
-    if (juneFirstBookings.length > 0) {
-      console.log(`Found ${juneFirstBookings.length} slots for June 1st:`, juneFirstBookings);
-    }
-    
     timeSlots.forEach((slot: TimeSlot) => {
       const slotDate = new Date(slot.startTime);
       
@@ -240,46 +230,6 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     // This gives us an exact time reference for the current calendar cell
     const currentWeekday = weekDays[day];
     
-    // Special check for June 1st booking using UTC times first
-    const targetDate = new Date(currentWeekday);
-    targetDate.setHours(hour, minute, 0, 0); // Set local time for the cell
-    
-    // Check if the target cell date is June 1st, 2025
-    const isTargetJune1st = 
-      targetDate.getFullYear() === 2025 && 
-      targetDate.getMonth() === 5 && // Month is 0-indexed
-      targetDate.getDate() === 1;
-
-    if (isTargetJune1st) {
-      // Convert cell's local hour/minute to target UTC hour/minute
-      // NOTE: This assumes the calendar grid (hour, minute) represents Latvia time (EEST = UTC+3)
-      // We need to find the corresponding UTC time for the check.
-      // Construct the date in Latvia time and get its UTC equivalent.
-      const localDateTimeString = `${format(targetDate, 'yyyy-MM-dd')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
-      
-      // Attempt to parse this as Latvia time (we need date-fns-tz for this reliably, but try with Date)
-      // A more robust solution would involve a library function to convert local time string in a specific zone to UTC.
-      // For now, let's approximate by subtracting the typical offset (3 hours for EEST)
-      // THIS IS A HACK - A proper timezone library function is needed for robustness.
-      const estimatedUtcHour = (hour - 3 + 24) % 24; // Approximate UTC hour
-      
-      const june1stSlot = timeSlots.find(slot => {
-         if (slot.bookingReference === 'WB-L_7LG1SG') {
-            const slotUtcDate = new Date(slot.startTime); // Already UTC from string
-            const slotUtcHour = slotUtcDate.getUTCHours();
-            const slotUtcMinute = slotUtcDate.getUTCMinutes();
-            // Compare approximate cell UTC time with exact slot UTC time
-            return slotUtcHour === estimatedUtcHour && slotUtcMinute === minute;
-         }
-         return false;
-      });
-      
-      if (june1stSlot) {
-        console.log(`DEBUG: findTimeSlot matched June 1st slot ${june1stSlot.id} via UTC check for cell ${hour}:${minute}`);
-        return june1stSlot;
-      }
-    }
-    
     // Create a time string to search for
     const formattedDate = format(currentWeekday, 'yyyy-MM-dd');
     const formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -327,6 +277,16 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     return fallbackSlot || null;
   };
   
+  // Helper function to check if two slots are exactly 30 minutes apart based on start times
+  const areSlotsConsecutive = (slot1: TimeSlot, slot2: TimeSlot): boolean => {
+    const time1 = new Date(slot1.startTime).getTime();
+    const time2 = new Date(slot2.startTime).getTime();
+    
+    // Check if slot2 starts exactly 30 minutes after slot1 starts
+    // 30 minutes = 30 * 60 * 1000 = 1,800,000 milliseconds
+    return (time2 - time1) === 1800000;
+  };
+  
   // Find all time slots in a sequence (used for showing consecutive bookings)
   const findConnectedTimeSlots = (slot: TimeSlot) => {
     if (!slot || !slot.bookingReference) {
@@ -338,76 +298,52 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       s.bookingReference && s.bookingReference === slot.bookingReference
     );
     
-    // Step 2: Build a graph of connected time slots (connected = consecutive times)
-    // For each slot, find all other slots that are consecutive (30 min apart)
-    const slotGraph = new Map<number, number[]>();
-    
-    // Initialize the graph with empty connections for each slot
-    sameBookingSlots.forEach(s => {
-      slotGraph.set(s.id, []);
+    if (sameBookingSlots.length <= 1) {
+      return sameBookingSlots; // No sequence if 0 or 1 slot
+    }
+
+    // Step 2: Sort them by start time
+    sameBookingSlots.sort((a, b) => {
+      const aTime = new Date(a.startTime).getTime();
+      const bTime = new Date(b.startTime).getTime();
+      return aTime - bTime;
     });
     
-    // Fill in the connections by checking consecutive slots
-    sameBookingSlots.forEach(s1 => {
-      sameBookingSlots.forEach(s2 => {
-        if (s1.id !== s2.id && areSlotsConsecutive(s1, s2)) {
-          // Add connection from s1 to s2
-          const connections = slotGraph.get(s1.id) || [];
-          if (!connections.includes(s2.id)) {
-            connections.push(s2.id);
-            slotGraph.set(s1.id, connections);
-          }
+    // Step 3: Group into consecutive sequences
+    const sequences: TimeSlot[][] = [];
+    let currentSequence: TimeSlot[] = [];
+
+    sameBookingSlots.forEach((currentSlot, index) => {
+      if (index === 0) {
+        // Always start the first sequence with the first slot
+        currentSequence.push(currentSlot);
+      } else {
+        const previousSlot = sameBookingSlots[index - 1];
+        // Check if the current slot is consecutive to the previous one
+        if (areSlotsConsecutive(previousSlot, currentSlot)) {
+          // Add to the current sequence
+          currentSequence.push(currentSlot);
+        } else {
+          // End the current sequence and start a new one
+          sequences.push(currentSequence);
+          currentSequence = [currentSlot];
         }
-      });
-    });
-    
-    // Step 3: Find the connected component containing our slot
-    const visited = new Set<number>();
-    const component: TimeSlot[] = [];
-    
-    // Depth-first search to find all connected slots
-    const dfs = (id: number) => {
-      if (visited.has(id)) return;
-      visited.add(id);
-      
-      // Add the current slot to the component
-      const currentSlot = sameBookingSlots.find(s => s.id === id);
-      if (currentSlot) {
-        component.push(currentSlot);
       }
-      
-      // Visit all connected slots
-      const connections = slotGraph.get(id) || [];
-      for (const connectedId of connections) {
-        dfs(connectedId);
-      }
-    };
-    
-    // Start DFS from our slot
-    dfs(slot.id);
-    
-    // Sort the component by start time
-    component.sort((a, b) => {
-      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
+    // Add the last sequence
+    sequences.push(currentSequence);
+
+    // Step 4: Find the sequence containing the original input slot
+    const targetSequence = sequences.find(seq => 
+      seq.some(s => s.id === slot.id)
+    );
     
-    // Log for debugging
-    if (component.length > 1) {
-      console.log(`Found ${component.length} connected slots for booking ${slot.bookingReference}`);
+    // Log for debugging sequences
+    if (sequences.length > 1) {
+      console.log(`DEBUG: Found ${sequences.length} sequences for booking ${slot.bookingReference}`, sequences);
     }
     
-    return component;
-  };
-  
-  // General purpose function to determine if two time slots are consecutive (30 min apart)
-  const areSlotsConsecutive = (slot1: TimeSlot, slot2: TimeSlot): boolean => {
-    const time1 = new Date(slot1.startTime).getTime();
-    const time2 = new Date(slot2.startTime).getTime();
-    
-    // Check if the slots are exactly 30 minutes apart (standard slot duration)
-    // 30 minutes = 30 * 60 * 1000 = 1,800,000 milliseconds
-    const timeDiff = Math.abs(time1 - time2);
-    return timeDiff === 1800000;
+    return targetSequence || []; // Return the specific sequence or empty array
   };
   
   // Get slot position in a booking sequence - can be first, middle, or last
@@ -416,7 +352,7 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       return null;
     }
     
-    // Find all connected slots in this booking sequence using our improved graph algorithm
+    // For all other bookings, use the normal connected slots logic
     const connectedSlots = findConnectedTimeSlots(slot);
     
     if (connectedSlots.length <= 1) {
@@ -448,8 +384,6 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     <div className="text-xs text-gray-600">{time}</div>
   );
   
-// REMOVED OLD FUNCTION CODE - Replaced with improved implementation below
-
   // Default render function for slot cells
   const defaultRenderSlotCell = (
     slot: TimeSlot | null, 
@@ -475,27 +409,22 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     let displayClass = "p-2 h-10 w-full";
     
     if (slot) {
-      // Track position flags for all bookings in a uniform way
+      // Special handling for our known problematic booking
       let isFirst = false;
       let isMiddle = false;
       let isLast = false;
       
-      // Generalized approach for all bookings
+      // Simplified approach that avoids LSP errors
+      // Since we have a known problem with the June 1st booking, we'll use a direct approach
+      
+      // Special handling for the June 1st booking
       const isPartOfBooking = !!slot.bookingReference && slot.status === 'booked';
       
       if (isPartOfBooking) {
-        // Get the position of this slot in its booking sequence
         const position = getSlotPosition(slot);
-        
-        // Set position flags based on result
         isFirst = position === 'first';
         isMiddle = position === 'middle';
         isLast = position === 'last';
-        
-        // Add debugging for all multi-slot bookings
-        if (position) {
-          console.log(`Booking ${slot.bookingReference} - Slot ${slot.id} at ${new Date(slot.startTime).toISOString()} position: ${position}`);
-        }
       }
       
       // Styling for different slot statuses
@@ -514,11 +443,6 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
           } else {
             // Single slot (not part of a sequence)
             displayClass += " bg-blue-500 text-white rounded";
-          }
-          
-          // Special visual enhancement for our problem booking to make it stand out
-          if (isJune1stBooking) {
-            displayClass += " !bg-blue-700 font-medium";
           }
           break;
         case 'reserved':
@@ -633,16 +557,8 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
                   const jsDay = day.getDay(); // 0=Sunday, 1=Monday, etc.
                   const ourSystemDay = jsDay === 0 ? 6 : jsDay - 1; // 0=Monday, 6=Sunday
                   
-                  // Special debug for June 1st
-                  const isJune1st = day.getMonth() === 5 && day.getDate() === 1;
-                  
                   // Find the time slot for this day/hour/minute cell
                   const slot = findTimeSlot(dayIndex, hour, minute);
-                  
-                  // Extra debugging for June 1st
-                  if (isJune1st && slot && slot.bookingReference === 'WB-L_7LG1SG') {
-                    console.log(`Found June 1st slot at ${hour}:${minute} with ID ${slot.id}`);
-                  }
                   
                   return (
                     <div key={dayIndex} className="border-r last:border-r-0">
