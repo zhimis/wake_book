@@ -331,9 +331,22 @@ const AdminSystemConfig = () => {
       const response = await apiRequest("POST", "/api/timeslots/regenerate");
       const result = await response.json();
       
+      // Create a more informative message
+      let description = `Future time slots have been regenerated successfully, preserving ${result.preservedBookings} existing bookings.`;
+      
+      // Add details about duplicate prevention
+      if (result.duplicatesPrevented > 0) {
+        description += ` Prevented ${result.duplicatesPrevented} duplicate time slots.`;
+      }
+      
+      // Add details about bookings outside operating hours
+      if (result.outOfHoursBookings > 0) {
+        description += ` Note: ${result.outOfHoursBookings} bookings outside current operating hours were preserved.`;
+      }
+      
       toast({
         title: "Time Slots Regenerated",
-        description: `Future time slots have been regenerated successfully, preserving ${result.preservedBookings} existing bookings.`,
+        description,
         variant: "success",
       });
       
