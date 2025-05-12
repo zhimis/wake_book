@@ -239,6 +239,11 @@ export type TimeSlot = typeof timeSlots.$inferSelect & {
   isPast?: boolean; // Flag to indicate if the time slot is in the past
   id: number | string; // Explicitly support both number and string IDs
   
+  // Date correction fields for cross-date booking prevention
+  isDateCorrected?: boolean; // Flag that indicates this slot has had its display date corrected
+  hour?: number; // Hour in 24-hour format (from UI display)
+  minute?: number; // Minute (0 or 30 typically for 30-min slots)
+  
   // Fields for multi-slot booking support
   bookingReference?: string; // Reference to the booking this slot belongs to
   bookingId?: number; // ID of the booking this slot belongs to

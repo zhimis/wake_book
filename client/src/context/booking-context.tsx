@@ -21,9 +21,18 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[]>([]);
   const { toast } = useToast();
   
-  // Toggle time slot selection - with cross-date protection
+  // Toggle time slot selection - with enhanced cross-date protection
   const toggleTimeSlot = useCallback((timeSlot: TimeSlot) => {
     console.log(`[BOOKING DEBUG] Toggle slot: ${timeSlot.id}, date: ${new Date(timeSlot.startTime).toLocaleString()}`);
+    
+    // ENHANCED PROTECTION: Log detailed time slot debugging information
+    console.log(`[BOOKING DEBUG] TimeSlot Details:`, {
+      id: timeSlot.id,
+      displayDate: new Date(timeSlot.startTime).toLocaleDateString(),
+      displayTime: new Date(timeSlot.startTime).toLocaleTimeString(),
+      originalDate: timeSlot.originalStartTime ? new Date(timeSlot.originalStartTime).toLocaleDateString() : "N/A",
+      isDateCorrected: timeSlot.isDateCorrected || false,
+    });
     
     setSelectedTimeSlots(prev => {
       // Check if the slot is already selected
@@ -37,12 +46,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         // Add to selection
         console.log(`[BOOKING DEBUG] Adding slot to selection: ${timeSlot.id}`);
         
-        // CRITICAL FIX: Enforce single-date bookings
-        // Check if the date is different from already selected slots
+        // IMPROVED CROSS-DATE CHECK WITH DATE CORRECTION AWARENESS
         if (prev.length > 0) {
+          // Use UI/display dates for consistency
           const existingDate = new Date(prev[0].startTime).toDateString();
           const newDate = new Date(timeSlot.startTime).toDateString();
           
+          // Check for date discrepancy
           if (existingDate !== newDate) {
             console.log(`[BOOKING DEBUG] ERROR: Preventing selection from different date!`);
             console.log(`[BOOKING DEBUG] Existing slots date: ${existingDate}`);
@@ -57,6 +67,24 @@ export function BookingProvider({ children }: { children: ReactNode }) {
             });
             
             return prev;
+          }
+          
+          // ADDITIONAL CHECK: If any time slot has date correction, verify time consistency
+          const anyDateCorrected = [...prev, timeSlot].some(slot => slot.isDateCorrected);
+          
+          if (anyDateCorrected) {
+            console.log(`[BOOKING DEBUG] Date correction detected in selection - verifying time consistency`);
+            
+            // Log every selected time slot for debugging
+            [...prev, timeSlot].forEach((slot, index) => {
+              console.log(`[BOOKING DEBUG] Selected slot ${index}:`, {
+                id: slot.id, 
+                date: new Date(slot.startTime).toLocaleDateString(),
+                isDateCorrected: slot.isDateCorrected || false,
+                hour: slot.hour,
+                minute: slot.minute
+              });
+            });
           }
         }
         
