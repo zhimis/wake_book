@@ -395,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Query time slots for this specific day from database
             console.log(`[BOOKING DEBUG] Searching for time slots on ${startOfDay.toISOString()} with hour=${slotInfo.hour}, minute=${slotInfo.minute}`);
-            const slotsForDay = await storage.getTimeSlotsForDateRange(startOfDay, endOfDay);
+            const slotsForDay = await storage.getTimeSlotsByDateRange(startOfDay, endOfDay);
             
             // Find the slot that matches the time (hour, minute)
             const matchingSlot = slotsForDay.find(slot => {
