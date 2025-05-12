@@ -598,8 +598,13 @@ const AdminSystemConfig = () => {
               </div>
               
               <div className="p-3 border border-yellow-200 bg-yellow-50 rounded text-sm mb-4">
-                <p className="font-medium text-amber-800">Note: Regeneration preserves all existing bookings</p>
-                <p className="text-amber-700 mt-1">Peak hours are applied based on fixed rules:</p>
+                <p className="font-medium text-amber-800">Enhanced Time Slot Regeneration System</p>
+                <ul className="list-disc pl-5 mt-1 text-amber-700">
+                  <li><strong>All existing bookings are preserved</strong>, even if operating hours have changed</li>
+                  <li>Duplicate time slots are automatically prevented</li>
+                  <li>Bookings outside current operating hours are identified but still preserved</li>
+                </ul>
+                <p className="text-amber-700 mt-2">Peak hours are applied based on fixed rules:</p>
                 <ul className="list-disc pl-5 mt-1 text-amber-700">
                   <li>Monday to Friday: 17:00-22:00 (Latvia time)</li>
                   <li>Saturday and Sunday: All day</li>
