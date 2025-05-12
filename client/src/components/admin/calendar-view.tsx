@@ -1393,7 +1393,7 @@ const AdminCalendarView = () => {
   };
 
   return (
-    <div id="bookingsTab" className="admin-tab-content p-0.5">
+    <div id="bookingsTab" className="admin-tab-content p-0.5" data-admin-calendar-view>
       {/* Top controls with refresh button */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Booking Calendar</h2>
