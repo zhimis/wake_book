@@ -49,9 +49,9 @@ const NewAdminPage = () => {
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="container mx-auto px-0.5 py-2">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Booking Management (New Component)</h1>
+          <h1 className="text-2xl font-bold">Booking Management</h1>
           <div className="flex space-x-2">
             <Button 
               variant={multiSelectMode ? "default" : "outline"}
@@ -84,27 +84,58 @@ const NewAdminPage = () => {
           </div>
         </div>
         
-        <Card className="max-w-6xl mx-auto">
-          <CardHeader>
-            <CardTitle>Calendar View</CardTitle>
-          </CardHeader>
-          <CardContent className="px-2 sm:px-6">
-            <AdminCalendarView 
-              onSlotSelect={handleSlotSelection}
-              onDateRangeChange={handleDateRangeChange}
-              onSlotsSelected={handleSlotsSelected}
-              enableMultiSelect={multiSelectMode}
-            />
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="md:col-span-4">
+              <Card>
+                <CardHeader className="px-4 py-3">
+                  <CardTitle>Calendar View</CardTitle>
+                </CardHeader>
+                <CardContent className="px-2 pb-4">
+                  <AdminCalendarView 
+                    onSlotSelect={handleSlotSelection}
+                    onDateRangeChange={handleDateRangeChange}
+                    onSlotsSelected={handleSlotsSelected}
+                    enableMultiSelect={multiSelectMode}
+                  />
+                </CardContent>
+              </Card>
+            </div>
             
-            <CalendarControls 
-              viewMode="admin"
-              selectedSlots={selectedSlots}
-              selectedWeekStart={selectedWeekStart || undefined}
-              onClearSelection={handleClearSelection}
-              onRegenerateSlots={handleRegenerateSlots}
-            />
-          </CardContent>
-        </Card>
+            <div className="w-full">
+              <Card>
+                <CardContent className="pt-6 px-4">
+                  <h3 className="text-lg font-semibold mb-3">Admin Controls</h3>
+                  <div className="space-y-4">
+                    <CalendarControls 
+                      viewMode="admin"
+                      selectedSlots={selectedSlots}
+                      selectedWeekStart={selectedWeekStart || undefined}
+                      onClearSelection={handleClearSelection}
+                      onRegenerateSlots={handleRegenerateSlots}
+                    />
+                    
+                    {multiSelectMode && selectedSlots.length > 0 && (
+                      <div className="mt-4 p-3 bg-slate-50 rounded-md border">
+                        <h4 className="text-sm font-medium mb-2">Selected: {selectedSlots.length} Slot{selectedSlots.length !== 1 ? 's' : ''}</h4>
+                        <div className="mb-2 text-xs">
+                          <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded mr-2">
+                            {selectedSlots.filter(s => s.id > 0).length} existing
+                          </span>
+                          {selectedSlots.some(s => s.id < 0) && (
+                            <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                              {selectedSlots.filter(s => s.id < 0).length} empty
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       </div>
       
       {/* Slot Details Dialog */}
