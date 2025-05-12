@@ -163,12 +163,30 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
   }, [timeSlots]);
   
   // Generate array of days for the current week (in Latvia time)
+  // CRITICAL FIX FOR MAY25/JUNE1 ISSUE
   const weekDays = useMemo(() => {
     const days = [];
+    
+    // Get Monday of the EXACT calendar week being displayed
+    // This ensures days are mapped correctly regardless of month transitions
     const weekStart = toLatviaTime(startOfWeek(toLatviaTime(currentDate), { weekStartsOn: 1 }));
     
+    // Full debug of week calculation
+    console.log(`[WEEK DEBUG] Calculating week for ${currentDate.toDateString()}`);
+    console.log(`[WEEK DEBUG] Week start (Monday): ${weekStart.toDateString()}`);
+    
+    // For each day of the week
     for (let i = 0; i < 7; i++) {
-      days.push(addDays(weekStart, i));
+      const dayDate = addDays(weekStart, i);
+      days.push(dayDate);
+      
+      // Extra logging for specific problematic dates
+      if (dayDate.getDate() === 25 && dayDate.getMonth() === 4) {
+        console.log(`[WEEK DEBUG] May 25 is assigned to index ${i} (${format(dayDate, 'EEE')})`);
+      }
+      if (dayDate.getDate() === 1 && dayDate.getMonth() === 5) {
+        console.log(`[WEEK DEBUG] June 1 is assigned to index ${i} (${format(dayDate, 'EEE')})`);
+      }
     }
     
     return days;
@@ -252,12 +270,18 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     // Create a date object for the current day of the week at the specified hour:minute
     const currentWeekday = weekDays[day];
     
-    // SPECIAL DEBUGGING FOR JUNE 1ST
-    const isJune1st = currentWeekday.getDate() === 1 && currentWeekday.getMonth() === 5; // June is month 5 (0-indexed)
+    // Define debugging flags for special dates
+    const isMay25 = (currentWeekday.getDate() === 25 && currentWeekday.getMonth() === 4); // May 25
+    const isJune1st = (currentWeekday.getDate() === 1 && currentWeekday.getMonth() === 5); // June 1
+    const isMay25orJune1 = (isMay25 || isJune1st);
     
-    if (isJune1st && hour >= 11 && hour < 14) {
-      console.log(`[findTimeSlot] LOOKING FOR JUNE 1ST SLOT: Day=${day}, Hour=${hour}, Minute=${minute}`);
-      console.log(`[findTimeSlot] Current weekday date: ${currentWeekday.toISOString()}`);
+    if (isMay25orJune1) {
+      console.log(`[CRITICAL DEBUG] WeekDays array when finding slot for ${currentWeekday.toDateString()}:`);
+      weekDays.forEach((date, i) => {
+        console.log(`  Day ${i}: ${date.toDateString()} (${format(date, 'EEE')})`);
+      });
+      console.log(`[CRITICAL DEBUG] Looking for slot: Day=${day}, Hour=${hour}, Minute=${minute}`);
+      console.log(`[CRITICAL DEBUG] Current weekday date: ${currentWeekday.toISOString()}`);
     }
     
     // Create a time string to search for

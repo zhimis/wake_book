@@ -774,7 +774,18 @@ const AdminCalendarView = () => {
   };
   
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
-    console.log(`Admin selecting slot: ${timeSlot.id}, status: ${timeSlot.status}, start: ${new Date(timeSlot.startTime).toLocaleTimeString()}`);
+    console.log(`Admin selecting slot: ${timeSlot.id}, status: ${timeSlot.status}, start: ${new Date(timeSlot.startTime).toLocaleTimeString()}, date: ${new Date(timeSlot.startTime).toDateString()}`);
+    
+    // DEBUG: Verify that we're getting the correct date from the BookingCalendar
+    if (timeSlot.startTime) {
+      const slotDate = new Date(timeSlot.startTime);
+      
+      // Special debugging for problematic dates
+      if ((slotDate.getDate() === 25 && slotDate.getMonth() === 4) ||   // May 25th
+          (slotDate.getDate() === 1 && slotDate.getMonth() === 5)) {    // June 1st
+        console.log(`[ADMIN CALENDAR DEBUG] Processing slot with date: ${slotDate.toDateString()}`);
+      }
+    }
     
     // Different behavior based on the time slot status
     if (timeSlot.status === 'booked') {
@@ -883,11 +894,44 @@ const AdminCalendarView = () => {
           setSelectedTimeSlots(selectedTimeSlots.filter(slot => slot.id !== timeSlot.id));
         }
       } else {
-        // Add to selection but preserve the original date information for API calls
+        // CRITICAL FIX FOR CROSS-DATE BOOKING ISSUE
+        // Before adding the slot to selection, we need to verify that
+        // the slot's date matches one of the dates in the current week view
+        const slotDate = new Date(timeSlot.startTime);
+        const slotDateString = `${slotDate.getFullYear()}-${slotDate.getMonth()}-${slotDate.getDate()}`;
         
-        // Create a copy of the time slot with added original date information
-        // This ensures the UI shows the date from the current week's display
-        // but backend API operations use the actual database date
+        // Create map of valid dates in the current week range
+        const validDates = new Map();
+        
+        // Get the week start from currentDateRange
+        const weekStart = toLatviaTime(startOfWeek(currentDateRange.start, { weekStartsOn: 1 }));
+        
+        // Add all 7 dates of the week to our valid dates map
+        for (let i = 0; i < 7; i++) {
+          const dayDate = addDays(weekStart, i);
+          const dateKey = `${dayDate.getFullYear()}-${dayDate.getMonth()}-${dayDate.getDate()}`;
+          validDates.set(dateKey, dayDate);
+          
+          // Debug output for important dates
+          if ((dayDate.getDate() === 25 && dayDate.getMonth() === 4) ||
+              (dayDate.getDate() === 1 && dayDate.getMonth() === 5)) {
+            console.log(`[SELECT SLOT] Week contains date: ${dayDate.toDateString()}`);
+          }
+        }
+        
+        // Verify the slot's date is in the current week
+        if (!validDates.has(slotDateString)) {
+          console.error(`[ERROR] Attempted to select a time slot from ${slotDate.toDateString()} which is not in the current week view`);
+          toast({
+            title: "Error",
+            description: `Cannot select time slot from ${slotDate.toDateString()} as it's not in the current week`,
+            variant: "destructive"
+          });
+          
+          return; // Don't add this slot to selection
+        }
+        
+        // If we get here, the slot's date is valid for the current week
         const slotWithOriginalDates = {
           ...timeSlot,
           originalStartTime: timeSlot.startTime,
