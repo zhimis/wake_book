@@ -61,12 +61,25 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
     isPast
   });
   
-  // Check if this slot is part of a multi-slot booking by examining the start and end times
+  // Check if this slot is part of a multi-slot booking
   // This is used to apply visual cues for slots that are part of the same booking
   const isPartOfMultiSlotBooking = () => {
+    // First check if the slot itself has this flag (set by the base-calendar-grid)
+    if (slot.isPartOfMultiSlotBooking) {
+      console.log(`Slot ${slot.id} is flagged as part of multi-slot booking`);
+      return true;
+    }
+    
+    // If the slot doesn't have the flag, use the classic approach
     if (slot.status !== 'booked') return false;
     
-    // Check the duration of this slot
+    // Check if the slot has a booking reference
+    if (slot.bookingReference) {
+      console.log(`Slot ${slot.id} has booking reference: ${slot.bookingReference}`);
+      return true;
+    }
+    
+    // As a fallback, check the duration
     const startTime = new Date(slot.startTime);
     const endTime = new Date(slot.endTime);
     
@@ -134,9 +147,14 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
         {slot.status === 'booked' ? (
           // Booked slots styling
           <>
-            {/* For multi-slot bookings, add an indicator to show they are connected */}
+            {/* For multi-slot bookings, add visual indicators to show they are connected */}
             {isMultiSlot && (
-              <div className="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
+              <>
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500 z-10"></div>
+                <div className="absolute bottom-0 left-0 w-full h-1.5 bg-amber-500 z-10"></div>
+                {/* Add a subtle amber background to highlight that this is part of a booking */}
+                <div className="absolute inset-0 bg-amber-100 opacity-50 -z-10"></div>
+              </>
             )}
             
             <Badge variant="outline" className={cn(

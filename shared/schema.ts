@@ -238,6 +238,15 @@ export type TimeSlot = typeof timeSlots.$inferSelect & {
   originalEndTime?: Date;
   isPast?: boolean; // Flag to indicate if the time slot is in the past
   id: number | string; // Explicitly support both number and string IDs
+  
+  // Fields for multi-slot booking support
+  bookingReference?: string; // Reference to the booking this slot belongs to
+  bookingId?: number; // ID of the booking this slot belongs to
+  isPartOfMultiSlotBooking?: boolean; // Flag to indicate this is part of a multi-slot booking
+  bookingSpanLength?: number; // How many slots are in this booking
+  isFirstInBookingSpan?: boolean; // Is this the first slot in a multi-slot booking
+  isLastInBookingSpan?: boolean; // Is this the last slot in a multi-slot booking
+  isInnerBookingSpan?: boolean; // Is this an inner slot in a multi-slot booking
 };
 export type InsertTimeSlot = z.infer<typeof insertTimeSlotSchema>;
 
