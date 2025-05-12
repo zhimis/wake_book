@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allOperatingHours = await db.select().from(operatingHours);
       console.log("Current operating hours configuration:", JSON.stringify(allOperatingHours, null, 2));
       
-      // Call the improved regenerateTimeSlots method that preserves bookings
+      // Call the improved regenerateTimeSlots method that prevents creating duplicates
       const result = await storage.regenerateTimeSlots();
       
       // Verify the time slots were generated properly
@@ -295,11 +295,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Time slots regenerated successfully after admin request");
       console.log(`Preserved ${result.preservedBookings} existing bookings during regeneration`);
+      console.log(`Prevented ${result.duplicatesPrevented || 0} duplicate slots for already booked time periods`);
       
       res.json({ 
         success: true, 
-        message: `Time slots regenerated successfully, preserving ${result.preservedBookings} existing bookings`,
-        preservedBookings: result.preservedBookings
+        message: `Time slots regenerated successfully. Preserved ${result.preservedBookings} bookings and prevented ${result.duplicatesPrevented || 0} duplicates.`,
+        preservedBookings: result.preservedBookings,
+        duplicatesPrevented: result.duplicatesPrevented || 0
       });
     } catch (error) {
       console.error("Error regenerating time slots:", error);

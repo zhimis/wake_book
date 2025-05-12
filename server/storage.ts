@@ -374,7 +374,7 @@ export class DatabaseStorage implements IStorage {
     const { fromLatviaTime, toLatviaTime, UTC_TIMEZONE } = await import('./utils/timezone');
     
     // Get operating hours
-    const operatingHours = await db.select().from(operatingHours);
+    const operatingHoursData = await db.select().from(operatingHours);
     
     // Get today's date in Latvia timezone for consistency
     const today = toLatviaTime(new Date());
@@ -382,7 +382,8 @@ export class DatabaseStorage implements IStorage {
     
     // Generate slots for 28 days by default
     const leadTimeSettings = await this.getLeadTimeSettings();
-    const numDays = leadTimeSettings?.bookingWindowDays || 28;
+    const numDays = leadTimeSettings ? 
+      (leadTimeSettings as any).bookingWindowDays || 28 : 28;
     
     let allSlots: Omit<InsertTimeSlot, 'id'>[] = [];
     
@@ -397,7 +398,7 @@ export class DatabaseStorage implements IStorage {
       const calendarDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
       
       // Get operating hours for this day
-      const dayHours = operatingHours.find(oh => oh.dayOfWeek === calendarDay);
+      const dayHours = operatingHoursData.find(oh => oh.dayOfWeek === calendarDay);
       if (!dayHours || dayHours.isClosed) {
         continue; // Skip closed days
       }
@@ -432,13 +433,12 @@ export class DatabaseStorage implements IStorage {
         
         const price = isPeakHour ? 25 : 20;
         
-        // Create the time slot
+        // Create the time slot with proper typing
         allSlots.push({
           startTime: utcStartTime,
           endTime: utcEndTime,
           price,
           status: 'available',
-          reservationExpiry: null,
           storageTimezone: UTC_TIMEZONE
         });
         
