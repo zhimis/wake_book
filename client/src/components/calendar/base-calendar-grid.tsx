@@ -92,6 +92,21 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     // The API returns { startDate, endDate, timeSlots: [] }
     if (timeSlotsResponse.timeSlots && Array.isArray(timeSlotsResponse.timeSlots)) {
       console.log(`Successfully extracted ${timeSlotsResponse.timeSlots.length} time slots from API response`);
+      
+      // CRITICAL DEBUG: Look specifically for our June 1st booking
+      const juneFirstSlots = timeSlotsResponse.timeSlots.filter(slot => 
+        slot.bookingReference === 'WB-L_7LG1SG'
+      );
+      
+      if (juneFirstSlots.length > 0) {
+        console.log(`🔍 FOUND ${juneFirstSlots.length} SLOTS FOR JUNE 1ST BOOKING:`, juneFirstSlots);
+        
+        // Check the date range we're viewing
+        const startDateString = timeSlotsResponse.startDate || 'unknown';
+        const endDateString = timeSlotsResponse.endDate || 'unknown';
+        console.log(`Current view date range: ${startDateString} to ${endDateString}`);
+      }
+      
       return timeSlotsResponse.timeSlots;
     } 
     
@@ -142,6 +157,21 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       
       slotsByDay[ourSystemDay].push(slot);
     });
+    
+    // DEBUG: Check if our June 1st booking got assigned to the correct day
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+      const juneFirstSlotsInDay = slotsByDay[dayIndex].filter(slot => 
+        slot.bookingReference === 'WB-L_7LG1SG'
+      );
+      
+      if (juneFirstSlotsInDay.length > 0) {
+        console.log(`⚠️ DAY ${dayIndex} contains ${juneFirstSlotsInDay.length} slots for our June 1st booking`);
+        juneFirstSlotsInDay.forEach(slot => {
+          const slotDate = new Date(slot.startTime);
+          console.log(`  - Slot ${slot.id}: ${slotDate.toISOString()}, JS day: ${slotDate.getDay()}`);
+        });
+      }
+    }
     
     return slotsByDay;
   }, [timeSlots]);

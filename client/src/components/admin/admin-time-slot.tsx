@@ -92,8 +92,13 @@ const AdminTimeSlot: React.FC<AdminTimeSlotProps> = ({
   
   // Get CSS class for time slot based on status and whether it's in the past
   const getSlotClass = (status: TimeSlotStatus) => {
-    // Debug what the status is
-    console.log(`AdminTimeSlot ${slot.id} status: ${status}, isPast: ${isPast}`);
+    // Debug what the status is and show booking information
+    console.log(`AdminTimeSlot ${slot.id} status: ${status}, isPast: ${isPast}, bookingRef: ${slot.bookingReference || 'none'}`);
+    
+    // CRITICAL DEBUG: Add special logging for June 1st booking
+    if (slot.bookingReference === 'WB-L_7LG1SG') {
+      console.log(`🔥 FOUND JUNE 1ST BOOKING SLOT ${slot.id}`, slot);
+    }
     
     // Past slots get a different styling
     if (isPast) {
