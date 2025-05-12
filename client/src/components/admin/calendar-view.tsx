@@ -1448,7 +1448,7 @@ const AdminCalendarView = () => {
                   <AlertTitle>Selection Active</AlertTitle>
                   <AlertDescription>
                     <div className="mb-2">
-                      {selectedTimeSlots.length} time slot(s) selected. You can create a booking or block these slots.
+                      {selectedTimeSlots.length} time slot(s) selected. Use the buttons below to create a booking or manage these slots.
                     </div>
                     <div className="text-xs text-muted-foreground mt-2 space-y-1">
                       <div className="font-semibold">Selected slots:</div>
@@ -1477,20 +1477,20 @@ const AdminCalendarView = () => {
                 </Alert>
               )}
               
-              {/* Action buttons - responsive layout: bottom on mobile, right on larger screens */}
-              <div className="mt-4 md:mt-0 md:absolute md:top-[102px] md:right-4 md:w-auto md:flex md:flex-col flex flex-col sm:flex-row sm:items-center md:items-stretch sm:space-x-2 md:space-x-0 space-y-2 sm:space-y-0 md:space-y-2 z-10 md:bg-white/40 md:p-2 md:rounded-md md:shadow-sm">
+              {/* Action buttons - always at the bottom on all screens */}
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
                 <Button 
-                  className="bg-primary hover:bg-primary/90 md:w-full"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={handleCreateBooking}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Create Booking
                 </Button>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-1 gap-2 w-full md:w-auto md:min-w-[140px]">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button 
                     variant="outline" 
-                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 md:w-full"
+                    className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                     onClick={handleBlockTimeSlots}
                     disabled={selectedTimeSlots.length === 0}
                     data-action="block-slots"
@@ -1501,7 +1501,7 @@ const AdminCalendarView = () => {
                   
                   <Button 
                     variant="outline" 
-                    className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200 md:w-full"
+                    className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
                     onClick={handleMakeAvailable}
                     disabled={selectedTimeSlots.length === 0}
                     data-action="make-available"
