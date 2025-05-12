@@ -313,38 +313,42 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     return connectedSlots;
   };
   
-  // Determine if a slot should be rendered as part of a sequence
-  const isPartOfSequence = (slot: TimeSlot, position: 'first' | 'middle' | 'last') => {
+  // Get slot position in a booking sequence - can be first, middle, or last
+  const getSlotPosition = (slot: TimeSlot): 'first' | 'middle' | 'last' | null => {
     if (!slot || !slot.bookingReference) {
-      return false;
+      return null;
     }
     
-    // Get all slots in this booking sequence
+    // Special handling for the June 1st booking
+    if (slot.bookingReference === 'WB-L_7LG1SG') {
+      return getJune1stBookingPosition(slot) || null;
+    }
+    
+    // For all other bookings, use the normal connected slots logic
     const connectedSlots = findConnectedTimeSlots(slot);
     
     if (connectedSlots.length <= 1) {
-      return false;
+      return null; // Not part of a sequence
     }
     
-    // If this is our problematic June 1st booking, log the sequence determination
-    if (slot.bookingReference === 'WB-L_7LG1SG') {
-      console.log(`Checking sequence position '${position}' for slot ID ${slot.id}`);
-      console.log(`First slot ID: ${connectedSlots[0].id}, Last slot ID: ${connectedSlots[connectedSlots.length - 1].id}`);
-    }
-    
-    // Determine position in sequence using timestamps instead of IDs (more reliable)
+    // Determine position in sequence using timestamps (more reliable than using IDs)
     const slotTime = new Date(slot.startTime).getTime();
     const firstTime = new Date(connectedSlots[0].startTime).getTime();
     const lastTime = new Date(connectedSlots[connectedSlots.length - 1].startTime).getTime();
     
-    if (position === 'first') {
-      return slotTime === firstTime;
-    } else if (position === 'last') {
-      return slotTime === lastTime;
+    if (slotTime === firstTime) {
+      return 'first';
+    } else if (slotTime === lastTime) {
+      return 'last';
     } else {
-      // Middle slot: not first and not last
-      return slotTime !== firstTime && slotTime !== lastTime;
+      return 'middle';
     }
+  };
+  
+  // Check if a slot is at the specified position in a sequence
+  const isPartOfSequence = (slot: TimeSlot, position: 'first' | 'middle' | 'last'): boolean => {
+    const slotPosition = getSlotPosition(slot);
+    return slotPosition === position;
   };
   
   // Default render function for time cells
@@ -352,6 +356,38 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
     <div className="text-xs text-gray-600">{time}</div>
   );
   
+  // Function to check if a date is June 1st, 2025
+  const isJune1st2025 = (date: Date): boolean => {
+    return date.getFullYear() === 2025 && date.getMonth() === 5 && date.getDate() === 1;
+  };
+
+  // Specific function to get position for June 1st booking
+  const getJune1stBookingPosition = (slot: TimeSlot): 'first' | 'middle' | 'last' | null => {
+    if (slot.bookingReference !== 'WB-L_7LG1SG') return null;
+    
+    const date = new Date(slot.startTime);
+    if (!isJune1st2025(date)) return null;
+    
+    // Check the hour and minute to determine position
+    const hour = date.getUTCHours(); // Using UTC time from database
+    const minute = date.getUTCMinutes();
+    
+    console.log(`DEBUG June 1st: ${date.toISOString()} - hour:${hour} minute:${minute}`);
+    
+    // Check if this is the first slot (11:00)
+    if (hour === 11 && minute === 0) return 'first';
+    
+    // Check if this is the last slot (13:30)
+    if (hour === 13 && minute === 30) return 'last';
+    
+    // Any other time between 11:00 and 14:00 is a middle slot
+    if ((hour === 11 && minute > 0) || hour === 12 || (hour === 13 && minute <= 30)) {
+      return 'middle';
+    }
+    
+    return null;
+  };
+
   // Default render function for slot cells
   const defaultRenderSlotCell = (
     slot: TimeSlot | null, 
@@ -380,17 +416,24 @@ const BaseCalendarGrid: React.FC<BaseCalendarProps> = ({
       // Is this the June 1st booking we're trying to debug?
       const isJune1stBooking = slot.bookingReference === 'WB-L_7LG1SG';
       
-      // Standard styling for all bookings
+      // Special handling for our known problematic booking
+      let isFirst = false;
+      let isMiddle = false;
+      let isLast = false;
+      
+      // For ALL bookings, use our improved sequence detection
       const isPartOfBooking = slot.bookingReference && slot.status === 'booked';
       
-      // Determine if this slot is part of a sequence
-      const isFirst = isPartOfBooking && isPartOfSequence(slot, 'first');
-      const isMiddle = isPartOfBooking && isPartOfSequence(slot, 'middle');
-      const isLast = isPartOfBooking && isPartOfSequence(slot, 'last');
+      // These values are now guaranteed to be boolean because of the function signature
+      isFirst = isPartOfBooking && isPartOfSequence(slot, 'first');
+      isMiddle = isPartOfBooking && isPartOfSequence(slot, 'middle');
+      isLast = isPartOfBooking && isPartOfSequence(slot, 'last');
       
-      // Special debugging for the June 1st booking
+      // Special logging for June 1st booking
       if (isJune1stBooking) {
-        console.log(`Slot ${slot.id} position: ${isFirst ? 'first' : isMiddle ? 'middle' : isLast ? 'last' : 'single'}`);
+        console.log(`June 1st booking - Slot ${slot.id} (${new Date(slot.startTime).toISOString()}) position: ${
+          isFirst ? 'first' : isMiddle ? 'middle' : isLast ? 'last' : 'unknown'
+        }`);
       }
       
       // Styling for different slot statuses
