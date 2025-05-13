@@ -40,6 +40,7 @@ This document outlines the implementation roadmap for the WakeBook wakeboarding 
 
 ### Week 5: User Accounts & Personalization
 - [ ] Implement user registration and login system
+- [ ] Add Google One Tap Authentication for streamlined sign-in
 - [ ] Create user profiles with booking history
 - [ ] Add favorites and preferences
 - [ ] Implement ratings and feedback system

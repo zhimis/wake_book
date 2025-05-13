@@ -16,6 +16,7 @@ This document outlines the planned future features for the WakeBook application 
 
 - **User Accounts**: Allow customers to create personal accounts
 - **Social Login**: Enable login with Google, Facebook, or Apple accounts
+- **Google One Tap Authentication**: Implement streamlined Google sign-in with one-click access
 - **Profile Management**: Let users update personal information and preferences
 - **Booking History**: Show past and upcoming bookings
 - **Saved Payment Methods**: Securely save payment information for faster checkout
