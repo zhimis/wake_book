@@ -626,6 +626,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Created booking - total price:", totalPrice);
       
+      // Create booking details object for email
+      const bookingDetails = {
+        booking,
+        timeSlots: bookedTimeSlotsWithPrices,
+        totalPrice
+      };
+      
+      // Send emails asynchronously (don't wait for completion)
+      try {
+        // Import email service
+        const { sendCustomerBookingConfirmation, sendAdminBookingNotification } = await import('./services/email-service');
+        
+        // Send customer confirmation if email provided
+        if (booking.email) {
+          sendCustomerBookingConfirmation(bookingDetails, booking.email)
+            .then(success => {
+              console.log(`Customer booking confirmation email ${success ? 'sent' : 'failed'}`);
+            })
+            .catch(err => {
+              console.error('Error sending customer booking confirmation:', err);
+            });
+        }
+        
+        // Send admin notification
+        sendAdminBookingNotification(bookingDetails)
+          .then(success => {
+            console.log(`Admin booking notification email ${success ? 'sent' : 'failed'}`);
+          })
+          .catch(err => {
+            console.error('Error sending admin booking notification:', err);
+          });
+      } catch (emailError) {
+        // Just log the error, don't prevent booking creation
+        console.error('Error setting up email notifications:', emailError);
+      }
+      
       res.status(201).json({
         booking,
         timeSlots: bookedTimeSlots,
@@ -1184,6 +1220,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Visibility configuration removed
+  
+  // Get admin email configuration - requires authentication
+  app.get("/api/config/admin-email", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const config = await storage.getConfiguration('adminEmail');
+      
+      res.json({ 
+        email: config?.value || null 
+      });
+    } catch (error) {
+      console.error("Error fetching admin email:", error);
+      res.status(500).json({ error: "Failed to fetch admin email configuration" });
+    }
+  });
+  
+  // Update admin email configuration - requires authentication
+  app.put("/api/config/admin-email", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const schema = z.object({
+        email: z.string().email({ message: "Invalid email format" })
+      });
+      
+      const { email } = schema.parse(req.body);
+      
+      const updatedConfig = await storage.updateConfiguration('adminEmail', email);
+      
+      if (!updatedConfig) {
+        return res.status(500).json({ error: "Failed to update admin email configuration" });
+      }
+      
+      res.json({ message: "Admin email updated successfully", config: updatedConfig });
+    } catch (error) {
+      console.error("Error updating admin email:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      
+      res.status(500).json({ error: "Failed to update admin email" });
+    }
+  });
   
   // Update time format preferences - requires authentication
   app.put("/api/config/time-format", async (req: Request, res: Response) => {

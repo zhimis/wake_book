@@ -189,6 +189,9 @@ export const sendAdminBookingNotification = async (
   booking: BookingDetails
 ): Promise<boolean> => {
   try {
+    // Get admin email from configuration
+    const adminEmail = await getAdminEmail();
+    
     // Get the first timeslot date to display
     const bookingDate = booking.timeSlots.length > 0 
       ? formatDate(new Date(booking.timeSlots[0].startTime))
@@ -202,7 +205,7 @@ export const sendAdminBookingNotification = async (
 
     const emailData = {
       from: `Wakeboarding Park <noreply@${MAILGUN_DOMAIN}>`,
-      to: ADMIN_EMAIL,
+      to: adminEmail,
       subject: `New Booking Alert - ${booking.booking.reference}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
