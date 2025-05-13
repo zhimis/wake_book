@@ -876,15 +876,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let updatedFeedback;
       
-      // Update status if provided
-      if (status) {
-        updatedFeedback = await storage.updateFeedbackStatus(feedbackId, status);
-      }
-      
-      // Update admin notes if provided
-      if (adminNotes) {
-        updatedFeedback = await storage.addAdminNotes(feedbackId, adminNotes);
-      }
+      // Update status and admin notes if provided
+      updatedFeedback = await storage.updateFeedbackStatus(feedbackId, status, adminNotes);
       
       if (!updatedFeedback) {
         return res.status(404).json({ error: "Feedback not found" });

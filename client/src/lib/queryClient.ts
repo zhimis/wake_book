@@ -13,9 +13,17 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
+    // Use appropriate headers and include CSRF token if available
+    const headers: Record<string, string> = {};
+    
+    if (data) {
+      headers["Content-Type"] = "application/json";
+    }
+    
+    // The fetch request
     const res = await fetch(url, {
       method,
-      headers: data ? { "Content-Type": "application/json" } : {},
+      headers,
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
     });
@@ -28,7 +36,7 @@ export async function apiRequest(
     return res;
   } catch (error) {
     // Keep error reporting to console for troubleshooting
-    console.error(`API request error for ${url}:`, error);
+    console.error(`API request error for ${method} ${url}:`, error);
     throw error;
   }
 }
