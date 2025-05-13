@@ -146,10 +146,10 @@ export function LeadTimeSettingsForm() {
 
               <FormField
                 control={form.control}
-                name="leadTimeDays"
+                name="leadTimeHours"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lead Time Days</FormLabel>
+                    <FormLabel>Lead Time Hours</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -195,13 +195,13 @@ export function LeadTimeSettingsForm() {
                 {form.watch("restrictionMode") === "enforced" && (
                   <>
                     <br />
-                    <strong>Enforced mode</strong> will block all online bookings that don't meet the lead time requirement.
+                    <strong>Enforced mode</strong> will block all online bookings that don't meet the lead time requirement of {form.watch("leadTimeHours")} hours.
                   </>
                 )}
                 {form.watch("restrictionMode") === "booking_based" && (
                   <>
                     <br />
-                    <strong>Booking-based mode</strong> will allow bookings outside the lead time if there are existing bookings for that day.
+                    <strong>Booking-based mode</strong> will allow bookings with less than {form.watch("leadTimeHours")} hours notice if there are existing bookings for that day.
                   </>
                 )}
               </AlertDescription>

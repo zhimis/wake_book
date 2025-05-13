@@ -993,8 +993,9 @@ export class DatabaseStorage implements IStorage {
       // For booking-based mode, check if there are existing bookings for this date
       if (settings.restrictionMode === "booking_based" && !hasEnoughLeadTime) {
         // Check if there are any bookings for this date
-        const startOfDay = new Date(bookingDate);
-        const endOfDay = new Date(bookingDate);
+        const startOfDay = new Date(bookingTime);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(bookingTime);
         endOfDay.setHours(23, 59, 59, 999);
         
         // Get all time slots for this date
@@ -1008,7 +1009,7 @@ export class DatabaseStorage implements IStorage {
           return { 
             allowed: true, 
             mode: "booking_based_override",
-            leadTimeDays: settings.leadTimeDays 
+            leadTimeHours: settings.leadTimeHours 
           };
         }
       }
@@ -1017,14 +1018,14 @@ export class DatabaseStorage implements IStorage {
       if (!hasEnoughLeadTime) {
         return {
           allowed: false,
-          reason: `Online booking requires ${settings.leadTimeDays} days lead time`,
-          leadTimeDays: settings.leadTimeDays,
+          reason: `Online booking requires ${settings.leadTimeHours} hours lead time`,
+          leadTimeHours: settings.leadTimeHours,
           mode: settings.restrictionMode
         };
       }
       
       // If we get here, booking is allowed
-      return { allowed: true, leadTimeDays: settings.leadTimeDays, mode: settings.restrictionMode };
+      return { allowed: true, leadTimeHours: settings.leadTimeHours, mode: settings.restrictionMode };
     } catch (error) {
       console.error("Error checking lead time restrictions:", error);
       // Default to allowing bookings if there's an error
