@@ -43,7 +43,7 @@ const ConfirmationPage = () => {
     // Create Google Calendar URL
     const title = `Wakeboarding Session`;
     const details = `Booking Reference: ${data.booking.reference}\nName: ${data.booking.customerName}\nPhone: ${data.booking.phoneNumber}\nEquipment Rental: ${data.booking.equipmentRental ? 'Yes' : 'No'}`;
-    const location = 'Wakeboarding Park';
+    const location = 'Ventspils, Lielais prospekts 38';
     
     const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startTime.toISOString().replace(/[-:]/g, '').replace(/\.\d+/g, '')}/${endTime.toISOString().replace(/[-:]/g, '').replace(/\.\d+/g, '')}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
     
@@ -159,13 +159,13 @@ const ConfirmationPage = () => {
               <div className="flex items-start">
                 <Info className="h-5 w-5 text-primary mt-0.5 mr-2" />
                 <p className="text-sm text-gray-600">
-                  A confirmation SMS has been sent to your phone number. Please arrive 15 minutes before your session to complete check-in.
+                  A confirmation email has been sent to your email address. Please arrive 15 minutes before your session to complete check-in.
                 </p>
               </div>
               <div className="flex items-start">
                 <Map className="h-5 w-5 text-primary mt-0.5 mr-2" />
                 <p className="text-sm text-gray-600">
-                  Our park is located at 123 Lakeside Drive, Watertown. Free parking is available on site.
+                  Our wakeboarding park is located in Ventspils, Lielais prospekts 38. Free parking is available on site.
                 </p>
               </div>
             </div>

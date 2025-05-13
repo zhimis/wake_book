@@ -8,13 +8,16 @@ import { storage } from '../storage';
 const mailgun = new Mailgun(formData);
 const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || '';
 const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || '';
+const MAILGUN_ENDPOINT = process.env.MAILGUN_ENDPOINT || '';
 
 console.log(`Email Service Initialization - Using Mailgun domain: ${MAILGUN_DOMAIN}`);
 console.log(`Email Service Initialization - API key present: ${MAILGUN_API_KEY ? 'Yes' : 'No'}`);
+console.log(`Email Service Initialization - Using endpoint: ${MAILGUN_ENDPOINT || 'Default US endpoint'}`);
 
 const mg = mailgun.client({
   username: 'api',
   key: MAILGUN_API_KEY,
+  url: MAILGUN_ENDPOINT || undefined // Use the EU endpoint if provided
 });
 
 // Get admin email from configuration or use fallback
