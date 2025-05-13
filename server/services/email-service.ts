@@ -65,9 +65,9 @@ const createCalendarLink = (booking: BookingDetails): string => {
   const end = new Date(lastSlot.endTime).toISOString().replace(/-|:|\.\d+/g, '');
   const summary = encodeURIComponent(`Wakeboarding Session - ${booking.booking.reference}`);
   const description = encodeURIComponent(
-    `Your wakeboarding session booking.\nReference: ${booking.booking.reference}\nName: ${booking.booking.customerName}\nPhone: ${booking.booking.phoneNumber}\nEquipment Rental: ${booking.booking.equipmentRental ? 'Yes' : 'No'}`
+    `Your HiWake 2.0 wakeboarding session booking.\nReference: ${booking.booking.reference}\nName: ${booking.booking.customerName}\nPhone: ${booking.booking.phoneNumber}\nEquipment Rental: ${booking.booking.equipmentRental ? 'Yes' : 'No'}`
   );
-  const location = encodeURIComponent('Ventspils, Lielais prospekts 38');
+  const location = encodeURIComponent('Pulksteņezers, 2163 Ādaži Siguļi, Carnikava, LV-2163');
   
   // Create iCalendar file content
   const ical = [
@@ -142,6 +142,18 @@ export const sendCustomerBookingConfirmation = async (
     const bookingDate = booking.timeSlots.length > 0 
       ? formatDate(new Date(booking.timeSlots[0].startTime))
       : 'Unknown date';
+    
+    // Sort time slots and get start/end times for calendar
+    const sortedSlots = [...booking.timeSlots].sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+    
+    const firstSlot = sortedSlots[0];
+    const lastSlot = sortedSlots[sortedSlots.length - 1];
+    
+    // Format dates for calendar URL
+    const start = new Date(firstSlot.startTime).toISOString().replace(/-|:|\.\d+/g, '');
+    const end = new Date(lastSlot.endTime).toISOString().replace(/-|:|\.\d+/g, '');
       
     // Create iCal link
     const calendarLink = createCalendarLink(booking);
@@ -150,7 +162,7 @@ export const sendCustomerBookingConfirmation = async (
     const timeSlotTable = generateTimeSlotHtml(booking);
 
     const emailData = {
-      from: `Wakeboarding Park <noreply@${MAILGUN_DOMAIN}>`,
+      from: `HiWake 2.0 <noreply@${MAILGUN_DOMAIN}>`,
       to: recipientEmail,
       subject: `Booking Confirmation - ${booking.booking.reference}`,
       html: `
@@ -162,12 +174,13 @@ export const sendCustomerBookingConfirmation = async (
           
           <p>Dear ${booking.booking.customerName},</p>
           
-          <p>We're excited to confirm your wakeboarding session at our park in Ventspils. Your session is scheduled for <strong>${bookingDate}</strong>.</p>
+          <p>We're excited to confirm your wakeboarding session at HiWake 2.0. Your session is scheduled for <strong>${bookingDate}</strong>.</p>
           
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #3498db;">
             <p style="margin: 5px 0;"><strong>Booking Reference:</strong> ${booking.booking.reference}</p>
             <p style="margin: 5px 0;"><strong>Equipment Rental:</strong> ${booking.booking.equipmentRental ? 'Yes' : 'No'}</p>
-            <p style="margin: 5px 0;"><strong>Location:</strong> Ventspils, Lielais prospekts 38</p>
+            <p style="margin: 5px 0;"><strong>Location:</strong> Pulksteņezers, 2163 Ādaži Siguļi, Carnikava, LV-2163</p>
+            <p style="margin: 5px 0;"><strong>Get Directions:</strong> <a href="https://www.waze.com/ul?ll=57.1300204%2C24.3301119&navigate=yes" style="color: #3498db; text-decoration: underline;">Navigate with Waze</a></p>
           </div>
           
           <h3 style="color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 8px;">Your Booking Details</h3>
@@ -175,11 +188,12 @@ export const sendCustomerBookingConfirmation = async (
           ${timeSlotTable}
           
           <div style="margin: 25px 0; text-align: center;">
-            <a href="${calendarLink}" download="wakeboarding_session.ics" 
+            <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Wakeboarding Session - HiWake 2.0`)}&dates=${start}/${end}&details=${encodeURIComponent(`Booking Reference: ${booking.booking.reference}\nName: ${booking.booking.customerName}\nPhone: ${booking.booking.phoneNumber}\nEquipment Rental: ${booking.booking.equipmentRental ? 'Yes' : 'No'}`)}&location=${encodeURIComponent('Pulksteņezers, 2163 Ādaži Siguļi, Carnikava, LV-2163')}" 
+               target="_blank" 
                style="display: inline-block; background-color: #3498db; color: white; 
                       padding: 12px 20px; text-decoration: none; border-radius: 4px;
                       font-weight: bold;">
-              📅 Add to Calendar
+              📅 Add to Google Calendar
             </a>
           </div>
           
@@ -188,7 +202,6 @@ export const sendCustomerBookingConfirmation = async (
             <ul style="padding-left: 20px; margin-bottom: 0;">
               <li>Please arrive 15 minutes before your session to complete check-in.</li>
               <li>Wear appropriate swimwear and bring a towel.</li>
-              <li>Lockers are available for your belongings.</li>
               <li>In case of bad weather, we may need to reschedule your session.</li>
             </ul>
           </div>
@@ -197,9 +210,9 @@ export const sendCustomerBookingConfirmation = async (
           
           <p>If you have any questions or need to make changes to your booking, please contact us with your booking reference.</p>
           
-          <p>We look forward to seeing you at the wakeboarding park!</p>
+          <p>We look forward to seeing you at HiWake 2.0!</p>
           
-          <p>Best regards,<br>Wakeboarding Park Team</p>
+          <p>Best regards,<br>HiWake 2.0 Team</p>
           
           <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; color: #7f8c8d; font-size: 12px;">
             <p>This is an automated message. Please do not reply to this email.</p>
@@ -242,6 +255,18 @@ export const sendAdminBookingNotification = async (
       ? formatDate(new Date(booking.timeSlots[0].startTime))
       : 'Unknown date';
     
+    // Sort time slots and get start/end times for calendar
+    const sortedSlots = [...booking.timeSlots].sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+    
+    const firstSlot = sortedSlots[0];
+    const lastSlot = sortedSlots[sortedSlots.length - 1];
+    
+    // Format dates for calendar URL
+    const start = new Date(firstSlot.startTime).toISOString().replace(/-|:|\.\d+/g, '');
+    const end = new Date(lastSlot.endTime).toISOString().replace(/-|:|\.\d+/g, '');
+    
     // Generate time slot table HTML
     const timeSlotTable = generateTimeSlotHtml(booking);
     
@@ -249,7 +274,7 @@ export const sendAdminBookingNotification = async (
     const calendarLink = createCalendarLink(booking);
 
     const emailData = {
-      from: `Wakeboarding Park <noreply@${MAILGUN_DOMAIN}>`,
+      from: `HiWake 2.0 <noreply@${MAILGUN_DOMAIN}>`,
       to: adminEmail,
       subject: `🔔 New Booking Alert - ${booking.booking.reference}`,
       html: `
@@ -260,7 +285,7 @@ export const sendAdminBookingNotification = async (
           
           <p>Hello Admin,</p>
           
-          <p>A new booking has been made at the wakeboarding park. Here are the details:</p>
+          <p>A new booking has been made at HiWake 2.0. Here are the details:</p>
           
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #e74c3c;">
             <p style="margin: 5px 0;"><strong>Booking Reference:</strong> ${booking.booking.reference}</p>
@@ -278,11 +303,12 @@ export const sendAdminBookingNotification = async (
           ${timeSlotTable}
           
           <div style="margin: 25px 0; text-align: center;">
-            <a href="${calendarLink}" download="wakeboarding_session.ics" 
+            <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Wakeboarding Session - HiWake 2.0`)}&dates=${start}/${end}&details=${encodeURIComponent(`Booking Reference: ${booking.booking.reference}\nCustomer: ${booking.booking.customerName}\nPhone: ${booking.booking.phoneNumber}\nEmail: ${booking.booking.email || 'Not provided'}\nEquipment Rental: ${booking.booking.equipmentRental ? 'Yes' : 'No'}`)}&location=${encodeURIComponent('Pulksteņezers, 2163 Ādaži Siguļi, Carnikava, LV-2163')}" 
+               target="_blank"
                style="display: inline-block; background-color: #3498db; color: white; 
                       padding: 12px 20px; text-decoration: none; border-radius: 4px;
                       font-weight: bold;">
-              📅 Add to Calendar
+              📅 Add to Google Calendar
             </a>
           </div>
 
@@ -299,7 +325,7 @@ export const sendAdminBookingNotification = async (
           
           <p>Please review this booking and prepare for the customer's arrival.</p>
           
-          <p>Wakeboarding Park Booking System</p>
+          <p>HiWake 2.0 Booking System</p>
           
           <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; color: #7f8c8d; font-size: 12px;">
             <p>This is an automated message from the booking system.</p>

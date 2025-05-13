@@ -41,9 +41,9 @@ const ConfirmationPage = () => {
     const endTime = toLatviaTime(new Date(lastSlot.endTime));
     
     // Create Google Calendar URL
-    const title = `Wakeboarding Session`;
+    const title = `Wakeboarding Session - HiWake 2.0`;
     const details = `Booking Reference: ${data.booking.reference}\nName: ${data.booking.customerName}\nPhone: ${data.booking.phoneNumber}\nEquipment Rental: ${data.booking.equipmentRental ? 'Yes' : 'No'}`;
-    const location = 'Ventspils, Lielais prospekts 38';
+    const location = 'Pulksteņezers, 2163 Ādaži Siguļi, Carnikava, LV-2163';
     
     const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startTime.toISOString().replace(/[-:]/g, '').replace(/\.\d+/g, '')}/${endTime.toISOString().replace(/[-:]/g, '').replace(/\.\d+/g, '')}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
     
@@ -165,7 +165,7 @@ const ConfirmationPage = () => {
               <div className="flex items-start">
                 <Map className="h-5 w-5 text-primary mt-0.5 mr-2" />
                 <p className="text-sm text-gray-600">
-                  Our wakeboarding park is located in Ventspils, Lielais prospekts 38. Free parking is available on site.
+                  Our wakeboarding park is located at Pulksteņezers, 2163 Ādaži Siguļi, Carnikava, LV-2163. Free parking is available on site.
                 </p>
               </div>
             </div>
