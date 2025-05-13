@@ -275,6 +275,28 @@ export type BlockTimeSlotFormData = z.infer<typeof blockTimeSlotSchema>;
 export type MakeAvailableFormData = z.infer<typeof makeAvailableSchema>;
 export type LeadTimeSettingsFormData = z.infer<typeof leadTimeSettingsFormSchema>;
 
+// Feedback table for user suggestions and experience reports
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  userId: integer("user_id"),
+  userIp: text("user_ip"),
+  userAgent: text("user_agent"),
+  status: text("status").default("new").notNull(), // new, reviewed, archived
+  adminNotes: text("admin_notes"),
+});
+
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({ id: true });
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+
+// Create a schema for the feedback form submission
+export const feedbackFormSchema = z.object({
+  feedback: z.string().min(1, "Feedback cannot be empty").max(2000, "Feedback must be less than 2000 characters"),
+});
+export type FeedbackFormData = z.infer<typeof feedbackFormSchema>;
+
 // For frontend use
 export type TimeSlotStatus = "available" | "booked" | "selected";
 

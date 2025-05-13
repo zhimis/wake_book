@@ -3,8 +3,9 @@ import {
   Booking, InsertBooking, OperatingHours, InsertOperatingHours,
   Pricing, InsertPricing, Configuration, InsertConfiguration,
   BookingTimeSlot, InsertBookingTimeSlot, LeadTimeSettings, InsertLeadTimeSettings,
+  Feedback, InsertFeedback,
   users, timeSlots, bookings, bookingTimeSlots, operatingHours, pricing, configuration,
-  leadTimeSettings
+  leadTimeSettings, feedback
 } from "@shared/schema";
 import { nanoid } from 'nanoid';
 import session from "express-session";
