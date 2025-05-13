@@ -19,7 +19,8 @@ import {
   Settings,
   BarChart2,
   Users,
-  LogIn
+  LogIn,
+  MessageSquare
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -101,13 +102,19 @@ export const NavigationMenu = ({ isAdmin = false }: NavigationMenuProps) => {
     icon: <BarChart2 className="h-5 w-5 mr-2" />
   };
   
+  const feedbackItem = {
+    name: "Feedback",
+    path: "/admin/feedback",
+    icon: <MessageSquare className="h-5 w-5 mr-2" />
+  };
+  
   // Role-based navigation items
   const getRoleNavigationItems = (role: string): NavigationItem[] => {
     switch (role) {
       case 'admin':
-        return [dashboardItem, bookingsItem, configItem, usersItem, statsItem];
+        return [dashboardItem, bookingsItem, configItem, usersItem, statsItem, feedbackItem];
       case 'manager':
-        return [dashboardItem, bookingsItem, configItem, usersItem, statsItem];
+        return [dashboardItem, bookingsItem, configItem, usersItem, statsItem, feedbackItem];
       case 'operator':
         return [dashboardItem, bookingsItem, configItem, statsItem];
       case 'athlete':

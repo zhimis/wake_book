@@ -9,6 +9,7 @@ import AdminDashboardPage from "@/pages/admin-dashboard-page";
 import AdminBookingsPage from "@/pages/admin-bookings-page";
 import AdminUsersPage from "@/pages/admin-users-page";
 import AdminStatisticsPage from "@/pages/admin-statistics-page";
+import AdminFeedbackPage from "@/pages/admin-feedback-page";
 import PublicPage from "@/pages/public-page";
 import NewAdminPage from "@/pages/new-admin-page";
 import SystemConfigPage from "@/pages/system-config-page";
@@ -20,6 +21,7 @@ import DebugPage from "@/pages/debug";
 
 import Header from "./components/header";
 import Footer from "./components/footer";
+import { FeedbackButton } from "./components/feedback-button";
 import { BookingProvider } from "./context/booking-context";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -66,6 +68,7 @@ function App() {
               <ProtectedRoute path="/admin/bookings" component={AdminBookingsPage} />
               <ProtectedRoute path="/admin/users" component={AdminUsersPage} />
               <ProtectedRoute path="/admin/statistics" component={AdminStatisticsPage} />
+              <ProtectedRoute path="/admin/feedback" component={AdminFeedbackPage} />
               <ProtectedRoute path="/admin/new" component={NewAdminPage} />
               <ProtectedRoute path="/admin/system-config" component={SystemConfigPage} />
               <ProtectedRoute path="/admin/debug" component={DebugPage} />
@@ -73,6 +76,7 @@ function App() {
             </Switch>
           </div>
           <Footer />
+          <FeedbackButton />
         </BookingProvider>
       </AuthProvider>
     </div>

@@ -278,22 +278,35 @@ export type LeadTimeSettingsFormData = z.infer<typeof leadTimeSettingsFormSchema
 // Feedback table for user suggestions and experience reports
 export const feedback = pgTable("feedback", {
   id: serial("id").primaryKey(),
-  content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  rating: integer("rating").notNull(), // 1-5 star rating
+  comment: text("comment").notNull(),
+  email: text("email"),
+  category: text("category").default("general"), // general, booking, experience, etc.
+  status: text("status").default("new").notNull(), // new, reviewed, archived
+  adminNotes: text("admin_notes"), // Internal notes from admin
   userId: integer("user_id"),
   userIp: text("user_ip"),
   userAgent: text("user_agent"),
-  status: text("status").default("new").notNull(), // new, reviewed, archived
-  adminNotes: text("admin_notes"),
 });
 
-export const insertFeedbackSchema = createInsertSchema(feedback).omit({ id: true });
+// Define Zod schemas for feedback
+export const insertFeedbackSchema = createInsertSchema(feedback)
+  .extend({
+    rating: z.number().min(1).max(5),
+    comment: z.string().min(1, "Comment is required")
+  })
+  .omit({ id: true });
+
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 
 // Create a schema for the feedback form submission
 export const feedbackFormSchema = z.object({
-  feedback: z.string().min(1, "Feedback cannot be empty").max(2000, "Feedback must be less than 2000 characters"),
+  rating: z.number().min(1, "Please select a rating").max(5),
+  comment: z.string().min(1, "Feedback cannot be empty").max(2000, "Feedback must be less than 2000 characters"),
+  email: z.string().email("Please enter a valid email").optional().or(z.literal("")),
+  category: z.string().default("general"),
 });
 export type FeedbackFormData = z.infer<typeof feedbackFormSchema>;
 
@@ -335,3 +348,5 @@ export type StatsData = {
   bookingsByDay: Array<{ day: string; count: number; percentage: number }>;
   popularTimeSlots: Array<{ time: string; percentage: number }>;
 };
+
+
