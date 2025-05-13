@@ -277,27 +277,55 @@ const BookingCalendar = ({
     }
   };
 
+  // Add a forced update key that's incremented on every render to ensure fresh data
+  const [forceRefreshKey, setForceRefreshKey] = useState(0);
+
+  // Set up a listener for the window refresh events
+  useEffect(() => {
+    // Create a explicit refresh handler to force component to re-query data
+    const forceTimeSlotRefresh = () => {
+      console.log("BookingCalendar: Force refresh handler triggered");
+      // Increment the force refresh key to force query refetch
+      setForceRefreshKey(prev => prev + 1);
+    };
+
+    // Add listener for global refresh events
+    window.addEventListener('force-calendar-refresh', forceTimeSlotRefresh);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('force-calendar-refresh', forceTimeSlotRefresh);
+    };
+  }, []);
+
   // Fetch time slots from the server with their actual statuses
-  const { data: dbTimeSlots, isLoading: timeSlotsLoading } = useQuery({
+  const { data: dbTimeSlots, isLoading: timeSlotsLoading, refetch: refetchTimeSlots } = useQuery({
     queryKey: [
       "/api/timeslots",
       formatInLatviaTime(startDate, "yyyy-MM-dd"),
       formatInLatviaTime(endDate, "yyyy-MM-dd"),
+      forceRefreshKey, // Add force refresh key to query key to ensure fresh fetch
     ],
     queryFn: async () => {
+      console.log(`BookingCalendar: Fetching time slots (refresh key: ${forceRefreshKey})`);
+      
       // Format dates in Latvia timezone to ensure consistent data across timezones
       const formattedStartDate = formatInLatviaTime(startDate, "yyyy-MM-dd");
       const formattedEndDate = formatInLatviaTime(endDate, "yyyy-MM-dd");
 
+      // Add a cache-busting timestamp parameter to ensure fresh data
+      const cacheBuster = new Date().getTime();
       const response = await fetch(
-        `/api/timeslots?startDate=${formattedStartDate}&endDate=${formattedEndDate}`,
+        `/api/timeslots?startDate=${formattedStartDate}&endDate=${formattedEndDate}&_=${cacheBuster}`,
       );
 
       if (!response.ok) {
         throw new Error("Failed to fetch time slots");
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log(`BookingCalendar: Received ${data.timeSlots?.length || 0} time slots`);
+      return data;
     },
   });
 

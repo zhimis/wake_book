@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Redirect } from "wouter";
 import { format, isFuture, parseISO } from "date-fns";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
+import { formatInLatviaTime } from "@/lib/utils";
 import { Loader2, CalendarDays, User, Phone, Mail, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 import {
   Card,
@@ -126,45 +127,61 @@ const ProfilePage = () => {
       setCancellationError(null);
       setSuccessDialogOpen(true);
       
-      console.log("Booking successfully cancelled, performing data refresh");
+      console.log("ProfilePage: Booking successfully cancelled, using nuclear refresh option");
       
-      // Completely remove queries for stronger refresh
-      console.log("ProfilePage: Completely REMOVING time slots and bookings query cache");
-      queryClient.removeQueries({ queryKey: ["/api/timeslots"] });
-      queryClient.removeQueries({ queryKey: ["/api/user/bookings"] });
+      // NUCLEAR OPTION: Clear entire cache
+      console.log("ProfilePage: NUCLEAR OPTION - complete cache wipeout");
+      queryClient.clear();
       
-      // Prefetch fresh data
-      console.log("ProfilePage: Prefetching fresh time slots data");
-      queryClient.prefetchQuery({
-        queryKey: ["/api/timeslots"],
-        queryFn: async () => {
-          const response = await fetch('/api/timeslots');
-          if (!response.ok) throw new Error("Failed to fetch time slots");
-          return response.json();
-        }
-      });
+      // Directly fetch and update data
+      console.log("ProfilePage: Fetching completely fresh timeslots data");
+      const cacheBuster = new Date().getTime();
       
-      // Prefetch user bookings
-      console.log("ProfilePage: Prefetching fresh user bookings data");
-      queryClient.prefetchQuery({
-        queryKey: ["/api/user/bookings"],
-        queryFn: async () => {
-          const response = await fetch('/api/user/bookings');
-          if (!response.ok) throw new Error("Failed to fetch user bookings");
-          return response.json();
-        }
-      });
+      // Fetch time slots with cache busting parameter
+      fetch(`/api/timeslots?_=${cacheBuster}`)
+        .then(res => res.json())
+        .then(data => {
+          console.log(`ProfilePage: Pre-loaded ${data.timeSlots?.length || 0} time slots directly`);
+          // Store this data in the cache manually for all relevant keys
+          queryClient.setQueryData(['/api/timeslots'], data);
+          
+          // Store the data with additional cache keys to ensure all views are updated
+          queryClient.setQueryData(['/api/timeslots', 0], data);  // Using the force refresh key parameter
+          queryClient.setQueryData(['/api/timeslots', 1], data);  // Using a different force refresh key parameter
+          
+          // Set for common date formats too
+          const today = new Date().toISOString().split('T')[0];
+          const nextWeek = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
+          queryClient.setQueryData(['/api/timeslots', today, nextWeek], data);
+        })
+        .catch(err => console.error("ProfilePage: Error prefetching time slots:", err));
       
-      // Dispatch a custom event with details and force flag
-      console.log("ProfilePage: Dispatching booking-updated event with force flag");
+      // Fetch user bookings
+      console.log("ProfilePage: Fetching completely fresh user bookings data");
+      fetch(`/api/user/bookings?_=${cacheBuster}`)
+        .then(res => res.json())
+        .then(data => {
+          console.log("ProfilePage: Pre-loaded user bookings data");
+          queryClient.setQueryData(['/api/user/bookings'], data);
+        })
+        .catch(err => console.error("ProfilePage: Error prefetching user bookings:", err));
+      
+      // Dispatch BOTH event types for maximum compatibility
+      console.log("ProfilePage: Dispatching BOTH refresh event types");
+      
+      // First the original booking-updated event
       const bookingUpdatedEvent = new CustomEvent('booking-updated', {
         detail: {
-          action: 'cancellation',
+          action: 'cancellation-nuclear',
           timestamp: new Date().getTime(),
           forceRefresh: true
         }
       });
       window.dispatchEvent(bookingUpdatedEvent);
+      
+      // Then the new force-calendar-refresh event
+      const forceRefreshEvent = new Event('force-calendar-refresh');
+      window.dispatchEvent(forceRefreshEvent);
     },
     onError: (error: any) => {
       console.error("Error cancelling booking:", error);

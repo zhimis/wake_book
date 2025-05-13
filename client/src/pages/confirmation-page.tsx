@@ -51,41 +51,46 @@ const ConfirmationPage = () => {
     window.open(googleCalendarUrl, '_blank');
   };
   
-  // Enhanced return to home function with stronger cache invalidation
+  // Enhanced return to home function with extreme force refresh
   const handleReturnToHome = () => {
-    // Clear cache completely
-    console.log("Confirmation page: Forcefully REMOVING time slots query cache");
-    queryClient.removeQueries({ queryKey: ['/api/timeslots'] });
-    queryClient.removeQueries({ queryKey: ['/api/bookings'] });
+    // Use the most aggressive approach to ensure fresh data
+    console.log("Confirmation page: NUCLEAR OPTION - complete cache wipeout");
     
-    // Prefetch fresh data before navigating
-    console.log("Confirmation page: Prefetching fresh time slots data");
-    queryClient.prefetchQuery({
-      queryKey: ['/api/timeslots'],
-      queryFn: async () => {
-        const res = await fetch('/api/timeslots');
-        if (!res.ok) throw new Error('Failed to fetch time slots');
-        return res.json();
-      }
-    });
+    // 1. First clear ALL query cache
+    queryClient.clear();
     
-    // Dispatch custom event to trigger calendar refresh
-    console.log("Confirmation page: Dispatching booking-updated event with force flag");
+    // 2. Prefetch fresh time slots data with direct API call
+    console.log("Confirmation page: Fetching completely fresh data");
+    fetch('/api/timeslots?_=' + new Date().getTime())
+      .then(res => res.json())
+      .then(data => {
+        console.log(`Confirmation page: Pre-loaded ${data.timeSlots?.length || 0} time slots directly`);
+        // Store this data in the cache manually
+        queryClient.setQueryData(['/api/timeslots'], data);
+      })
+      .catch(err => console.error("Error prefetching:", err));
+    
+    // 3. Dispatch BOTH event types for maximum compatibility
+    console.log("Confirmation page: Dispatching BOTH refresh event types");
+    
+    // First the original booking-updated event
     const bookingUpdatedEvent = new CustomEvent('booking-updated', {
       detail: {
-        action: 'force-refresh',
+        action: 'nuclear-refresh',
         reference: reference,
         timestamp: new Date().getTime(),
         forceRefresh: true
       }
     });
-    
-    // Dispatch event immediately
     window.dispatchEvent(bookingUpdatedEvent);
     
-    // Navigate immediately to home with a custom URL parameter to force refresh
-    console.log("Confirmation page: Navigating to home with refresh parameter");
-    navigate("/?refresh=" + new Date().getTime());
+    // Then the new force-calendar-refresh event
+    const forceRefreshEvent = new Event('force-calendar-refresh');
+    window.dispatchEvent(forceRefreshEvent);
+    
+    // 4. Navigate home with cache-busting URL parameter  
+    console.log("Confirmation page: Navigating home with DOUBLE cache busting");
+    navigate(`/?forcefresh=${new Date().getTime()}&nocache=true`);
   };
   
   // If loading

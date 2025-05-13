@@ -108,14 +108,16 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
     onSuccess: async (data) => {
       console.log("BookingForm: Booking successful! Reference:", data.booking.reference);
       
-      // COMPLETELY REMOVE all cached data to force a fresh fetch
-      console.log("BookingForm: Completely REMOVING time slots and bookings query cache");
-      queryClient.removeQueries({ queryKey: ['/api/timeslots'] });
-      queryClient.removeQueries({ queryKey: ['/api/bookings'] });
+      // NUCLEAR OPTION: Clear entire cache
+      console.log("BookingForm: NUCLEAR OPTION - complete cache wipeout");
+      queryClient.clear();
       
-      // Prefetch fresh data with proper date ranges in the background
-      console.log("BookingForm: Prefetching fresh time slots data");
+      // Directly fetch and update data
+      console.log("BookingForm: Fetching completely fresh data with direct API call");
+      const cacheBuster = new Date().getTime();
+      
       try {
+        // Get date ranges for API call
         const freshStartDate = new Date();
         const freshEndDate = new Date();
         freshEndDate.setDate(freshEndDate.getDate() + 7);
@@ -124,39 +126,46 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
         const formattedStartDate = formatInLatviaTime(freshStartDate, "yyyy-MM-dd");
         const formattedEndDate = formatInLatviaTime(freshEndDate, "yyyy-MM-dd");
         
-        console.log(`BookingForm: Prefetching time slots for ${formattedStartDate} to ${formattedEndDate}`);
+        console.log(`BookingForm: Direct API call for ${formattedStartDate} to ${formattedEndDate}`);
         
-        // Use prefetchQuery to store the result in cache for future use
-        await queryClient.prefetchQuery({
-          queryKey: ['/api/timeslots', formattedStartDate, formattedEndDate],
-          queryFn: async () => {
-            const res = await fetch(
-              `/api/timeslots?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
-            );
-            if (!res.ok) throw new Error('Failed to fetch time slots');
-            return res.json();
-          }
-        });
+        // Direct fetch with cache busting parameter
+        const response = await fetch(
+          `/api/timeslots?startDate=${formattedStartDate}&endDate=${formattedEndDate}&_=${cacheBuster}`
+        );
+        
+        if (response.ok) {
+          const timeSlotData = await response.json();
+          console.log(`BookingForm: Pre-loaded ${timeSlotData.timeSlots?.length || 0} time slots directly`);
+          
+          // Store the data for multiple query keys
+          queryClient.setQueryData(['/api/timeslots'], timeSlotData);
+          queryClient.setQueryData(['/api/timeslots', formattedStartDate, formattedEndDate], timeSlotData);
+          queryClient.setQueryData(['/api/timeslots', formattedStartDate, formattedEndDate, 0], timeSlotData);
+        }
       } catch (error) {
-        console.error("BookingForm: Error prefetching time slots:", error);
+        console.error("BookingForm: Error during direct data fetch:", error);
       }
       
-      // Dispatch custom event with force refresh flag
-      console.log("BookingForm: Dispatching booking-updated event with force flag");
+      // Dispatch BOTH event types for maximum compatibility
+      console.log("BookingForm: Dispatching BOTH refresh event types");
+      
+      // First the original booking-updated event
       const bookingUpdatedEvent = new CustomEvent('booking-updated', {
         detail: {
           bookingId: data.booking.id,
           reference: data.booking.reference,
-          action: 'new-booking',
+          action: 'new-booking-nuclear',
           timestamp: new Date().getTime(),
           forceRefresh: true
         }
       });
-      
       window.dispatchEvent(bookingUpdatedEvent);
       
-      // Navigate to confirmation page immediately - we don't need to wait
-      // since we're moving away from the page that needs refreshing
+      // Then the new force-calendar-refresh event
+      const forceRefreshEvent = new Event('force-calendar-refresh');
+      window.dispatchEvent(forceRefreshEvent);
+      
+      // Navigate to confirmation page
       console.log("BookingForm: Navigating to confirmation page");
       navigate(`/confirmation/${data.booking.reference}`);
 
