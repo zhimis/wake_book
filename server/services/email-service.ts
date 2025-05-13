@@ -6,12 +6,16 @@ import { storage } from '../storage';
 
 // Initialize Mailgun client
 const mailgun = new Mailgun(formData);
+const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY || '';
+const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || '';
+
+console.log(`Email Service Initialization - Using Mailgun domain: ${MAILGUN_DOMAIN}`);
+console.log(`Email Service Initialization - API key present: ${MAILGUN_API_KEY ? 'Yes' : 'No'}`);
+
 const mg = mailgun.client({
   username: 'api',
-  key: process.env.MAILGUN_API_KEY || '',
+  key: MAILGUN_API_KEY,
 });
-
-const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN || '';
 
 // Get admin email from configuration or use fallback
 const getAdminEmail = async (): Promise<string> => {
@@ -172,12 +176,21 @@ export const sendCustomerBookingConfirmation = async (
       `
     };
 
+    console.log(`Attempting to send customer email to: ${recipientEmail}`);
+    console.log(`Using Mailgun domain: ${MAILGUN_DOMAIN}`);
+    
     // Send the email
     const response = await mg.messages.create(MAILGUN_DOMAIN, emailData);
     console.log('Customer confirmation email sent:', response);
     return true;
   } catch (error) {
     console.error('Error sending customer confirmation email:', error);
+    // Print more detailed error information
+    if (error instanceof Error) {
+      console.error(`Error name: ${error.name}`);
+      console.error(`Error message: ${error.message}`);
+      console.error(`Error stack: ${error.stack}`);
+    }
     return false;
   }
 };
@@ -238,12 +251,21 @@ export const sendAdminBookingNotification = async (
       `
     };
 
+    console.log(`Attempting to send admin email to: ${adminEmail}`);
+    console.log(`Using Mailgun domain: ${MAILGUN_DOMAIN}`);
+    
     // Send the email
     const response = await mg.messages.create(MAILGUN_DOMAIN, emailData);
     console.log('Admin notification email sent:', response);
     return true;
   } catch (error) {
     console.error('Error sending admin notification email:', error);
+    // Print more detailed error information
+    if (error instanceof Error) {
+      console.error(`Error name: ${error.name}`);
+      console.error(`Error message: ${error.message}`);
+      console.error(`Error stack: ${error.stack}`);
+    }
     return false;
   }
 };
