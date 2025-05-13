@@ -990,10 +990,16 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateFeedbackStatus(id: number, status: string): Promise<Feedback | undefined> {
+  async updateFeedbackStatus(id: number, status: string, adminNotes?: string): Promise<Feedback | undefined> {
     try {
+      const updateData: {status: string, adminNotes?: string} = { status };
+      
+      if (adminNotes !== undefined) {
+        updateData.adminNotes = adminNotes;
+      }
+      
       const [updated] = await db.update(feedback)
-        .set({ status })
+        .set(updateData)
         .where(eq(feedback.id, id))
         .returning();
       
