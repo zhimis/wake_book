@@ -39,8 +39,15 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         // Parse and restore the time slots
         const parsedTimeSlots = JSON.parse(savedTimeSlots);
         if (Array.isArray(parsedTimeSlots) && parsedTimeSlots.length > 0) {
-          console.log('[BOOKING CONTEXT] Restoring saved booking state:', parsedTimeSlots.length, 'time slots');
-          setSelectedTimeSlots(parsedTimeSlots);
+          // Convert string dates back to Date objects
+          const restoredTimeSlots = parsedTimeSlots.map(slot => ({
+            ...slot,
+            startTime: new Date(slot.startTime),
+            endTime: new Date(slot.endTime)
+          }));
+          
+          console.log('[BOOKING CONTEXT] Restoring saved booking state:', restoredTimeSlots.length, 'time slots');
+          setSelectedTimeSlots(restoredTimeSlots);
           // Clear the stored state to prevent unwanted restorations
           localStorage.removeItem('pendingBookingTimeSlots');
           
