@@ -114,8 +114,9 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       // We'll set a localStorage flag that will tell the homepage to refresh the calendar
       // when it loads next time
       localStorage.setItem('calendar_needs_refresh', 'true');
-      localStorage.setItem('last_booking_action', 'new');
+      localStorage.setItem('last_booking_action', 'new-booking');
       localStorage.setItem('last_booking_timestamp', Date.now().toString());
+      localStorage.setItem('booking_reference', bookingReference);
       
       // Navigate to confirmation page
       console.log("BookingForm: Navigating to confirmation page");

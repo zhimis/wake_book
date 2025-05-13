@@ -13,6 +13,20 @@ const HomePage = () => {
   useEffect(() => {
     console.log("HomePage: Checking for localStorage refresh flags...");
     
+    // First check if we already reloaded by looking for a marker
+    const wasReloaded = sessionStorage.getItem('just_reloaded') === 'true';
+    
+    if (wasReloaded) {
+      // We already reloaded, clean up and don't reload again
+      console.log("HomePage: Page was just reloaded, clearing reload markers");
+      sessionStorage.removeItem('just_reloaded');
+      localStorage.removeItem('calendar_needs_refresh');
+      localStorage.removeItem('last_booking_action');
+      localStorage.removeItem('last_booking_timestamp');
+      localStorage.removeItem('booking_reference');
+      return;
+    }
+    
     // Check if we need to refresh the calendar based on localStorage flag
     const needsRefresh = localStorage.getItem('calendar_needs_refresh') === 'true';
     
@@ -30,8 +44,12 @@ const HomePage = () => {
       if (age < 5 * 60 * 1000) {
         console.log(`HomePage: Processing refresh request (${Math.round(age/1000)}s old)`);
         
-        // Perform a reload of the whole page to guarantee fresh data
-        window.location.reload();
+        // Set a marker that we're doing a reload to prevent loop
+        sessionStorage.setItem('just_reloaded', 'true');
+        
+        // Refresh the calendar component instead of reloading the page
+        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+        setCalendarKey(prev => prev + 1);
       } else {
         // Clear old flags
         console.log(`HomePage: Ignoring stale refresh request (${Math.round(age/1000)}s old)`);

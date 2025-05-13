@@ -51,19 +51,19 @@ const ConfirmationPage = () => {
     window.open(googleCalendarUrl, '_blank');
   };
   
-  // Enhanced return to home function that forces a page reload
+  // Enhanced return to home function that triggers a calendar refresh
   const handleReturnToHome = () => {
-    console.log("Confirmation page: Setting localStorage flags for homepage refresh");
+    console.log("Confirmation page: Setting localStorage flags for calendar refresh");
     
-    // Set the localStorage flag that will trigger a hard refresh on home page
+    // Set the localStorage flag that will trigger a calendar refresh
     localStorage.setItem('calendar_needs_refresh', 'true');
     localStorage.setItem('last_booking_action', 'confirmation');
     localStorage.setItem('last_booking_timestamp', Date.now().toString());
     localStorage.setItem('booking_reference', reference || '');
     
-    // Bypass the React router and force a full page reload on homepage
-    console.log("Confirmation page: Redirecting to home with full page reload");
-    window.location.href = '/'; // This will cause a full page reload
+    // Use normal navigation
+    console.log("Confirmation page: Navigating to home page");
+    navigate('/');
   };
   
   // If loading

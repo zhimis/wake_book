@@ -129,10 +129,14 @@ const ProfilePage = () => {
       
       console.log("ProfilePage: Booking successfully cancelled");
       
+      // Get the booking reference if we have it in the data response
+      const bookingReference = data?.booking?.reference || '';
+      
       // Set localStorage flags to tell the homepage to refresh the calendar when loaded next
       localStorage.setItem('calendar_needs_refresh', 'true');
-      localStorage.setItem('last_booking_action', 'cancel');
+      localStorage.setItem('last_booking_action', 'cancellation');
       localStorage.setItem('last_booking_timestamp', Date.now().toString());
+      localStorage.setItem('booking_reference', bookingReference);
       
       // Also refresh the current page's booking list
       // We'll do a direct refetch of the bookings query
