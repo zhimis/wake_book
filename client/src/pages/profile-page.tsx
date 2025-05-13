@@ -97,7 +97,7 @@ const ProfilePage = () => {
     data: userBookings,
     isLoading: bookingsLoading,
     error: bookingsError,
-    refetch: refetchBookings,
+    refetch: refetchUserBookings,  // Rename to match what we use in the cancellation handler
   } = useQuery<UserBooking[]>({
     queryKey: ["/api/user/bookings"],
     queryFn: getQueryFn({ on401: "returnNull" }),
@@ -127,61 +127,17 @@ const ProfilePage = () => {
       setCancellationError(null);
       setSuccessDialogOpen(true);
       
-      console.log("ProfilePage: Booking successfully cancelled, using nuclear refresh option");
+      console.log("ProfilePage: Booking successfully cancelled");
       
-      // NUCLEAR OPTION: Clear entire cache
-      console.log("ProfilePage: NUCLEAR OPTION - complete cache wipeout");
-      queryClient.clear();
+      // Set localStorage flags to tell the homepage to refresh the calendar when loaded next
+      localStorage.setItem('calendar_needs_refresh', 'true');
+      localStorage.setItem('last_booking_action', 'cancel');
+      localStorage.setItem('last_booking_timestamp', Date.now().toString());
       
-      // Directly fetch and update data
-      console.log("ProfilePage: Fetching completely fresh timeslots data");
-      const cacheBuster = new Date().getTime();
-      
-      // Fetch time slots with cache busting parameter
-      fetch(`/api/timeslots?_=${cacheBuster}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log(`ProfilePage: Pre-loaded ${data.timeSlots?.length || 0} time slots directly`);
-          // Store this data in the cache manually for all relevant keys
-          queryClient.setQueryData(['/api/timeslots'], data);
-          
-          // Store the data with additional cache keys to ensure all views are updated
-          queryClient.setQueryData(['/api/timeslots', 0], data);  // Using the force refresh key parameter
-          queryClient.setQueryData(['/api/timeslots', 1], data);  // Using a different force refresh key parameter
-          
-          // Set for common date formats too
-          const today = new Date().toISOString().split('T')[0];
-          const nextWeek = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
-          queryClient.setQueryData(['/api/timeslots', today, nextWeek], data);
-        })
-        .catch(err => console.error("ProfilePage: Error prefetching time slots:", err));
-      
-      // Fetch user bookings
-      console.log("ProfilePage: Fetching completely fresh user bookings data");
-      fetch(`/api/user/bookings?_=${cacheBuster}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log("ProfilePage: Pre-loaded user bookings data");
-          queryClient.setQueryData(['/api/user/bookings'], data);
-        })
-        .catch(err => console.error("ProfilePage: Error prefetching user bookings:", err));
-      
-      // Dispatch BOTH event types for maximum compatibility
-      console.log("ProfilePage: Dispatching BOTH refresh event types");
-      
-      // First the original booking-updated event
-      const bookingUpdatedEvent = new CustomEvent('booking-updated', {
-        detail: {
-          action: 'cancellation-nuclear',
-          timestamp: new Date().getTime(),
-          forceRefresh: true
-        }
-      });
-      window.dispatchEvent(bookingUpdatedEvent);
-      
-      // Then the new force-calendar-refresh event
-      const forceRefreshEvent = new Event('force-calendar-refresh');
-      window.dispatchEvent(forceRefreshEvent);
+      // Also refresh the current page's booking list
+      // We'll do a direct refetch of the bookings query
+      console.log("ProfilePage: Refreshing user bookings list");
+      refetchUserBookings();
     },
     onError: (error: any) => {
       console.error("Error cancelling booking:", error);
