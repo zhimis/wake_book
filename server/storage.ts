@@ -182,7 +182,7 @@ export class DatabaseStorage implements IStorage {
       if (existingSettings.length === 0) {
         await db.insert(leadTimeSettings).values({
           restrictionMode: "off", // Default to no restrictions
-          leadTimeDays: 0,        // Same day by default
+          leadTimeHours: 0,       // No lead time by default
           operatorOnSite: false   // Default to no operator on-site
         });
         console.log("Default lead time settings created");
@@ -959,7 +959,7 @@ export class DatabaseStorage implements IStorage {
   async checkBookingAllowedByLeadTime(date: Date): Promise<{
     allowed: boolean;
     reason?: string;
-    leadTimeDays?: number;
+    leadTimeHours?: number;
     mode?: string;
   }> {
     try {
@@ -979,22 +979,16 @@ export class DatabaseStorage implements IStorage {
         return { allowed: true, mode: "operator_on_site" };
       }
       
-      // Convert the requested date to Latvia time for consistency
-      const latviaDate = toLatviaTime(date);
-      const today = toLatviaTime(new Date());
+      // Get current time and booking time
+      const now = new Date();
+      const bookingTime = new Date(date);
       
-      // Reset time parts to compare just the dates
-      today.setHours(0, 0, 0, 0);
+      // Calculate hours difference
+      const timeDiffMs = bookingTime.getTime() - now.getTime();
+      const hoursDiff = Math.floor(timeDiffMs / (1000 * 60 * 60));
       
-      // Extract just the date part for comparison
-      const bookingDate = new Date(latviaDate);
-      bookingDate.setHours(0, 0, 0, 0);
-      
-      // Calculate days difference
-      const daysDiff = Math.floor((bookingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      
-      // Check if the booking date meets the lead time requirement
-      const hasEnoughLeadTime = daysDiff >= settings.leadTimeDays;
+      // Check if the booking time meets the lead time requirement
+      const hasEnoughLeadTime = hoursDiff >= settings.leadTimeHours;
       
       // For booking-based mode, check if there are existing bookings for this date
       if (settings.restrictionMode === "booking_based" && !hasEnoughLeadTime) {
