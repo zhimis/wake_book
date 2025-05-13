@@ -56,9 +56,9 @@ const createCalendarLink = (booking: BookingDetails): string => {
   const end = new Date(lastSlot.endTime).toISOString().replace(/-|:|\.\d+/g, '');
   const summary = encodeURIComponent(`Wakeboarding Session - ${booking.booking.reference}`);
   const description = encodeURIComponent(
-    `Your wakeboarding session booking. Reference: ${booking.booking.reference}`
+    `Your wakeboarding session booking.\nReference: ${booking.booking.reference}\nName: ${booking.booking.customerName}\nPhone: ${booking.booking.phoneNumber}\nEquipment Rental: ${booking.booking.equipmentRental ? 'Yes' : 'No'}`
   );
-  const location = encodeURIComponent('Wakeboarding Park');
+  const location = encodeURIComponent('Ventspils, Lielais prospekts 38');
   
   // Create iCalendar file content
   const ical = [
@@ -145,36 +145,56 @@ export const sendCustomerBookingConfirmation = async (
       to: recipientEmail,
       subject: `Booking Confirmation - ${booking.booking.reference}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #3498db;">Your Wakeboarding Session is Confirmed!</h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #3498db; margin-bottom: 5px;">Your Wakeboarding Session is Confirmed!</h2>
+            <p style="color: #7f8c8d; font-size: 16px; margin-top: 0;">Thank you for your booking</p>
+          </div>
           
           <p>Dear ${booking.booking.customerName},</p>
           
-          <p>Thank you for booking with us. Your wakeboarding session is confirmed for <strong>${bookingDate}</strong>.</p>
+          <p>We're excited to confirm your wakeboarding session at our park in Ventspils. Your session is scheduled for <strong>${bookingDate}</strong>.</p>
           
-          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0;"><strong>Booking Reference:</strong> ${booking.booking.reference}</p>
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #3498db;">
+            <p style="margin: 5px 0;"><strong>Booking Reference:</strong> ${booking.booking.reference}</p>
+            <p style="margin: 5px 0;"><strong>Equipment Rental:</strong> ${booking.booking.equipmentRental ? 'Yes' : 'No'}</p>
+            <p style="margin: 5px 0;"><strong>Location:</strong> Ventspils, Lielais prospekts 38</p>
           </div>
           
-          <h3 style="color: #3498db;">Booking Details</h3>
+          <h3 style="color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 8px;">Your Booking Details</h3>
           
           ${timeSlotTable}
           
-          <p>
+          <div style="margin: 25px 0; text-align: center;">
             <a href="${calendarLink}" download="wakeboarding_session.ics" 
                style="display: inline-block; background-color: #3498db; color: white; 
-                      padding: 10px 15px; text-decoration: none; border-radius: 4px;">
-              Add to Calendar
+                      padding: 12px 20px; text-decoration: none; border-radius: 4px;
+                      font-weight: bold;">
+              📅 Add to Calendar
             </a>
-          </p>
+          </div>
+          
+          <div style="background-color: #f1f8fe; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h4 style="color: #3498db; margin-top: 0;">Important Information</h4>
+            <ul style="padding-left: 20px; margin-bottom: 0;">
+              <li>Please arrive 15 minutes before your session to complete check-in.</li>
+              <li>Wear appropriate swimwear and bring a towel.</li>
+              <li>Lockers are available for your belongings.</li>
+              <li>In case of bad weather, we may need to reschedule your session.</li>
+            </ul>
+          </div>
           
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           
           <p>If you have any questions or need to make changes to your booking, please contact us with your booking reference.</p>
           
-          <p>We look forward to seeing you!</p>
+          <p>We look forward to seeing you at the wakeboarding park!</p>
           
           <p>Best regards,<br>Wakeboarding Park Team</p>
+          
+          <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; color: #7f8c8d; font-size: 12px;">
+            <p>This is an automated message. Please do not reply to this email.</p>
+          </div>
         </div>
       `
     };
@@ -222,34 +242,59 @@ export const sendAdminBookingNotification = async (
     const emailData = {
       from: `Wakeboarding Park <noreply@${MAILGUN_DOMAIN}>`,
       to: adminEmail,
-      subject: `New Booking Alert - ${booking.booking.reference}`,
+      subject: `🔔 New Booking Alert - ${booking.booking.reference}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #3498db;">New Booking Received!</h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; background-color: #3498db; color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <h2 style="margin: 0;">New Booking Received!</h2>
+          </div>
           
-          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p>Hello Admin,</p>
+          
+          <p>A new booking has been made at the wakeboarding park. Here are the details:</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #e74c3c;">
             <p style="margin: 5px 0;"><strong>Booking Reference:</strong> ${booking.booking.reference}</p>
             <p style="margin: 5px 0;"><strong>Customer:</strong> ${booking.booking.customerName}</p>
             <p style="margin: 5px 0;"><strong>Phone:</strong> ${booking.booking.phoneNumber}</p>
             <p style="margin: 5px 0;"><strong>Email:</strong> ${booking.booking.email || 'Not provided'}</p>
+            <p style="margin: 5px 0;"><strong>Experience Level:</strong> ${booking.booking.experienceLevel || 'Not specified'}</p>
+            <p style="margin: 5px 0;"><strong>Equipment Rental:</strong> ${booking.booking.equipmentRental ? 'Yes' : 'No'}</p>
             <p style="margin: 5px 0;"><strong>Date:</strong> ${bookingDate}</p>
+            <p style="margin: 5px 0;"><strong>Notes:</strong> ${booking.booking.notes || 'No notes provided'}</p>
           </div>
           
-          <h3 style="color: #3498db;">Booking Details</h3>
+          <h3 style="color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 8px;">Time Slots Booked</h3>
           
           ${timeSlotTable}
           
-          <p>
+          <div style="margin: 25px 0; text-align: center;">
             <a href="${calendarLink}" download="wakeboarding_session.ics" 
                style="display: inline-block; background-color: #3498db; color: white; 
-                      padding: 10px 15px; text-decoration: none; border-radius: 4px;">
-              Add to Calendar
+                      padding: 12px 20px; text-decoration: none; border-radius: 4px;
+                      font-weight: bold;">
+              📅 Add to Calendar
             </a>
-          </p>
+          </div>
+
+          <div style="background-color: #f9f2f4; border-left: 4px solid #c7254e; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <h4 style="color: #c7254e; margin-top: 0;">Action Required</h4>
+            <ul style="padding-left: 20px; margin-bottom: 0;">
+              <li>Verify equipment availability for this session</li>
+              <li>Check if an instructor needs to be assigned</li>
+              <li>Confirm if there are any special requirements</li>
+            </ul>
+          </div>
 
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           
           <p>Please review this booking and prepare for the customer's arrival.</p>
+          
+          <p>Wakeboarding Park Booking System</p>
+          
+          <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee; color: #7f8c8d; font-size: 12px;">
+            <p>This is an automated message from the booking system.</p>
+          </div>
         </div>
       `
     };
