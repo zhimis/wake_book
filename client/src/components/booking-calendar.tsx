@@ -759,28 +759,27 @@ const BookingCalendar = ({
     if (leadTimeSettings.operatorOnSite) return false;
 
     // Get current date and slot date
-    const now = new Date();
+    const currentTime = new Date();
     const slotDate = new Date(slot.startTime);
 
     // Calculate the date difference in days (accounting for time of day)
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate());
     const slotDay = new Date(
       slotDate.getFullYear(),
       slotDate.getMonth(),
       slotDate.getDate(),
     );
 
-    // Calculate days difference
-    const diffTime = slotDay.getTime() - today.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    // Calculate hours difference between current time and slot time
+    const diffTimeMs = slotDate.getTime() - currentTime.getTime();
+    const diffHours = Math.floor(diffTimeMs / (1000 * 60 * 60));
 
-    // Get lead time in days
-    const leadTimeDays = leadTimeSettings.leadTimeDays || 0;
+    // Get lead time in hours
+    const leadTimeHours = leadTimeSettings.leadTimeHours || 0;
 
-    // The key issue: With a lead time of 1 day, slots 1 day ahead should be restricted
-    // In other words, if lead time is 1 day and today is 6th, then 7th should be restricted
-    // Since diffDays would be 1, we need to use <= instead of <
-    const isWithinLeadTime = diffDays <= leadTimeDays;
+    // If current time plus lead time hours is after the slot time, 
+    // then the slot is restricted (not enough lead time)
+    const isWithinLeadTime = diffHours < leadTimeHours;
 
     // Lead time debug logs removed
 
@@ -869,24 +868,28 @@ const BookingCalendar = ({
     // If operator is on-site, override all restrictions
     if (leadTimeSettings.operatorOnSite) return false;
 
-    // Get current date and calculate difference
+    // Get current time and start of the day being checked
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dayDate = new Date(
+    
+    // Set the date to the start of the day being checked (at 00:00)
+    const dayStart = new Date(
       date.getFullYear(),
       date.getMonth(),
       date.getDate(),
+      0, 0, 0, 0
     );
-
-    // Calculate days difference
-    const diffTime = dayDate.getTime() - today.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    // Get lead time in days
-    const leadTimeDays = leadTimeSettings.leadTimeDays || 0;
-
-    // Check if the day is within lead time
-    const isWithinLeadTime = diffDays <= leadTimeDays;
+    
+    // Calculate hours difference from now to the start of the day
+    const diffTimeMs = dayStart.getTime() - now.getTime();
+    const diffHours = Math.floor(diffTimeMs / (1000 * 60 * 60));
+    
+    // Get lead time in hours
+    const leadTimeHours = leadTimeSettings.leadTimeHours || 0;
+    
+    // Check if the start of the day is within lead time
+    // If the hours difference is less than the lead time, 
+    // then the day is restricted
+    const isWithinLeadTime = diffHours < leadTimeHours;
 
     // If not within lead time or not in booking_based mode, use the standard logic
     if (
@@ -901,7 +904,7 @@ const BookingCalendar = ({
     // For booking_based mode, check if any bookings exist for this day
     if (bookingsData && Array.isArray(bookingsData)) {
       // Format the day date to YYYY-MM-DD for consistent comparison
-      const dayDateStr = formatInLatviaTime(dayDate, "yyyy-MM-dd");
+      const dayDateStr = formatInLatviaTime(dayStart, "yyyy-MM-dd");
 
       // Check if any booking contains a time slot on this day
       const bookingExistsForDay = bookingsData.some((booking: any) => {
