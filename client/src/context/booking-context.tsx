@@ -3,7 +3,8 @@ import {
   useContext, 
   useState, 
   useCallback, 
-  ReactNode
+  ReactNode,
+  useEffect
 } from "react";
 import { TimeSlot } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ type BookingContextType = {
   selectedTimeSlots: TimeSlot[];
   toggleTimeSlot: (timeSlot: TimeSlot) => void;
   clearSelectedTimeSlots: () => void;
+  saveCurrentBookingState: () => void;
 };
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -20,6 +22,42 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 export function BookingProvider({ children }: { children: ReactNode }) {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState<TimeSlot[]>([]);
   const { toast } = useToast();
+  
+  // Save current booking state to localStorage
+  const saveCurrentBookingState = useCallback(() => {
+    if (selectedTimeSlots.length > 0) {
+      localStorage.setItem('pendingBookingTimeSlots', JSON.stringify(selectedTimeSlots));
+      console.log('[BOOKING CONTEXT] Saved booking state:', selectedTimeSlots.length, 'time slots');
+    }
+  }, [selectedTimeSlots]);
+  
+  // Check for saved booking state when component mounts
+  useEffect(() => {
+    try {
+      const savedTimeSlots = localStorage.getItem('pendingBookingTimeSlots');
+      if (savedTimeSlots) {
+        // Parse and restore the time slots
+        const parsedTimeSlots = JSON.parse(savedTimeSlots);
+        if (Array.isArray(parsedTimeSlots) && parsedTimeSlots.length > 0) {
+          console.log('[BOOKING CONTEXT] Restoring saved booking state:', parsedTimeSlots.length, 'time slots');
+          setSelectedTimeSlots(parsedTimeSlots);
+          // Clear the stored state to prevent unwanted restorations
+          localStorage.removeItem('pendingBookingTimeSlots');
+          
+          // Show toast to notify user
+          toast({
+            title: "Booking Restored",
+            description: "Your previous booking selection has been restored.",
+            duration: 3000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[BOOKING CONTEXT] Error restoring booking state:', error);
+      // Clear potentially corrupted data
+      localStorage.removeItem('pendingBookingTimeSlots');
+    }
+  }, [toast]);
   
   // Toggle time slot selection - with enhanced cross-date protection
   const toggleTimeSlot = useCallback((timeSlot: TimeSlot) => {
@@ -103,7 +141,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       value={{
         selectedTimeSlots,
         toggleTimeSlot,
-        clearSelectedTimeSlots
+        clearSelectedTimeSlots,
+        saveCurrentBookingState
       }}
     >
       {children}

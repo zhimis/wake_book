@@ -445,7 +445,13 @@ export function setupAuth(app: Express) {
   });
   
   // Google OAuth routes
-  app.get("/api/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+  app.get("/api/auth/google", (req, res, next) => {
+    // Store the returnTo parameter in session if provided
+    if (req.query.returnTo) {
+      req.session.returnTo = req.query.returnTo as string;
+    }
+    next();
+  }, passport.authenticate("google", { scope: ["profile", "email"] }));
   
   // Using the original callback path that's registered in Google Cloud Console
   app.get("/api/auth/google/callback", 
@@ -454,8 +460,16 @@ export function setupAuth(app: Express) {
       session: true
     }),
     (req, res) => {
-      // Successful authentication, redirect to home
-      res.redirect("/");
+      // Check for returnTo parameter in the session
+      const returnTo = req.session?.returnTo || "/";
+      
+      // Clear the returnTo path from session to prevent it from persisting
+      if (req.session) {
+        delete req.session.returnTo;
+      }
+      
+      // Successful authentication, redirect to the returnTo path or home
+      res.redirect(returnTo);
     }
   );
   

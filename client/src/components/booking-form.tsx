@@ -52,7 +52,7 @@ interface BookingFormProps {
 }
 
 const BookingForm = ({ onCancel }: BookingFormProps) => {
-  const { selectedTimeSlots, clearSelectedTimeSlots } = useBooking();
+  const { selectedTimeSlots, clearSelectedTimeSlots, saveCurrentBookingState } = useBooking();
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -317,11 +317,20 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
               </p>
             </div>
             
-            <Button variant="outline" className="w-full" asChild>
-              <a href="/api/auth/google" className="flex items-center justify-center gap-2">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => {
+                // Use the context function to save booking state
+                saveCurrentBookingState();
+                // Redirect to Google auth with return URL parameter
+                window.location.href = '/api/auth/google?returnTo=/booking';
+              }}
+            >
+              <div className="flex items-center justify-center gap-2">
                 <FaGoogle className="h-4 w-4" />
                 <span>Sign in with Google</span>
-              </a>
+              </div>
             </Button>
             
             <div className="relative mt-6 mb-6">
