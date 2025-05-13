@@ -6,6 +6,7 @@ import { CheckCircle, Calendar, Map, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { queryClient } from "@/lib/queryClient";
 
 const ConfirmationPage = () => {
   const { reference } = useParams();
@@ -50,8 +51,30 @@ const ConfirmationPage = () => {
     window.open(googleCalendarUrl, '_blank');
   };
   
+  // Enhanced return to home function that refreshes data before navigation
   const handleReturnToHome = () => {
-    navigate("/");
+    // First, manually invalidate time slots data to ensure fresh data
+    console.log("Confirmation page: Invalidating queries before returning to home");
+    queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+    
+    // Dispatch a booking update event to refresh the calendar
+    console.log("Confirmation page: Dispatching booking-updated event");
+    const bookingUpdatedEvent = new CustomEvent('booking-updated', {
+      detail: {
+        action: 'return-from-confirmation',
+        reference: reference,
+        timestamp: new Date().getTime()
+      }
+    });
+    
+    window.dispatchEvent(bookingUpdatedEvent);
+    
+    // Add a slight delay to ensure everything is processed before navigation
+    setTimeout(() => {
+      console.log("Confirmation page: Navigating to home");
+      navigate("/");
+    }, 300);
   };
   
   // If loading
@@ -87,7 +110,10 @@ const ConfirmationPage = () => {
               <p className="text-gray-600 mb-6">
                 The booking reference you provided was not found or there was an error fetching the booking details.
               </p>
-              <Button onClick={handleReturnToHome}>
+              <Button 
+                onClick={handleReturnToHome}
+                className="flex items-center justify-center"
+              >
                 Return to Home
               </Button>
             </CardContent>
