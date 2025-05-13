@@ -111,14 +111,14 @@ const ProfilePage = () => {
     refetch: refetchCancellationStatus,
   } = useQuery<CancellationStatus>({
     queryKey: ["/api/bookings", selectedBookingId, "cancellable"],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!selectedBookingId,
   });
 
   // Mutation for cancellation
   const cancelBookingMutation = useMutation({
     mutationFn: async (bookingId: number) => {
-      return apiRequest(`/api/bookings/${bookingId}`, { method: "DELETE" });
+      return apiRequest("DELETE", `/api/bookings/${bookingId}`);
     },
     onSuccess: () => {
       setIsCancellationDialogOpen(false);
