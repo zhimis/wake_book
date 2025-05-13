@@ -16,7 +16,19 @@ RECIPIENT_EMAIL=$1
 # Load environment variables
 MAILGUN_API_KEY=$MAILGUN_API_KEY
 MAILGUN_DOMAIN=$MAILGUN_DOMAIN
-MAILGUN_ENDPOINT=${MAILGUN_ENDPOINT:-"https://api.mailgun.net"}
+
+# Format the endpoint URL correctly
+if [ -n "$MAILGUN_ENDPOINT" ]; then
+  if [[ "$MAILGUN_ENDPOINT" == http://* || "$MAILGUN_ENDPOINT" == https://* ]]; then
+    FORMATTED_ENDPOINT="$MAILGUN_ENDPOINT"
+  else
+    FORMATTED_ENDPOINT="https://$MAILGUN_ENDPOINT"
+  fi
+else
+  FORMATTED_ENDPOINT="https://api.mailgun.net"
+fi
+
+MAILGUN_ENDPOINT=$FORMATTED_ENDPOINT
 
 # Check if API key and domain are available
 if [ -z "$MAILGUN_API_KEY" ] || [ -z "$MAILGUN_DOMAIN" ]; then

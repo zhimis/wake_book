@@ -18,11 +18,20 @@ console.log(`Email Service Test - Using Mailgun domain: ${MAILGUN_DOMAIN}`);
 console.log(`Email Service Test - API key present: ${MAILGUN_API_KEY ? 'Yes' : 'No'}`);
 console.log(`Email Service Test - Using endpoint: ${MAILGUN_ENDPOINT || 'Default US endpoint'}`);
 
-// Configure mg client with the EU endpoint if provided
+// Format endpoint URL if needed
+const formattedEndpoint = MAILGUN_ENDPOINT 
+  ? (MAILGUN_ENDPOINT.startsWith('http://') || MAILGUN_ENDPOINT.startsWith('https://') 
+      ? MAILGUN_ENDPOINT 
+      : `https://${MAILGUN_ENDPOINT}`)
+  : undefined;
+
+console.log(`Email Service Test - Formatted endpoint: ${formattedEndpoint || 'Using default'}`);
+
+// Configure mg client with the properly formatted endpoint if provided
 const mg = mailgun.client({
   username: 'api',
   key: MAILGUN_API_KEY,
-  url: MAILGUN_ENDPOINT || undefined
+  url: formattedEndpoint
 });
 
 async function sendTestEmail() {

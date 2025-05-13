@@ -14,10 +14,19 @@ console.log(`Email Service Initialization - Using Mailgun domain: ${MAILGUN_DOMA
 console.log(`Email Service Initialization - API key present: ${MAILGUN_API_KEY ? 'Yes' : 'No'}`);
 console.log(`Email Service Initialization - Using endpoint: ${MAILGUN_ENDPOINT || 'Default US endpoint'}`);
 
+// Check if the endpoint has a proper protocol prefix
+const formattedEndpoint = MAILGUN_ENDPOINT 
+  ? (MAILGUN_ENDPOINT.startsWith('http://') || MAILGUN_ENDPOINT.startsWith('https://') 
+      ? MAILGUN_ENDPOINT 
+      : `https://${MAILGUN_ENDPOINT}`)
+  : undefined;
+
+console.log(`Email Service Initialization - Formatted endpoint: ${formattedEndpoint || 'Using default'}`);
+
 const mg = mailgun.client({
   username: 'api',
   key: MAILGUN_API_KEY,
-  url: MAILGUN_ENDPOINT || undefined // Use the EU endpoint if provided
+  url: formattedEndpoint
 });
 
 // Get admin email from configuration or use fallback
