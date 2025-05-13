@@ -131,6 +131,11 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
         console.error("Error fetching fresh time slots after booking:", error);
       }
       
+      // Dispatch a custom event to notify other components about the booking update
+      const bookingUpdatedEvent = new Event('booking-updated');
+      window.dispatchEvent(bookingUpdatedEvent);
+      console.log("Dispatched booking-updated event");
+      
       // Navigate to confirmation page
       navigate(`/confirmation/${data.booking.reference}`);
 

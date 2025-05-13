@@ -1,13 +1,36 @@
 import { Card, CardContent } from "@/components/ui/card";
 import BookingCalendar from "@/components/booking-calendar";
+import { useState, useEffect } from "react";
 
 const HomePage = () => {
+  // This key will force the BookingCalendar to remount when it changes
+  const [calendarKey, setCalendarKey] = useState(0);
+  
+  // Use a custom event to refresh the calendar after bookings or cancellations
+  useEffect(() => {
+    // Event handler to refresh the calendar
+    const handleBookingUpdate = () => {
+      console.log("Booking update detected - refreshing calendar");
+      // Increment key to force remount of the calendar component
+      setCalendarKey(prev => prev + 1);
+    };
+    
+    // Add event listener
+    window.addEventListener('booking-updated', handleBookingUpdate);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('booking-updated', handleBookingUpdate);
+    };
+  }, []);
+  
   return (
     <main className="container mx-auto px-0.5 py-0">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-4">
-            <BookingCalendar />
+            {/* Adding a key ensures the calendar fully remounts when data is refreshed */}
+            <BookingCalendar key={calendarKey} />
           </div>
 
           <div className="w-full">
