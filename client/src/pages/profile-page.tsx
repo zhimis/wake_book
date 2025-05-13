@@ -130,10 +130,15 @@ const ProfilePage = () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/timeslots"] });
       
-      // Dispatch a custom event to notify other components about the booking update
-      const bookingUpdatedEvent = new Event('booking-updated');
+      // Dispatch a custom event with details to notify other components about the booking cancellation
+      console.log("Dispatching booking-updated event after cancellation");
+      const bookingUpdatedEvent = new CustomEvent('booking-updated', {
+        detail: {
+          action: 'cancellation',
+          timestamp: new Date().getTime()
+        }
+      });
       window.dispatchEvent(bookingUpdatedEvent);
-      console.log("Dispatched booking-updated event after cancellation");
     },
     onError: (error: any) => {
       console.error("Error cancelling booking:", error);

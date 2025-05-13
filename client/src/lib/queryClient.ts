@@ -84,3 +84,8 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Expose the query client to window for use in event handlers
+if (typeof window !== 'undefined') {
+  (window as any).reactQueryClient = queryClient;
+}

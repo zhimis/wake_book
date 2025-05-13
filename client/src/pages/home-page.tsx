@@ -8,19 +8,45 @@ const HomePage = () => {
   
   // Use a custom event to refresh the calendar after bookings or cancellations
   useEffect(() => {
-    // Event handler to refresh the calendar
-    const handleBookingUpdate = () => {
-      console.log("Booking update detected - refreshing calendar");
-      // Increment key to force remount of the calendar component
-      setCalendarKey(prev => prev + 1);
+    // Type definition for our custom event
+    interface BookingUpdatedEvent extends Event {
+      detail?: {
+        bookingId?: number;
+        reference?: string;
+        action?: string;
+        timestamp?: number;
+      };
+    }
+    
+    // Enhanced event handler to refresh the calendar with detailed logging
+    const handleBookingUpdate = (event: BookingUpdatedEvent) => {
+      console.log("🔄 Booking update detected - refreshing calendar", event.detail);
+      
+      // Force a query invalidation to get the latest data
+      try {
+        // Try to access the query client without TypeScript errors
+        const anyWindow = window as any;
+        if (anyWindow.reactQueryClient) {
+          console.log("Manually invalidating time slots data");
+          anyWindow.reactQueryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+        }
+      } catch (error) {
+        console.error("Error accessing query client:", error);
+      }
+      
+      // Force calendar to remount by changing its key
+      setTimeout(() => {
+        console.log("Forcing calendar remount");
+        setCalendarKey(prev => prev + 1);
+      }, 100);
     };
     
-    // Add event listener
-    window.addEventListener('booking-updated', handleBookingUpdate);
+    // Add event listener with type assertion
+    window.addEventListener('booking-updated', handleBookingUpdate as EventListener);
     
     // Cleanup
     return () => {
-      window.removeEventListener('booking-updated', handleBookingUpdate);
+      window.removeEventListener('booking-updated', handleBookingUpdate as EventListener);
     };
   }, []);
   

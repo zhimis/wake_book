@@ -131,13 +131,24 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
         console.error("Error fetching fresh time slots after booking:", error);
       }
       
-      // Dispatch a custom event to notify other components about the booking update
-      const bookingUpdatedEvent = new Event('booking-updated');
-      window.dispatchEvent(bookingUpdatedEvent);
-      console.log("Dispatched booking-updated event");
+      // Use a slight delay to ensure the data is properly processed and event triggers UI update
+      // before navigating away from the page
+      console.log("Dispatching booking-updated event and waiting for processing...");
+      const bookingUpdatedEvent = new CustomEvent('booking-updated', {
+        detail: {
+          bookingId: data.booking.id,
+          reference: data.booking.reference,
+          timestamp: new Date().getTime()
+        }
+      });
       
-      // Navigate to confirmation page
-      navigate(`/confirmation/${data.booking.reference}`);
+      window.dispatchEvent(bookingUpdatedEvent);
+      
+      // Give the event time to process before navigating away
+      setTimeout(() => {
+        // Navigate to confirmation page
+        navigate(`/confirmation/${data.booking.reference}`);
+      }, 300);
 
       // Clear selected time slots
       clearSelectedTimeSlots();
