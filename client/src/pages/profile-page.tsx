@@ -110,7 +110,7 @@ const ProfilePage = () => {
     error: cancellationCheckError,
     refetch: refetchCancellationStatus,
   } = useQuery<CancellationStatus>({
-    queryKey: ["/api/bookings", selectedBookingId, "cancellable"],
+    queryKey: [`/api/bookings/${selectedBookingId}/cancellable`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!selectedBookingId,
   });

@@ -1175,18 +1175,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const id = parseInt(req.params.id);
+      console.log(`Checking cancellability for booking ID ${id}`);
       
       // Get the booking
       const booking = await storage.getBooking(id);
       if (!booking) {
+        console.log(`Booking ${id} not found`);
         return res.status(404).json({ error: "Booking not found" });
       }
+      
+      console.log(`Found booking: ${JSON.stringify(booking)}`);
       
       // Get time slots for this booking
       const timeSlots = await storage.getBookingTimeSlots(id);
       if (!timeSlots.length) {
+        console.log(`No time slots found for booking ${id}`);
         return res.status(404).json({ error: "No time slots found for this booking" });
       }
+      
+      console.log(`Found ${timeSlots.length} time slots for booking ${id}`);
       
       // Sort time slots by start time
       const sortedSlots = [...timeSlots].sort(
@@ -1196,15 +1203,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // First time slot is the earliest one
       const earliestSlot = sortedSlots[0];
       
-      // Get current time and the booking time
+      // Get current time and the booking time slot time (not creation time)
       const now = new Date();
-      const bookingTime = new Date(earliestSlot.startTime);
+      const bookingSlotTime = new Date(earliestSlot.startTime);
+      
+      console.log(`Current time: ${now.toISOString()}`);
+      console.log(`Earliest slot time: ${bookingSlotTime.toISOString()}`);
       
       // Calculate time difference in hours
-      const timeDiffInHours = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const timeDiffInHours = (bookingSlotTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      console.log(`Time difference in hours: ${timeDiffInHours}`);
       
-      // Check if the booking is more than 24 hours away
+      // Check if the booking time slot is more than 24 hours away
       const isCancellable = timeDiffInHours >= 24;
+      console.log(`Is cancellable: ${isCancellable}`);
       
       res.json({
         cancellable: isCancellable,
