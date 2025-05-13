@@ -45,7 +45,7 @@ export function LeadTimeSettingsForm() {
     resolver: zodResolver(leadTimeSettingsFormSchema),
     defaultValues: {
       restrictionMode: "off",
-      leadTimeDays: 0,
+      leadTimeHours: 0,
       operatorOnSite: false,
     },
   });
@@ -56,7 +56,7 @@ export function LeadTimeSettingsForm() {
       console.log("Setting form values from fetched data:", leadTimeSettings);
       form.reset({
         restrictionMode: leadTimeSettings.restrictionMode, 
-        leadTimeDays: leadTimeSettings.leadTimeDays,
+        leadTimeHours: leadTimeSettings.leadTimeHours,
         operatorOnSite: leadTimeSettings.operatorOnSite,
       });
     }

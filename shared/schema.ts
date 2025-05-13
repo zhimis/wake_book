@@ -122,7 +122,7 @@ export const leadTimeRestrictionModeEnum = pgEnum("lead_time_restriction_mode", 
 export const leadTimeSettings = pgTable("lead_time_settings", {
   id: serial("id").primaryKey(),
   restrictionMode: leadTimeRestrictionModeEnum("restriction_mode").default("enforced").notNull(),
-  leadTimeDays: integer("lead_time_days").default(0).notNull(), // 0 = same day, 1 = previous day
+  leadTimeHours: integer("lead_time_hours").default(0).notNull(), // Lead time in hours (e.g., 2 hours, 24 hours)
   operatorOnSite: boolean("operator_on_site").default(false).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -213,8 +213,8 @@ export const leadTimeSettingsFormSchema = z.object({
   restrictionMode: z.enum(["enforced", "booking_based", "off"], {
     errorMap: () => ({ message: "Please select a valid restriction mode" })
   }),
-  leadTimeDays: z.number().int().min(0, { 
-    message: "Lead time days must be a non-negative integer" 
+  leadTimeHours: z.number().int().min(0, { 
+    message: "Lead time hours must be a non-negative integer" 
   }),
   operatorOnSite: z.boolean(),
 });
