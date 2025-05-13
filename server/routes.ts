@@ -1281,6 +1281,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Store booking details for emails before deletion
+      const bookingDetails = {
+        booking,
+        timeSlots: sortedSlots,
+        totalPrice: sortedSlots.reduce((total, slot) => total + slot.price, 0)
+      };
+      
       // If we get here, the booking can be cancelled
       const success = await storage.deleteBooking(id);
       console.log(`Deletion of booking ${id} result: ${success ? 'success' : 'failure'}`);
@@ -1291,6 +1298,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`Booking ${id} successfully deleted`);
+      
+      // Send cancellation emails
+      try {
+        // Import cancellation email services (import at usage to avoid circular dependencies)
+        const { sendCustomerCancellationEmail, sendAdminCancellationNotification } = 
+          await import('./services/cancellation-email-service');
+        
+        // Only send customer email if email is available
+        if (booking.email) {
+          await sendCustomerCancellationEmail(bookingDetails, booking.email);
+          console.log(`Cancellation email sent to customer: ${booking.email}`);
+        } else {
+          console.log(`No email available for booking ${id}, skipping customer cancellation email`);
+        }
+        
+        // Always send admin notification
+        await sendAdminCancellationNotification(bookingDetails);
+        console.log(`Cancellation notification sent to admin`);
+      } catch (emailError) {
+        // Log the error but don't fail the request as the booking is already deleted
+        console.error(`Error sending cancellation emails for booking ${id}:`, emailError);
+      }
+      
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting booking:", error);
