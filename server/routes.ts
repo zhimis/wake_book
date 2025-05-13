@@ -807,7 +807,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create feedback entry
       const feedback = await storage.createFeedback({
-        content: validatedData.feedback,
+        rating: validatedData.rating,
+        comment: validatedData.comment,
+        email: validatedData.email || null,
+        category: validatedData.category || 'general',
         userId: userId,
         userIp: req.ip,
         userAgent: req.headers['user-agent'] || null,

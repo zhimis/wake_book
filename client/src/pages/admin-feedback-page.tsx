@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { apiRequest } from "@/lib/queryClient";
-import { AdminPageHeader } from "@/components/admin/admin-page-header";
-import { Feedback } from "@shared/schema";
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { Star, Check, EyeOff, Eye, BookOpen, Archive } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -19,201 +19,316 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Feedback } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function AdminFeedbackPage() {
+  const [activeTab, setActiveTab] = useState<string>('new');
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newStatus, setNewStatus] = useState<string>("");
-  const [adminNotes, setAdminNotes] = useState<string>("");
+  const [adminNotes, setAdminNotes] = useState<string>('');
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch all feedback
-  const { data: feedbackItems, isLoading, refetch } = useQuery<Feedback[]>({
-    queryKey: ["/api/admin/feedback"],
-    refetchOnWindowFocus: false,
+  const { data: allFeedback = [], isLoading, isError } = useQuery({
+    queryKey: ['/api/admin/feedback'],
+    queryFn: () => apiRequest('/api/admin/feedback', 'GET'),
   });
 
-  // Mutation to update feedback status
-  const updateFeedbackMutation = useMutation({
-    mutationFn: async ({ id, status, adminNotes }: { id: number; status?: string; adminNotes?: string }) => {
-      const response = await apiRequest("PATCH", `/api/admin/feedback/${id}`, {
-        ...(status && { status }),
-        ...(adminNotes && { adminNotes }),
-      });
-      return response.json();
-    },
+  // Update feedback status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status, adminNotes }: { id: number, status: string, adminNotes?: string }) =>
+      apiRequest(`/api/admin/feedback/${id}`, 'PATCH', { status, adminNotes }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/feedback'] });
+      setIsDialogOpen(false);
       toast({
         title: "Feedback updated",
-        description: "The feedback has been successfully updated.",
+        description: "The feedback status has been updated successfully.",
       });
-      setIsDialogOpen(false);
-      refetch();
     },
     onError: (error) => {
-      console.error("Error updating feedback:", error);
       toast({
-        title: "Failed to update feedback",
-        description: "There was a problem updating the feedback. Please try again.",
+        title: "Error",
+        description: "Failed to update feedback status. Please try again.",
         variant: "destructive",
       });
+      console.error("Error updating feedback:", error);
     },
   });
 
-  const handleFeedbackClick = (feedback: Feedback) => {
-    setSelectedFeedback(feedback);
-    setNewStatus(feedback.status || "new");
-    setAdminNotes(feedback.adminNotes || "");
-    setIsDialogOpen(true);
-  };
-
-  const handleUpdateFeedback = () => {
-    if (!selectedFeedback) return;
-
-    updateFeedbackMutation.mutate({
-      id: selectedFeedback.id,
-      status: newStatus !== selectedFeedback.status ? newStatus : undefined,
-      adminNotes: adminNotes !== selectedFeedback.adminNotes ? adminNotes : undefined,
+  // Handle marking as reviewed
+  const handleMarkAsReviewed = (feedback: Feedback) => {
+    updateStatusMutation.mutate({
+      id: feedback.id,
+      status: 'reviewed',
+      adminNotes: adminNotes || feedback.adminNotes || '',
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "new":
-        return "bg-blue-100 text-blue-800";
-      case "reviewed":
-        return "bg-yellow-100 text-yellow-800";
-      case "archived":
-        return "bg-gray-100 text-gray-800";
+  // Handle archiving feedback
+  const handleArchive = (feedback: Feedback) => {
+    updateStatusMutation.mutate({
+      id: feedback.id,
+      status: 'archived',
+      adminNotes: adminNotes || feedback.adminNotes || '',
+    });
+  };
+
+  // Handle feedback click for detailed view
+  const handleFeedbackClick = (feedback: Feedback) => {
+    setSelectedFeedback(feedback);
+    setAdminNotes(feedback.adminNotes || '');
+    setIsDialogOpen(true);
+  };
+
+  // Filter feedback by status
+  const filteredFeedback = allFeedback.filter((feedback: Feedback) => {
+    switch (activeTab) {
+      case 'new':
+        return feedback.status === 'new';
+      case 'reviewed':
+        return feedback.status === 'reviewed';
+      case 'archived':
+        return feedback.status === 'archived';
       default:
-        return "bg-blue-100 text-blue-800";
+        return true;
+    }
+  });
+
+  // Render stars based on rating
+  const renderStars = (rating: number) => {
+    return Array(5).fill(0).map((_, i) => (
+      <Star key={i} className={`h-4 w-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+    ));
+  };
+
+  // Get status badge color
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'new':
+        return <Badge variant="default">New</Badge>;
+      case 'reviewed':
+        return <Badge variant="secondary">Reviewed</Badge>;
+      case 'archived':
+        return <Badge variant="outline">Archived</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
     }
   };
 
-  return (
-    <div className="container mx-auto py-8">
-      <AdminPageHeader title="User Feedback" description="Review and manage user feedback and suggestions" />
+  // Get category badge
+  const getCategoryBadge = (category: string) => {
+    switch (category) {
+      case 'general':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">General</Badge>;
+      case 'booking':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Booking</Badge>;
+      case 'interface':
+        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Interface</Badge>;
+      case 'suggestion':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Suggestion</Badge>;
+      case 'bug':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Bug</Badge>;
+      default:
+        return <Badge variant="outline">{category}</Badge>;
+    }
+  };
 
-      {isLoading ? (
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6">
+        <AdminPageHeader 
+          title="Feedback Management" 
+          description="Review and manage customer feedback"
+        />
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p>Loading feedback...</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-          {feedbackItems && feedbackItems.length > 0 ? (
-            feedbackItems.map((feedback) => (
-              <Card 
-                key={feedback.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleFeedbackClick(feedback)}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-sm text-gray-500">Feedback #{feedback.id}</CardTitle>
-                      <CardDescription>
-                        {feedback.createdAt && format(new Date(feedback.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                      </CardDescription>
-                    </div>
-                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(feedback.status)}`}>
-                      {feedback.status || "new"}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm line-clamp-4">{feedback.content}</p>
-                </CardContent>
-                <CardFooter className="pt-0 text-xs text-gray-500">
-                  <div className="flex items-center">
-                    <MessageSquare className="h-3 w-3 mr-1" />
-                    {feedback.adminNotes ? "Has admin notes" : "No admin notes"}
-                  </div>
-                </CardFooter>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-3 text-center py-12">
-              <MessageSquare className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900">No feedback yet</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                You haven't received any feedback from users yet.
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto py-6">
+        <AdminPageHeader 
+          title="Feedback Management" 
+          description="Review and manage customer feedback"
+        />
+        <div className="flex justify-center items-center h-64">
+          <p className="text-red-500">Error loading feedback. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto py-6">
+      <AdminPageHeader 
+        title="Feedback Management" 
+        description="Review and manage customer feedback"
+      />
+      
+      <Tabs defaultValue="new" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="new" className="relative">
+            New
+            {allFeedback.filter((f: Feedback) => f.status === 'new').length > 0 && (
+              <span className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+                {allFeedback.filter((f: Feedback) => f.status === 'new').length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
+          <TabsTrigger value="archived">Archived</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value={activeTab} className="mt-0">
+          {filteredFeedback.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 bg-muted/10 rounded-lg border border-dashed">
+              <p className="text-muted-foreground mb-2">No {activeTab} feedback found</p>
+              <p className="text-sm text-muted-foreground">
+                {activeTab === 'new' 
+                  ? 'All feedback has been reviewed.' 
+                  : activeTab === 'reviewed' 
+                    ? 'No feedback has been reviewed yet.' 
+                    : 'No feedback has been archived yet.'}
               </p>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredFeedback.map((feedback: Feedback) => (
+                <Card key={feedback.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleFeedbackClick(feedback)}>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex gap-1 mr-2">
+                        {renderStars(feedback.rating)}
+                      </div>
+                      <div className="flex gap-2">
+                        {getCategoryBadge(feedback.category || 'general')}
+                        {getStatusBadge(feedback.status)}
+                      </div>
+                    </div>
+                    <CardDescription className="flex justify-between items-center">
+                      <span>{format(new Date(feedback.createdAt), 'MMM d, yyyy')}</span>
+                      {feedback.email && <span className="text-xs truncate max-w-[150px]">{feedback.email}</span>}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="line-clamp-3 text-sm">{feedback.comment}</p>
+                  </CardContent>
+                  <CardFooter className="bg-muted/10 pt-2 pb-2 flex justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      ID: {feedback.id}
+                    </span>
+                    {feedback.adminNotes && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <BookOpen className="h-3 w-3" />
+                        Has notes
+                      </span>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
           )}
-        </div>
-      )}
-
+        </TabsContent>
+      </Tabs>
+      
+      {/* Feedback Detail Dialog */}
       {selectedFeedback && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[550px]">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Feedback Details</DialogTitle>
+              <DialogTitle className="flex items-center justify-between">
+                <span>Feedback Details</span>
+                <div className="flex items-center gap-2">
+                  {getCategoryBadge(selectedFeedback.category || 'general')}
+                  {getStatusBadge(selectedFeedback.status)}
+                </div>
+              </DialogTitle>
               <DialogDescription>
-                Submitted on {selectedFeedback.createdAt && format(new Date(selectedFeedback.createdAt), "MMMM d, yyyy 'at' h:mm a")}
+                Submitted on {format(new Date(selectedFeedback.createdAt), 'MMMM d, yyyy h:mm a')}
               </DialogDescription>
             </DialogHeader>
-
-            <div className="space-y-4 py-4">
+            
+            <div className="space-y-4 my-2">
               <div>
-                <h4 className="text-sm font-medium mb-2">User Feedback</h4>
-                <div className="bg-gray-50 p-3 rounded-md text-sm">
-                  {selectedFeedback.content}
+                <div className="flex gap-1 mb-2">
+                  {renderStars(selectedFeedback.rating)}
+                  <span className="ml-2 text-sm">{selectedFeedback.rating}/5</span>
+                </div>
+                
+                <div className="bg-muted p-3 rounded-md">
+                  <p>{selectedFeedback.comment}</p>
                 </div>
               </div>
-
-              <div>
-                <h4 className="text-sm font-medium mb-2">Status</h4>
-                <Select value={newStatus} onValueChange={setNewStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="reviewed">Reviewed</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium mb-2">Admin Notes</h4>
+              
+              {selectedFeedback.email && (
+                <div className="text-sm">
+                  <span className="font-medium">Contact:</span> {selectedFeedback.email}
+                </div>
+              )}
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Admin Notes</label>
                 <Textarea 
                   value={adminNotes} 
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Add notes or follow-up actions..."
-                  className="min-h-[100px]"
+                  placeholder="Add your notes here..."
+                  className="resize-none"
+                  rows={3}
                 />
               </div>
             </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleUpdateFeedback}
-                disabled={updateFeedbackMutation.isPending}
-              >
-                {updateFeedbackMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
+            
+            <DialogFooter className="sm:justify-between">
+              {selectedFeedback.status === 'new' && (
+                <Button
+                  className="gap-1"
+                  onClick={() => handleMarkAsReviewed(selectedFeedback)}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <Check className="h-4 w-4" />
+                  Mark as Reviewed
+                </Button>
+              )}
+              
+              {selectedFeedback.status !== 'archived' && (
+                <Button
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() => handleArchive(selectedFeedback)}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <Archive className="h-4 w-4" />
+                  Archive
+                </Button>
+              )}
+              
+              {selectedFeedback.status === 'archived' && (
+                <Button
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() => handleMarkAsReviewed(selectedFeedback)}
+                  disabled={updateStatusMutation.isPending}
+                >
+                  <Eye className="h-4 w-4" />
+                  Restore
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
