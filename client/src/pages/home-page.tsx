@@ -1,14 +1,74 @@
 import { Card, CardContent } from "@/components/ui/card";
 import BookingCalendar from "@/components/booking-calendar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 const HomePage = () => {
-  // This key will force the BookingCalendar to remount when it changes
+  const [location] = useLocation();
   const [calendarKey, setCalendarKey] = useState(0);
+  const mountRef = useRef(false);
   
-  // Use a custom event to refresh the calendar after bookings or cancellations
+  // Track if we're coming from the confirmation page to force a refresh
+  const wasMounted = useRef(false);
+  
+  // Check if we have a refresh parameter in the URL
   useEffect(() => {
-    // Type definition for our custom event
+    const hasRefreshParam = location.includes('refresh=');
+    
+    if (!wasMounted.current) {
+      console.log("HomePage: First time mounting, initializing...");
+      wasMounted.current = true;
+      
+      // Even on first mount, check for refresh parameter
+      if (hasRefreshParam) {
+        console.log("HomePage: Detected refresh parameter on first mount, will force refresh");
+        forceCalendarRefresh();
+      }
+    } else if (hasRefreshParam) {
+      console.log("HomePage: Returning from confirmation with refresh parameter");
+      forceCalendarRefresh();
+    } else {
+      console.log("HomePage: Navigation detected without refresh parameter");
+    }
+  }, [location]);
+  
+  // Helper function to force a calendar refresh
+  const forceCalendarRefresh = () => {
+    try {
+      // Clear cache completely and immediately
+      console.log("HomePage: REMOVING all time slots queries from cache");
+      queryClient.removeQueries({ queryKey: ['/api/timeslots'] });
+      
+      // Prefetch new data immediately
+      console.log("HomePage: Prefetching fresh time slot data");
+      queryClient.prefetchQuery({
+        queryKey: ['/api/timeslots'],
+        queryFn: async () => {
+          console.log("HomePage: Making direct API call to /api/timeslots");
+          const res = await fetch('/api/timeslots');
+          if (!res.ok) {
+            console.error("HomePage: Error fetching time slots:", res.status);
+            throw new Error('Failed to fetch time slots');
+          }
+          const data = await res.json();
+          console.log("HomePage: Received fresh time slots data:", data.timeSlots?.length || 0, "slots");
+          return data;
+        }
+      }).then(() => {
+        // Force immediate remount once data is loaded
+        console.log("HomePage: Data loaded, forcing calendar remount");
+        setTimeout(() => setCalendarKey(prev => prev + 1), 50);
+      }).catch(err => {
+        console.error("HomePage: Error prefetching time slots:", err);
+      });
+    } catch (error) {
+      console.error("HomePage: Error in force refresh:", error);
+    }
+  };
+  
+  // Continue listening for booking update events
+  useEffect(() => {
     interface BookingUpdatedEvent extends Event {
       detail?: {
         bookingId?: number;
@@ -18,30 +78,24 @@ const HomePage = () => {
       };
     }
     
-    // Enhanced event handler to refresh the calendar with detailed logging
     const handleBookingUpdate = (event: BookingUpdatedEvent) => {
-      console.log("🔄 Booking update detected - refreshing calendar", event.detail);
+      console.log("🔄 BookingUpdated event received", event.detail);
       
-      // Force a query invalidation to get the latest data
+      // Directly trigger full cache reset and remount 
       try {
-        // Try to access the query client without TypeScript errors
-        const anyWindow = window as any;
-        if (anyWindow.reactQueryClient) {
-          console.log("Manually invalidating time slots data");
-          anyWindow.reactQueryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
-        }
-      } catch (error) {
-        console.error("Error accessing query client:", error);
-      }
-      
-      // Force calendar to remount by changing its key
-      setTimeout(() => {
-        console.log("Forcing calendar remount");
+        console.log("Event handler: Clearing and refetching time slots data");
+        
+        // Clear existing cache
+        queryClient.removeQueries({ queryKey: ['/api/timeslots'] });
+        
+        // Force immediate remount with new key
         setCalendarKey(prev => prev + 1);
-      }, 100);
+      } catch (error) {
+        console.error("Error handling booking update event:", error);
+      }
     };
     
-    // Add event listener with type assertion
+    // Add event listener
     window.addEventListener('booking-updated', handleBookingUpdate as EventListener);
     
     // Cleanup

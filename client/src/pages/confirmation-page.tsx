@@ -51,30 +51,41 @@ const ConfirmationPage = () => {
     window.open(googleCalendarUrl, '_blank');
   };
   
-  // Enhanced return to home function that refreshes data before navigation
+  // Enhanced return to home function with stronger cache invalidation
   const handleReturnToHome = () => {
-    // First, manually invalidate time slots data to ensure fresh data
-    console.log("Confirmation page: Invalidating queries before returning to home");
-    queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+    // Clear cache completely
+    console.log("Confirmation page: Forcefully REMOVING time slots query cache");
+    queryClient.removeQueries({ queryKey: ['/api/timeslots'] });
+    queryClient.removeQueries({ queryKey: ['/api/bookings'] });
     
-    // Dispatch a booking update event to refresh the calendar
-    console.log("Confirmation page: Dispatching booking-updated event");
-    const bookingUpdatedEvent = new CustomEvent('booking-updated', {
-      detail: {
-        action: 'return-from-confirmation',
-        reference: reference,
-        timestamp: new Date().getTime()
+    // Prefetch fresh data before navigating
+    console.log("Confirmation page: Prefetching fresh time slots data");
+    queryClient.prefetchQuery({
+      queryKey: ['/api/timeslots'],
+      queryFn: async () => {
+        const res = await fetch('/api/timeslots');
+        if (!res.ok) throw new Error('Failed to fetch time slots');
+        return res.json();
       }
     });
     
+    // Dispatch custom event to trigger calendar refresh
+    console.log("Confirmation page: Dispatching booking-updated event with force flag");
+    const bookingUpdatedEvent = new CustomEvent('booking-updated', {
+      detail: {
+        action: 'force-refresh',
+        reference: reference,
+        timestamp: new Date().getTime(),
+        forceRefresh: true
+      }
+    });
+    
+    // Dispatch event immediately
     window.dispatchEvent(bookingUpdatedEvent);
     
-    // Add a slight delay to ensure everything is processed before navigation
-    setTimeout(() => {
-      console.log("Confirmation page: Navigating to home");
-      navigate("/");
-    }, 300);
+    // Navigate immediately to home with a custom URL parameter to force refresh
+    console.log("Confirmation page: Navigating to home with refresh parameter");
+    navigate("/?refresh=" + new Date().getTime());
   };
   
   // If loading
