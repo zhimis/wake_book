@@ -42,19 +42,26 @@ export default function AdminFeedbackPage() {
   const { data: allFeedback = [], isLoading, isError } = useQuery({
     queryKey: ['/api/admin/feedback'],
     queryFn: async () => {
-      const response = await apiRequest('/api/admin/feedback', 'GET');
-      if (Array.isArray(response)) {
-        return response as Feedback[];
+      const response = await apiRequest('GET', '/api/admin/feedback');
+      
+      try {
+        const jsonData = await response.json();
+        if (Array.isArray(jsonData)) {
+          return jsonData as Feedback[];
+        }
+        console.error("Unexpected response format:", jsonData);
+        throw new Error("Failed to fetch feedback data: Invalid response format");
+      } catch (error) {
+        console.error("Error parsing feedback data:", error);
+        throw new Error("Failed to parse feedback data");
       }
-      console.error("Unexpected response format:", response);
-      throw new Error("Failed to fetch feedback data");
     },
   });
 
   // Update feedback status mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status, adminNotes }: { id: number, status: string, adminNotes?: string }) =>
-      apiRequest(`/api/admin/feedback/${id}`, 'PATCH', { status, adminNotes }),
+      apiRequest('PATCH', `/api/admin/feedback/${id}`, { status, adminNotes }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/feedback'] });
       setIsDialogOpen(false);

@@ -34,7 +34,7 @@ export function FeedbackButton() {
 
   const feedbackMutation = useMutation({
     mutationFn: (data: { rating: number; comment: string; email?: string; category: string }) => 
-      apiRequest('/api/feedback', 'POST', data),
+      apiRequest('POST', '/api/feedback', data),
     onSuccess: () => {
       toast({
         title: "Feedback submitted",
