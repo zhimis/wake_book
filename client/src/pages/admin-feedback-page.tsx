@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Star, Check, EyeOff, Eye, BookOpen, Archive } from 'lucide-react';
-import { AdminPageHeader } from '../components/admin/admin-page-header';
-import { Button } from '../components/ui/button';
+import { AdminPageHeader } from '@/components/admin/admin-page-header';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '../components/ui/card';
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -20,14 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../components/ui/dialog";
-import { Separator } from '../components/ui/separator';
-import { Textarea } from '../components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { useToast } from '../hooks/use-toast';
+} from "@/components/ui/dialog";
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { Feedback } from '@shared/schema';
-import { apiRequest } from '../lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function AdminFeedbackPage() {
   const [activeTab, setActiveTab] = useState<string>('new');
@@ -43,7 +43,11 @@ export default function AdminFeedbackPage() {
     queryKey: ['/api/admin/feedback'],
     queryFn: async () => {
       const response = await apiRequest('/api/admin/feedback', 'GET');
-      return response as Feedback[];
+      if (Array.isArray(response)) {
+        return response as Feedback[];
+      }
+      console.error("Unexpected response format:", response);
+      throw new Error("Failed to fetch feedback data");
     },
   });
 
