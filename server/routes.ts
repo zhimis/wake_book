@@ -1306,7 +1306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(settings || {
         restrictionMode: "off",
-        leadTimeDays: 0,
+        leadTimeHours: 0,
         operatorOnSite: false
       });
     } catch (error) {

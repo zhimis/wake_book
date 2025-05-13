@@ -1544,8 +1544,8 @@ const BookingCalendar = ({
               !leadTimeSettings.operatorOnSite && (
                 <div className="mt-2 text-xs text-muted-foreground">
                   <p>
-                    For bookings within {leadTimeSettings.leadTimeDays} day
-                    {leadTimeSettings.leadTimeDays !== 1 ? "s" : ""} of today,
+                    For bookings within {leadTimeSettings.leadTimeHours} hour
+                    {leadTimeSettings.leadTimeHours !== 1 ? "s" : ""} of now,
                     please contact us directly by phone or email to verify
                     availability.
                   </p>

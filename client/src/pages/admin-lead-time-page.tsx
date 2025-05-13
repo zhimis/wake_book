@@ -29,7 +29,7 @@ export function AdminLeadTimePage() {
               <h3 className="font-medium">What is lead time?</h3>
               <p className="text-gray-600 dark:text-gray-300">
                 Lead time is the minimum amount of advance notice required for customers to make a booking. 
-                For example, a lead time of 1 day means customers must book at least 1 day before their desired slot.
+                For example, a lead time of 24 hours means customers must book at least 24 hours before their desired slot.
               </p>
             </div>
             
