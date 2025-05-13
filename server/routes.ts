@@ -1108,7 +1108,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Requires authentication
+  // Get bookings for the authenticated user
+  app.get("/api/user/bookings", async (req: Request, res: Response) => {
+    try {
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Get the user from the request
+      const user = req.user as any;
+      
+      // Check if user has an email (should always be true but validating)
+      if (!user?.email) {
+        return res.status(400).json({ error: "User email not found" });
+      }
+      
+      // Get all bookings for the user's email
+      const userBookings = await storage.getBookingsByEmail(user.email);
+      
+      // Enhance bookings with time slots
+      const enhancedBookings = [];
+      for (const booking of userBookings) {
+        // Get time slots for this booking
+        const timeSlots = await storage.getBookingTimeSlots(booking.id);
+        
+        // Calculate total price
+        const totalPrice = timeSlots.reduce((sum, slot) => sum + slot.price, 0);
+        
+        // Sort time slots by start time
+        const sortedSlots = [...timeSlots].sort(
+          (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+        
+        // Add enhanced booking to result
+        enhancedBookings.push({
+          ...booking,
+          timeSlots: sortedSlots,
+          totalPrice
+        });
+      }
+      
+      // Sort bookings by date (newest first) based on the earliest time slot in each booking
+      const sortedBookings = enhancedBookings.sort((a, b) => {
+        if (!a.timeSlots.length || !b.timeSlots.length) return 0;
+        
+        const aDate = new Date(a.timeSlots[0].startTime);
+        const bDate = new Date(b.timeSlots[0].startTime);
+        // Newest first
+        return bDate.getTime() - aDate.getTime();
+      });
+      
+      res.json(sortedBookings);
+    } catch (error) {
+      console.error("Error fetching user bookings:", error);
+      res.status(500).json({ error: "Failed to fetch bookings" });
+    }
+  });
+
+  // Check if a booking can be cancelled (24-hour rule check)
+  app.get("/api/bookings/:id/cancellable", async (req: Request, res: Response) => {
+    try {
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const id = parseInt(req.params.id);
+      
+      // Get the booking
+      const booking = await storage.getBooking(id);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Get time slots for this booking
+      const timeSlots = await storage.getBookingTimeSlots(id);
+      if (!timeSlots.length) {
+        return res.status(404).json({ error: "No time slots found for this booking" });
+      }
+      
+      // Sort time slots by start time
+      const sortedSlots = [...timeSlots].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+      
+      // First time slot is the earliest one
+      const earliestSlot = sortedSlots[0];
+      
+      // Get current time and the booking time
+      const now = new Date();
+      const bookingTime = new Date(earliestSlot.startTime);
+      
+      // Calculate time difference in hours
+      const timeDiffInHours = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      
+      // Check if the booking is more than 24 hours away
+      const isCancellable = timeDiffInHours >= 24;
+      
+      res.json({
+        cancellable: isCancellable,
+        reason: isCancellable ? null : "Bookings can only be cancelled at least 24 hours before the scheduled time.",
+        hours: Math.floor(timeDiffInHours)
+      });
+    } catch (error) {
+      console.error("Error checking booking cancellation status:", error);
+      res.status(500).json({ error: "Failed to check cancellation status" });
+    }
+  });
+
+  // Requires authentication and checks 24-hour rule
   app.delete("/api/bookings/:id", async (req: Request, res: Response) => {
     try {
       console.log(`DELETE /api/bookings/${req.params.id} request received`);
@@ -1121,16 +1230,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       console.log(`Attempting to delete booking with ID ${id}`);
       
-      // Get the booking info before we delete it (for logging)
-      const bookingInfo = await storage.getBooking(id);
-      console.log("Booking to delete:", bookingInfo);
+      // Get the booking info before we delete it
+      const booking = await storage.getBooking(id);
       
+      if (!booking) {
+        console.log(`Booking ${id} not found - returning 404`);
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      console.log("Booking to delete:", booking);
+      
+      // Get time slots for this booking
+      const timeSlots = await storage.getBookingTimeSlots(id);
+      if (!timeSlots.length) {
+        return res.status(404).json({ error: "No time slots found for this booking" });
+      }
+      
+      // Sort time slots by start time
+      const sortedSlots = [...timeSlots].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+      
+      // First time slot is the earliest one
+      const earliestSlot = sortedSlots[0];
+      
+      // Get current time and the booking time
+      const now = new Date();
+      const bookingTime = new Date(earliestSlot.startTime);
+      
+      // Calculate time difference in hours
+      const timeDiffInHours = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      
+      // Check if the booking is more than 24 hours away
+      if (timeDiffInHours < 24) {
+        return res.status(403).json({
+          error: "Cancellation not allowed",
+          message: "Bookings can only be cancelled at least 24 hours before the scheduled time."
+        });
+      }
+      
+      // If we get here, the booking can be cancelled
       const success = await storage.deleteBooking(id);
       console.log(`Deletion of booking ${id} result: ${success ? 'success' : 'failure'}`);
       
       if (!success) {
-        console.log(`Booking ${id} not found - returning 404`);
-        return res.status(404).json({ error: "Booking not found" });
+        console.log(`Error deleting booking ${id}`);
+        return res.status(500).json({ error: "Failed to delete booking" });
       }
       
       console.log(`Booking ${id} successfully deleted`);

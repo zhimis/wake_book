@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Redirect } from "wouter";
-import { format } from "date-fns";
-import { getQueryFn } from "@/lib/queryClient";
-import { Loader2, Clock, CalendarDays, User, Phone, Mail } from "lucide-react";
+import { format, isFuture, parseISO } from "date-fns";
+import { getQueryFn, apiRequest } from "@/lib/queryClient";
+import { Loader2, CalendarDays, User, Phone, Mail, AlertTriangle, CheckCircle, XCircle, Clock } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Tabs,
@@ -29,6 +30,32 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+
+// Type for cancellable check response
+interface CancellationStatus {
+  cancellable: boolean;
+  reason: string | null;
+  hours: number;
+}
 
 // Type for user bookings
 interface UserBooking {
@@ -51,6 +78,13 @@ interface UserBooking {
 const ProfilePage = () => {
   const { user, isLoading, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
+  const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
+  const [isCancellationDialogOpen, setIsCancellationDialogOpen] = useState(false);
+  const [cancellationError, setCancellationError] = useState<string | null>(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Redirect to auth page if not logged in
   if (!isLoading && !user) {
@@ -62,15 +96,73 @@ const ProfilePage = () => {
     data: userBookings,
     isLoading: bookingsLoading,
     error: bookingsError,
+    refetch: refetchBookings,
   } = useQuery<UserBooking[]>({
     queryKey: ["/api/user/bookings"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
 
+  // Check if the booking can be cancelled
+  const {
+    data: cancellationStatus,
+    isLoading: isCancellationCheckLoading,
+    error: cancellationCheckError,
+    refetch: refetchCancellationStatus,
+  } = useQuery<CancellationStatus>({
+    queryKey: ["/api/bookings", selectedBookingId, "cancellable"],
+    queryFn: getQueryFn(),
+    enabled: !!selectedBookingId,
+  });
+
+  // Mutation for cancellation
+  const cancelBookingMutation = useMutation({
+    mutationFn: async (bookingId: number) => {
+      return apiRequest(`/api/bookings/${bookingId}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      setIsCancellationDialogOpen(false);
+      setSelectedBookingId(null);
+      setCancellationError(null);
+      setSuccessDialogOpen(true);
+      
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/timeslots"] });
+    },
+    onError: (error: any) => {
+      console.error("Error cancelling booking:", error);
+      setCancellationError(error?.response?.data?.message || "Failed to cancel booking. Please try again later.");
+    },
+  });
+
   useEffect(() => {
     document.title = "My Profile | Hi Wake 2.0";
   }, []);
+
+  // Reset cancellation error when dialog is closed
+  useEffect(() => {
+    if (!isCancellationDialogOpen) {
+      setCancellationError(null);
+    }
+  }, [isCancellationDialogOpen]);
+
+  // When a booking is selected, open the cancellation dialog
+  const handleCancelBooking = (bookingId: number) => {
+    setSelectedBookingId(bookingId);
+    setIsCancellationDialogOpen(true);
+    refetchCancellationStatus();
+  };
+
+  // Execute cancellation
+  const confirmCancellation = () => {
+    if (selectedBookingId && cancellationStatus?.cancellable) {
+      cancelBookingMutation.mutate(selectedBookingId);
+    } else {
+      setCancellationError("This booking cannot be cancelled.");
+      setTimeout(() => setIsCancellationDialogOpen(false), 2000);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -96,6 +188,24 @@ const ProfilePage = () => {
 
   const formatTime = (dateString: string) => {
     return format(new Date(dateString), "HH:mm");
+  };
+
+  // Check if a booking is in the future
+  const isBookingFuture = (booking: UserBooking): boolean => {
+    if (!booking.timeSlots || booking.timeSlots.length === 0) return false;
+    
+    // Sort time slots by start time
+    const sortedSlots = [...booking.timeSlots].sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+    
+    // Check if the earliest slot is in the future
+    return isFuture(new Date(sortedSlots[0].startTime));
+  };
+
+  // Get the selected booking object
+  const getSelectedBooking = (): UserBooking | undefined => {
+    return userBookings?.find(booking => booking.id === selectedBookingId);
   };
 
   return (
@@ -191,7 +301,7 @@ const ProfilePage = () => {
               <CardHeader>
                 <CardTitle>My Bookings</CardTitle>
                 <CardDescription>
-                  View all your wake park bookings
+                  View and manage your wake park bookings
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -214,14 +324,26 @@ const ProfilePage = () => {
                             </h3>
                             <div className="flex items-center text-sm text-muted-foreground mt-1">
                               <CalendarDays className="h-3.5 w-3.5 mr-1" />
-                              {formatDate(booking.createdAt)}
+                              Booked on {formatDate(booking.createdAt)}
                             </div>
                           </div>
-                          <Badge className="mt-2 md:mt-0">
-                            Total: €{typeof booking.totalPrice === 'number' 
-                              ? booking.totalPrice.toFixed(2) 
-                              : 'N/A'}
-                          </Badge>
+                          <div className="flex flex-col items-end mt-2 md:mt-0">
+                            <Badge className="mb-2">
+                              Total: €{typeof booking.totalPrice === 'number' 
+                                ? booking.totalPrice.toFixed(2) 
+                                : 'N/A'}
+                            </Badge>
+                            {isBookingFuture(booking) && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleCancelBooking(booking.id)}
+                                className="text-sm"
+                              >
+                                Cancel Booking
+                              </Button>
+                            )}
+                          </div>
                         </div>
 
                         <Separator className="my-4" />
@@ -256,6 +378,21 @@ const ProfilePage = () => {
                             ))}
                           </TableBody>
                         </Table>
+
+                        {/* Status indicators for past/future bookings */}
+                        <div className="mt-4 text-sm flex items-center">
+                          {isBookingFuture(booking) ? (
+                            <Badge variant="outline" className="flex items-center gap-1 text-blue-500 border-blue-200 bg-blue-50">
+                              <Clock size={14} />
+                              Upcoming
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="flex items-center gap-1 text-gray-500 border-gray-200">
+                              <CheckCircle size={14} />
+                              Completed
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -274,6 +411,104 @@ const ProfilePage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Cancellation Dialog */}
+      <AlertDialog 
+        open={isCancellationDialogOpen} 
+        onOpenChange={setIsCancellationDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isCancellationCheckLoading ? (
+                "Checking cancellation policy..."
+              ) : cancellationStatus?.cancellable ? (
+                "Confirm Booking Cancellation"
+              ) : (
+                "Cannot Cancel Booking"
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isCancellationCheckLoading ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Checking booking status...
+                </div>
+              ) : cancellationStatus?.cancellable ? (
+                <>
+                  <p>
+                    Are you sure you want to cancel booking <strong>#{getSelectedBooking()?.reference}</strong>?
+                  </p>
+                  <p className="mt-2">
+                    This action cannot be undone. All reserved time slots will be made available for other users.
+                  </p>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-2">
+                  <AlertTriangle className="h-10 w-10 text-amber-500 mb-2" />
+                  <p className="text-center">
+                    {cancellationStatus?.reason || "Bookings can only be cancelled at least 24 hours before the scheduled time."}
+                  </p>
+                  {cancellationStatus?.hours !== undefined && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Your booking is only {cancellationStatus.hours} hours away.
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {cancellationError && (
+                <div className="bg-destructive/10 p-3 rounded-md mt-3 text-destructive flex items-center">
+                  <XCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+                  <p>{cancellationError}</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {cancellationStatus?.cancellable && !isCancellationCheckLoading && (
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  confirmCancellation();
+                }}
+                disabled={cancelBookingMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {cancelBookingMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  "Yes, Cancel Booking"
+                )}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Success Dialog */}
+      <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
+              Booking Cancelled Successfully
+            </DialogTitle>
+            <DialogDescription>
+              Your booking has been cancelled and time slots have been released.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setSuccessDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
