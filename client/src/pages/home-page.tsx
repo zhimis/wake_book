@@ -9,27 +9,39 @@ const HomePage = () => {
   const [calendarKey, setCalendarKey] = useState(0);
   const mountRef = useRef(false);
   
-  // Track if we're coming from the confirmation page to force a refresh
-  const wasMounted = useRef(false);
-  
-  // Check if we have a refresh parameter in the URL
+  // Add effect to check localStorage flags on mount or return to page
   useEffect(() => {
-    const hasRefreshParam = location.includes('refresh=');
+    console.log("HomePage: Checking for localStorage refresh flags...");
     
-    if (!wasMounted.current) {
-      console.log("HomePage: First time mounting, initializing...");
-      wasMounted.current = true;
+    // Check if we need to refresh the calendar based on localStorage flag
+    const needsRefresh = localStorage.getItem('calendar_needs_refresh') === 'true';
+    
+    if (needsRefresh) {
+      const action = localStorage.getItem('last_booking_action') || 'unknown';
+      const timestamp = localStorage.getItem('last_booking_timestamp') || '0';
+      const reference = localStorage.getItem('booking_reference') || '';
       
-      // Even on first mount, check for refresh parameter
-      if (hasRefreshParam) {
-        console.log("HomePage: Detected refresh parameter on first mount, will force refresh");
-        forceCalendarRefresh();
+      console.log(`HomePage: Detected refresh flag in localStorage (action: ${action}, ref: ${reference})`);
+      
+      // Calculate age of the refresh request
+      const age = Date.now() - parseInt(timestamp, 10);
+      
+      // Only process if the refresh flag is recent (within last 5 minutes)
+      if (age < 5 * 60 * 1000) {
+        console.log(`HomePage: Processing refresh request (${Math.round(age/1000)}s old)`);
+        
+        // Perform a reload of the whole page to guarantee fresh data
+        window.location.reload();
+      } else {
+        // Clear old flags
+        console.log(`HomePage: Ignoring stale refresh request (${Math.round(age/1000)}s old)`);
+        localStorage.removeItem('calendar_needs_refresh');
+        localStorage.removeItem('last_booking_action');
+        localStorage.removeItem('last_booking_timestamp');
+        localStorage.removeItem('booking_reference');
       }
-    } else if (hasRefreshParam) {
-      console.log("HomePage: Returning from confirmation with refresh parameter");
-      forceCalendarRefresh();
     } else {
-      console.log("HomePage: Navigation detected without refresh parameter");
+      console.log("HomePage: No refresh flags found, normal initialization");
     }
   }, [location]);
   

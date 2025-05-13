@@ -51,46 +51,19 @@ const ConfirmationPage = () => {
     window.open(googleCalendarUrl, '_blank');
   };
   
-  // Enhanced return to home function with extreme force refresh
+  // Enhanced return to home function that forces a page reload
   const handleReturnToHome = () => {
-    // Use the most aggressive approach to ensure fresh data
-    console.log("Confirmation page: NUCLEAR OPTION - complete cache wipeout");
+    console.log("Confirmation page: Setting localStorage flags for homepage refresh");
     
-    // 1. First clear ALL query cache
-    queryClient.clear();
+    // Set the localStorage flag that will trigger a hard refresh on home page
+    localStorage.setItem('calendar_needs_refresh', 'true');
+    localStorage.setItem('last_booking_action', 'confirmation');
+    localStorage.setItem('last_booking_timestamp', Date.now().toString());
+    localStorage.setItem('booking_reference', reference || '');
     
-    // 2. Prefetch fresh time slots data with direct API call
-    console.log("Confirmation page: Fetching completely fresh data");
-    fetch('/api/timeslots?_=' + new Date().getTime())
-      .then(res => res.json())
-      .then(data => {
-        console.log(`Confirmation page: Pre-loaded ${data.timeSlots?.length || 0} time slots directly`);
-        // Store this data in the cache manually
-        queryClient.setQueryData(['/api/timeslots'], data);
-      })
-      .catch(err => console.error("Error prefetching:", err));
-    
-    // 3. Dispatch BOTH event types for maximum compatibility
-    console.log("Confirmation page: Dispatching BOTH refresh event types");
-    
-    // First the original booking-updated event
-    const bookingUpdatedEvent = new CustomEvent('booking-updated', {
-      detail: {
-        action: 'nuclear-refresh',
-        reference: reference,
-        timestamp: new Date().getTime(),
-        forceRefresh: true
-      }
-    });
-    window.dispatchEvent(bookingUpdatedEvent);
-    
-    // Then the new force-calendar-refresh event
-    const forceRefreshEvent = new Event('force-calendar-refresh');
-    window.dispatchEvent(forceRefreshEvent);
-    
-    // 4. Navigate home with cache-busting URL parameter  
-    console.log("Confirmation page: Navigating home with DOUBLE cache busting");
-    navigate(`/?forcefresh=${new Date().getTime()}&nocache=true`);
+    // Bypass the React router and force a full page reload on homepage
+    console.log("Confirmation page: Redirecting to home with full page reload");
+    window.location.href = '/'; // This will cause a full page reload
   };
   
   // If loading
