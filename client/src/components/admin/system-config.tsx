@@ -573,6 +573,9 @@ const AdminSystemConfig = () => {
       {/* Lead Time Settings */}
       <LeadTimeSettingsForm />
       
+      {/* Email Notification Settings */}
+      <AdminEmailConfig />
+      
       <Card>
         <CardHeader>
           <CardTitle>Emergency Time Slot Management</CardTitle>

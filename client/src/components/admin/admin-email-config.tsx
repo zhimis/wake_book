@@ -12,7 +12,7 @@ const AdminEmailConfig = () => {
   const [email, setEmail] = useState("");
 
   // Fetch current admin email
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['/api/config/admin-email'],
     queryFn: async () => {
       const res = await fetch('/api/config/admin-email');
@@ -21,13 +21,16 @@ const AdminEmailConfig = () => {
         throw new Error(errorData.error || 'Failed to fetch admin email');
       }
       return res.json();
-    },
-    onSuccess: (data) => {
-      if (data.email) {
-        setEmail(data.email);
-      }
-    },
-    onError: (error) => {
+    }
+  });
+  
+  // Handle data and errors from the query
+  React.useEffect(() => {
+    if (data && data.email) {
+      setEmail(data.email);
+    }
+    
+    if (error) {
       console.error("Failed to fetch admin email:", error);
       toast({
         title: "Error",
@@ -35,7 +38,7 @@ const AdminEmailConfig = () => {
         variant: "destructive",
       });
     }
-  });
+  }, [data, error, toast]);
 
   // Update admin email mutation
   const updateEmailMutation = useMutation({
