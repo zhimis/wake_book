@@ -129,6 +129,11 @@ const ProfilePage = () => {
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/timeslots"] });
+      
+      // Dispatch a custom event to notify other components about the booking update
+      const bookingUpdatedEvent = new Event('booking-updated');
+      window.dispatchEvent(bookingUpdatedEvent);
+      console.log("Dispatched booking-updated event after cancellation");
     },
     onError: (error: any) => {
       console.error("Error cancelling booking:", error);
