@@ -49,9 +49,9 @@ This document provides an updated roadmap for the WakeBook wakeboarding park boo
 ## Phase 3: Immediate Next Steps
 
 ### User Interface Refinements
-- [ ] Move 'Selection Active' card to the bottom of the calendar above booking buttons
-- [ ] Prevent navigation to past weeks in public calendar
-- [ ] Display informative message for unavailable future weeks
+- [X] Move 'Selection Active' card to the bottom of the calendar above booking buttons
+- [X] Prevent navigation to past weeks in public calendar
+- [X] Display informative message for unavailable future weeks
 - [ ] Improve calendar loading indicators and states
 
 ### Booking System Enhancements
