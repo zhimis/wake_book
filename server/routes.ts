@@ -11,7 +11,8 @@ import {
   operatingHours,
   leadTimeSettingsFormSchema,
   bookings,
-  bookingTimeSlots
+  bookingTimeSlots,
+  feedbackFormSchema
 } from "@shared/schema";
 import { format, addMinutes } from "date-fns";
 import { db } from "./db";
@@ -792,6 +793,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.status(500).json({ error: "Failed to create admin booking" });
+    }
+  });
+
+  // Submit user feedback
+  app.post("/api/feedback", async (req: Request, res: Response) => {
+    try {
+      // Validate the feedback data
+      const validatedData = feedbackFormSchema.parse(req.body);
+      
+      // Extract user information if authenticated
+      const userId = req.isAuthenticated() ? (req.user as any).id : null;
+      
+      // Create feedback entry
+      const feedback = await storage.createFeedback({
+        content: validatedData.feedback,
+        userId: userId,
+        userIp: req.ip,
+        userAgent: req.headers['user-agent'] || null,
+        status: 'new',
+        createdAt: new Date()
+      });
+      
+      res.status(201).json({
+        success: true,
+        message: "Thank you for your feedback!",
+        feedbackId: feedback.id
+      });
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid feedback data", 
+          details: error.errors 
+        });
+      }
+      
+      res.status(500).json({ error: "Failed to submit feedback" });
+    }
+  });
+  
+  // Get all feedback (admin only)
+  app.get("/api/admin/feedback", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated as admin
+      if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const feedbackItems = await storage.getAllFeedback();
+      res.json(feedbackItems);
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  });
+  
+  // Update feedback status (admin only)
+  app.patch("/api/admin/feedback/:id", async (req: Request, res: Response) => {
+    try {
+      // Check if user is authenticated as admin
+      if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const feedbackId = parseInt(req.params.id, 10);
+      
+      if (isNaN(feedbackId)) {
+        return res.status(400).json({ error: "Invalid feedback ID" });
+      }
+      
+      const { status, adminNotes } = req.body;
+      
+      // Check if at least one field is provided
+      if (!status && !adminNotes) {
+        return res.status(400).json({ error: "No update fields provided" });
+      }
+      
+      let updatedFeedback;
+      
+      // Update status if provided
+      if (status) {
+        updatedFeedback = await storage.updateFeedbackStatus(feedbackId, status);
+      }
+      
+      // Update admin notes if provided
+      if (adminNotes) {
+        updatedFeedback = await storage.addAdminNotes(feedbackId, adminNotes);
+      }
+      
+      if (!updatedFeedback) {
+        return res.status(404).json({ error: "Feedback not found" });
+      }
+      
+      res.json(updatedFeedback);
+    } catch (error) {
+      console.error("Error updating feedback:", error);
+      res.status(500).json({ error: "Failed to update feedback" });
     }
   });
 

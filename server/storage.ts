@@ -956,6 +956,67 @@ export class DatabaseStorage implements IStorage {
     
     return created;
   }
+  
+  // Feedback methods
+  async createFeedback(feedbackData: InsertFeedback): Promise<Feedback> {
+    try {
+      const [created] = await db.insert(feedback)
+        .values(feedbackData)
+        .returning();
+      
+      return created;
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      throw error;
+    }
+  }
+  
+  async getAllFeedback(): Promise<Feedback[]> {
+    try {
+      return await db.select().from(feedback).orderBy(feedback.createdAt);
+    } catch (error) {
+      console.error("Error getting all feedback:", error);
+      return [];
+    }
+  }
+  
+  async getFeedbackById(id: number): Promise<Feedback | undefined> {
+    try {
+      const [result] = await db.select().from(feedback).where(eq(feedback.id, id));
+      return result;
+    } catch (error) {
+      console.error(`Error getting feedback with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async updateFeedbackStatus(id: number, status: string): Promise<Feedback | undefined> {
+    try {
+      const [updated] = await db.update(feedback)
+        .set({ status })
+        .where(eq(feedback.id, id))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error(`Error updating status for feedback with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async addAdminNotes(id: number, adminNotes: string): Promise<Feedback | undefined> {
+    try {
+      const [updated] = await db.update(feedback)
+        .set({ adminNotes })
+        .where(eq(feedback.id, id))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error(`Error adding admin notes to feedback with ID ${id}:`, error);
+      return undefined;
+    }
+  }
 
   async checkBookingAllowedByLeadTime(date: Date): Promise<{
     allowed: boolean;
