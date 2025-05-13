@@ -106,49 +106,59 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
       return await res.json();
     },
     onSuccess: async (data) => {
-      // Immediately invalidate and refetch time slots to refresh the calendar
-      console.log("Invalidating queries to refresh data after booking");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
-        queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
-      ]);
+      console.log("BookingForm: Booking successful! Reference:", data.booking.reference);
       
-      // Explicitly refetch the data to ensure UI update
-      console.log("Explicitly refetching time slots after booking");
+      // COMPLETELY REMOVE all cached data to force a fresh fetch
+      console.log("BookingForm: Completely REMOVING time slots and bookings query cache");
+      queryClient.removeQueries({ queryKey: ['/api/timeslots'] });
+      queryClient.removeQueries({ queryKey: ['/api/bookings'] });
+      
+      // Prefetch fresh data with proper date ranges in the background
+      console.log("BookingForm: Prefetching fresh time slots data");
       try {
-        const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(endDate.getDate() + 7); // Fetch a week's worth of time slots
+        const freshStartDate = new Date();
+        const freshEndDate = new Date();
+        freshEndDate.setDate(freshEndDate.getDate() + 7);
         
-        const res = await fetch(
-          `/api/timeslots?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          queryClient.setQueryData(['/api/timeslots'], data);
-        }
+        // Format dates properly for the API
+        const formattedStartDate = formatInLatviaTime(freshStartDate, "yyyy-MM-dd");
+        const formattedEndDate = formatInLatviaTime(freshEndDate, "yyyy-MM-dd");
+        
+        console.log(`BookingForm: Prefetching time slots for ${formattedStartDate} to ${formattedEndDate}`);
+        
+        // Use prefetchQuery to store the result in cache for future use
+        await queryClient.prefetchQuery({
+          queryKey: ['/api/timeslots', formattedStartDate, formattedEndDate],
+          queryFn: async () => {
+            const res = await fetch(
+              `/api/timeslots?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
+            );
+            if (!res.ok) throw new Error('Failed to fetch time slots');
+            return res.json();
+          }
+        });
       } catch (error) {
-        console.error("Error fetching fresh time slots after booking:", error);
+        console.error("BookingForm: Error prefetching time slots:", error);
       }
       
-      // Use a slight delay to ensure the data is properly processed and event triggers UI update
-      // before navigating away from the page
-      console.log("Dispatching booking-updated event and waiting for processing...");
+      // Dispatch custom event with force refresh flag
+      console.log("BookingForm: Dispatching booking-updated event with force flag");
       const bookingUpdatedEvent = new CustomEvent('booking-updated', {
         detail: {
           bookingId: data.booking.id,
           reference: data.booking.reference,
-          timestamp: new Date().getTime()
+          action: 'new-booking',
+          timestamp: new Date().getTime(),
+          forceRefresh: true
         }
       });
       
       window.dispatchEvent(bookingUpdatedEvent);
       
-      // Give the event time to process before navigating away
-      setTimeout(() => {
-        // Navigate to confirmation page
-        navigate(`/confirmation/${data.booking.reference}`);
-      }, 300);
+      // Navigate to confirmation page immediately - we don't need to wait
+      // since we're moving away from the page that needs refreshing
+      console.log("BookingForm: Navigating to confirmation page");
+      navigate(`/confirmation/${data.booking.reference}`);
 
       // Clear selected time slots
       clearSelectedTimeSlots();

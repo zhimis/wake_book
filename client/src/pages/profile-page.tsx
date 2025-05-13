@@ -120,22 +120,48 @@ const ProfilePage = () => {
     mutationFn: async (bookingId: number) => {
       return apiRequest("DELETE", `/api/bookings/${bookingId}`);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setIsCancellationDialogOpen(false);
       setSelectedBookingId(null);
       setCancellationError(null);
       setSuccessDialogOpen(true);
       
-      // Invalidate relevant queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/timeslots"] });
+      console.log("Booking successfully cancelled, performing data refresh");
       
-      // Dispatch a custom event with details to notify other components about the booking cancellation
-      console.log("Dispatching booking-updated event after cancellation");
+      // Completely remove queries for stronger refresh
+      console.log("ProfilePage: Completely REMOVING time slots and bookings query cache");
+      queryClient.removeQueries({ queryKey: ["/api/timeslots"] });
+      queryClient.removeQueries({ queryKey: ["/api/user/bookings"] });
+      
+      // Prefetch fresh data
+      console.log("ProfilePage: Prefetching fresh time slots data");
+      queryClient.prefetchQuery({
+        queryKey: ["/api/timeslots"],
+        queryFn: async () => {
+          const response = await fetch('/api/timeslots');
+          if (!response.ok) throw new Error("Failed to fetch time slots");
+          return response.json();
+        }
+      });
+      
+      // Prefetch user bookings
+      console.log("ProfilePage: Prefetching fresh user bookings data");
+      queryClient.prefetchQuery({
+        queryKey: ["/api/user/bookings"],
+        queryFn: async () => {
+          const response = await fetch('/api/user/bookings');
+          if (!response.ok) throw new Error("Failed to fetch user bookings");
+          return response.json();
+        }
+      });
+      
+      // Dispatch a custom event with details and force flag
+      console.log("ProfilePage: Dispatching booking-updated event with force flag");
       const bookingUpdatedEvent = new CustomEvent('booking-updated', {
         detail: {
           action: 'cancellation',
-          timestamp: new Date().getTime()
+          timestamp: new Date().getTime(),
+          forceRefresh: true
         }
       });
       window.dispatchEvent(bookingUpdatedEvent);
