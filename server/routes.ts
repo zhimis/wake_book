@@ -815,6 +815,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Created admin booking - total price:", totalPrice);
       
+      // Create booking details object for email
+      const bookingDetails = {
+        booking,
+        timeSlots: createdTimeSlots,
+        totalPrice
+      };
+      
+      // Send emails asynchronously (don't wait for completion)
+      try {
+        // Import email service
+        const { sendCustomerBookingConfirmation, sendAdminBookingNotification } = await import('./services/email-service');
+        
+        // Send customer confirmation if email provided
+        if (email) {
+          sendCustomerBookingConfirmation(bookingDetails, email)
+            .then(success => {
+              console.log(`Customer booking confirmation email ${success ? 'sent' : 'failed'}`);
+            })
+            .catch(err => {
+              console.error('Error sending customer booking confirmation:', err);
+            });
+        }
+        
+        // Send admin notification
+        sendAdminBookingNotification(bookingDetails)
+          .then(success => {
+            console.log(`Admin booking notification email ${success ? 'sent' : 'failed'}`);
+          })
+          .catch(err => {
+            console.error('Error sending admin booking notification:', err);
+          });
+      } catch (emailError) {
+        // Just log the error, don't prevent booking creation
+        console.error('Error setting up email notifications:', emailError);
+      }
+      
       // Return the booking details with the created time slots
       res.status(201).json({
         booking,

@@ -25,6 +25,7 @@ import {
   formatTime 
 } from "@/lib/utils";
 import { LeadTimeSettingsForm } from "./lead-time-settings-form";
+import AdminEmailConfig from "./admin-email-config";
 
 const AdminSystemConfig = () => {
   const { toast } = useToast();
