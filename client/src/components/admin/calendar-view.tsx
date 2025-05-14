@@ -1265,7 +1265,6 @@ const AdminCalendarView = () => {
         
         // Force an immediate page reload to get a completely fresh state
         console.log("Reloading page to ensure fresh data");
-        window.location.reload();
       } else if (cancelAction === 'clear') {
         // First delete the booking
         console.log(`Deleting booking ID ${bookingId}`);
@@ -1372,7 +1371,6 @@ const AdminCalendarView = () => {
         
         // Force an immediate page reload to get a completely fresh state
         console.log("Reloading page to ensure fresh data");
-        window.location.reload();
       }
       
       // Reset state
