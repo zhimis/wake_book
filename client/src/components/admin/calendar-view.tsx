@@ -597,6 +597,16 @@ const AdminCalendarView = () => {
       // Reset the cancel action
       setCancelAction(null);
       
+      // Get the booking reference if we have it in the response
+      const bookingReference = data?.booking?.reference || '';
+      
+      // Set localStorage flags to trigger a refresh when returning to home page
+      // This approach unifies the refresh strategy with other parts of the app
+      localStorage.setItem('calendar_needs_refresh', 'true');
+      localStorage.setItem('last_booking_action', 'admin-cancellation');
+      localStorage.setItem('last_booking_timestamp', Date.now().toString());
+      localStorage.setItem('booking_reference', bookingReference);
+      
       // Force immediate refetch of time slots and bookings
       console.log("Invalidating queries to refresh data");
       await Promise.all([
@@ -611,13 +621,13 @@ const AdminCalendarView = () => {
           `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
         );
         if (res.ok) {
-          const data = await res.json();
+          const newData = await res.json();
           console.log("Setting new time slots data in cache");
           queryClient.setQueryData([
             '/api/timeslots',
             currentDateRange.start.toISOString(),
             currentDateRange.end.toISOString()
-          ], data);
+          ], newData);
         } else {
           console.error("Failed to fetch fresh time slots:", res.status);
         }
@@ -643,6 +653,9 @@ const AdminCalendarView = () => {
       // Clear the cache to force refetching booking details
       console.log("Clearing bookings cache");
       clearBookingsCache();
+      
+      // Force a page reload to guarantee fresh data is displayed
+      window.location.reload();
       
       toast({
         title: "Booking Deleted",
