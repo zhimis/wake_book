@@ -1,5 +1,13 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Add TypeScript declaration for window.forceDataRefresh
+declare global {
+  interface Window {
+    reactQueryClient?: QueryClient;
+    forceDataRefresh?: () => Promise<void>;
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -120,7 +128,7 @@ export const queryClient = new QueryClient({
 
 // Expose the query client to window for use in event handlers
 if (typeof window !== 'undefined') {
-  (window as any).reactQueryClient = queryClient;
+  window.reactQueryClient = queryClient;
   // Also expose our helper function
-  (window as any).forceDataRefresh = forceDataRefresh;
+  window.forceDataRefresh = forceDataRefresh;
 }
