@@ -1263,8 +1263,9 @@ const AdminCalendarView = () => {
           variant: "default",
         });
         
-        // Force an immediate page reload to get a completely fresh state
-        console.log("Reloading page to ensure fresh data");
+        // Instead of a full page reload, just increment the refresh trigger
+        console.log("Triggering focused calendar component refresh");
+        setRefreshTrigger(prev => prev + 1);
       } else if (cancelAction === 'clear') {
         // First delete the booking
         console.log(`Deleting booking ID ${bookingId}`);
@@ -1369,8 +1370,9 @@ const AdminCalendarView = () => {
           variant: "default",
         });
         
-        // Force an immediate page reload to get a completely fresh state
-        console.log("Reloading page to ensure fresh data");
+        // Instead of a full page reload, just increment the refresh trigger
+        console.log("Triggering focused calendar component refresh");
+        setRefreshTrigger(prev => prev + 1);
       }
       
       // Reset state
