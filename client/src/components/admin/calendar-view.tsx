@@ -621,8 +621,8 @@ const AdminCalendarView = () => {
       clearBookingsCache();
       
       // Use our new helper for a complete data refresh with cache busting
-      if (typeof window !== 'undefined' && window.forceDataRefresh) {
-        await window.forceDataRefresh();
+      if (typeof window !== 'undefined' && (window as any).forceDataRefresh) {
+        await (window as any).forceDataRefresh();
       }
       
       // Force an immediate page reload to get a completely fresh state
@@ -1225,15 +1225,42 @@ const AdminCalendarView = () => {
         const result = await res.json();
         console.log("Delete booking response:", result);
         
-        // Force explicit invalidation to update the UI
-        await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+        // Get the booking reference if we have it in the response
+        const bookingReference = result?.booking?.reference || selectedBooking.reference || '';
+        
+        // Set localStorage flags to trigger a refresh when returning to home page
+        localStorage.setItem('calendar_needs_refresh', 'true');
+        localStorage.setItem('last_booking_action', 'admin-cancellation');
+        localStorage.setItem('last_booking_timestamp', Date.now().toString());
+        localStorage.setItem('booking_reference', bookingReference);
+        
+        // Clear React Query's cache directly to ensure there's no stale data
+        queryClient.clear();
+        
+        // Completely reset all caches
+        console.log("Admin: Cancellation complete - performing full data refresh");
+        
+        // First completely invalidate every query
+        queryClient.invalidateQueries();
+        
+        // Clear any booking detail caches
+        console.log("Clearing booking caches");
+        clearBookingsCache();
+        
+        // Use our new helper for a complete data refresh with cache busting
+        if (typeof window !== 'undefined' && (window as any).forceDataRefresh) {
+          await (window as any).forceDataRefresh();
+        }
         
         toast({
           title: "Booking Cancelled",
           description: "The booking has been cancelled and slots are available for new bookings.",
           variant: "default",
         });
+        
+        // Force an immediate page reload to get a completely fresh state
+        console.log("Reloading page to ensure fresh data");
+        window.location.reload();
       } else if (cancelAction === 'clear') {
         // First delete the booking
         console.log(`Deleting booking ID ${bookingId}`);
@@ -1305,15 +1332,42 @@ const AdminCalendarView = () => {
           console.warn("Cannot clear time slots - none found for this booking");
         }
         
-        // Make sure to update the UI
-        await queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
-        await queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] });
+        // Get the booking reference if we have it in the response
+        const bookingReference = result?.booking?.reference || selectedBooking.reference || '';
+        
+        // Set localStorage flags to trigger a refresh when returning to home page
+        localStorage.setItem('calendar_needs_refresh', 'true');
+        localStorage.setItem('last_booking_action', 'admin-clear-slots');
+        localStorage.setItem('last_booking_timestamp', Date.now().toString());
+        localStorage.setItem('booking_reference', bookingReference);
+        
+        // Clear React Query's cache directly to ensure there's no stale data
+        queryClient.clear();
+        
+        // Completely reset all caches
+        console.log("Admin: Clear slots complete - performing full data refresh");
+        
+        // First completely invalidate every query
+        queryClient.invalidateQueries();
+        
+        // Clear any booking detail caches
+        console.log("Clearing booking caches");
+        clearBookingsCache();
+        
+        // Use our new helper for a complete data refresh with cache busting
+        if (typeof window !== 'undefined' && (window as any).forceDataRefresh) {
+          await (window as any).forceDataRefresh();
+        }
         
         toast({
           title: "Booking Cancelled",
           description: "The booking and slots have been removed.",
           variant: "default",
         });
+        
+        // Force an immediate page reload to get a completely fresh state
+        console.log("Reloading page to ensure fresh data");
+        window.location.reload();
       }
       
       // Reset state
