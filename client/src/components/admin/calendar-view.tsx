@@ -269,6 +269,9 @@ const AdminCalendarView = () => {
   const [cancelAction, setCancelAction] = useState<'delete' | 'clear' | null>(null);
   const [bookingDetails, setBookingDetails] = useState<any>(null); // Store full booking details including time slots
   
+  // Add a refresh trigger state to force component re-renders after data changes
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
   // Track the last set date range to avoid infinite loops
   const lastDateRef = useRef<{start: string, end: string} | null>(null);
   
@@ -357,7 +360,8 @@ const AdminCalendarView = () => {
     queryKey: [
       '/api/timeslots',
       currentDateRange.start.toISOString(),
-      currentDateRange.end.toISOString()
+      currentDateRange.end.toISOString(),
+      refreshTrigger // Include refresh trigger to force re-fetch when it changes
     ],
     queryFn: async () => {
       const res = await fetch(
@@ -370,7 +374,7 @@ const AdminCalendarView = () => {
   
   // Fetch bookings
   const { data: bookingsData, isLoading: bookingsLoading, error: bookingsError } = useQuery({
-    queryKey: ['/api/bookings'],
+    queryKey: ['/api/bookings', refreshTrigger], // Include refresh trigger to force re-fetch
     queryFn: async () => {
       const res = await fetch('/api/bookings');
       if (!res.ok) throw new Error('Failed to fetch bookings');
@@ -626,9 +630,9 @@ const AdminCalendarView = () => {
         await window.forceDataRefresh();
       }
       
-      // Force an immediate page reload to get a completely fresh state
-      console.log("Reloading page to ensure fresh data");
-      window.location.reload();
+      // Instead of a full page reload, just increment the refresh trigger
+      console.log("Triggering focused calendar component refresh");
+      setRefreshTrigger(prev => prev + 1);
       
       toast({
         title: "Booking Deleted",
