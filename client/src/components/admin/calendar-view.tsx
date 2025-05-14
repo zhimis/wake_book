@@ -30,6 +30,7 @@ import {
 declare global {
   interface Window {
     bookingsCache: Record<string, any>;
+    forceDataRefresh?: () => Promise<void>;
   }
 }
 
@@ -621,8 +622,8 @@ const AdminCalendarView = () => {
       clearBookingsCache();
       
       // Use our new helper for a complete data refresh with cache busting
-      if (typeof window !== 'undefined' && (window as any).forceDataRefresh) {
-        await (window as any).forceDataRefresh();
+      if (typeof window !== 'undefined' && window.forceDataRefresh) {
+        await window.forceDataRefresh();
       }
       
       // Force an immediate page reload to get a completely fresh state
@@ -1248,8 +1249,8 @@ const AdminCalendarView = () => {
         clearBookingsCache();
         
         // Use our new helper for a complete data refresh with cache busting
-        if (typeof window !== 'undefined' && (window as any).forceDataRefresh) {
-          await (window as any).forceDataRefresh();
+        if (typeof window !== 'undefined' && window.forceDataRefresh) {
+          await window.forceDataRefresh();
         }
         
         toast({
@@ -1355,8 +1356,8 @@ const AdminCalendarView = () => {
         clearBookingsCache();
         
         // Use our new helper for a complete data refresh with cache busting
-        if (typeof window !== 'undefined' && (window as any).forceDataRefresh) {
-          await (window as any).forceDataRefresh();
+        if (typeof window !== 'undefined' && window.forceDataRefresh) {
+          await window.forceDataRefresh();
         }
         
         toast({
