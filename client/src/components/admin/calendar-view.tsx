@@ -607,54 +607,26 @@ const AdminCalendarView = () => {
       localStorage.setItem('last_booking_timestamp', Date.now().toString());
       localStorage.setItem('booking_reference', bookingReference);
       
-      // Force immediate refetch of time slots and bookings
-      console.log("Invalidating queries to refresh data");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['/api/timeslots'] }),
-        queryClient.invalidateQueries({ queryKey: ['/api/bookings'] })
-      ]);
+      // Clear React Query's cache directly to ensure there's no stale data
+      queryClient.clear();
       
-      // Additional explicit refetch for the current date range to ensure UI update
-      console.log("Fetching fresh time slots data");
-      try {
-        const res = await fetch(
-          `/api/timeslots?startDate=${currentDateRange.start.toISOString()}&endDate=${currentDateRange.end.toISOString()}`
-        );
-        if (res.ok) {
-          const newData = await res.json();
-          console.log("Setting new time slots data in cache");
-          queryClient.setQueryData([
-            '/api/timeslots',
-            currentDateRange.start.toISOString(),
-            currentDateRange.end.toISOString()
-          ], newData);
-        } else {
-          console.error("Failed to fetch fresh time slots:", res.status);
-        }
-      } catch (error) {
-        console.error("Error fetching fresh time slots:", error);
-      }
+      // Completely reset all caches
+      console.log("Admin: Cancellation complete - performing full data refresh");
       
-      // Explicitly refetch bookings as well
-      console.log("Explicitly refetching bookings");
-      try {
-        const bookingsRes = await fetch('/api/bookings');
-        if (bookingsRes.ok) {
-          const bookingsData = await bookingsRes.json();
-          console.log("Setting new bookings data in cache");
-          queryClient.setQueryData(['/api/bookings'], bookingsData);
-        } else {
-          console.error("Failed to fetch fresh bookings:", bookingsRes.status);
-        }
-      } catch (error) {
-        console.error("Error fetching fresh bookings:", error);
-      }
+      // First completely invalidate every query
+      queryClient.invalidateQueries();
       
-      // Clear the cache to force refetching booking details
-      console.log("Clearing bookings cache");
+      // Clear any booking detail caches
+      console.log("Clearing booking caches");
       clearBookingsCache();
       
-      // Force a page reload to guarantee fresh data is displayed
+      // Use our new helper for a complete data refresh with cache busting
+      if (typeof window !== 'undefined' && window.forceDataRefresh) {
+        await window.forceDataRefresh();
+      }
+      
+      // Force an immediate page reload to get a completely fresh state
+      console.log("Reloading page to ensure fresh data");
       window.location.reload();
       
       toast({

@@ -70,6 +70,39 @@ export const getQueryFn: <T>(options: {
     }
   };
 
+// Helper function to add a timestamp to a URL to bust cache
+export function addCacheBuster(url: string): string {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}_=${Date.now()}`;
+}
+
+// Helper function to force a complete refresh of all API data
+export async function forceDataRefresh() {
+  console.log("Forcing complete data refresh");
+  
+  // First, invalidate all queries
+  await queryClient.invalidateQueries();
+  
+  // Then, directly fetch fresh timeslots and bookings with cache busters
+  try {
+    const timeslotsRes = await fetch(addCacheBuster('/api/timeslots'));
+    if (timeslotsRes.ok) {
+      const freshTimeslots = await timeslotsRes.json();
+      queryClient.setQueryData(['/api/timeslots'], freshTimeslots);
+    }
+    
+    const bookingsRes = await fetch(addCacheBuster('/api/bookings'));
+    if (bookingsRes.ok) {
+      const freshBookings = await bookingsRes.json();
+      queryClient.setQueryData(['/api/bookings'], freshBookings);
+    }
+    
+    console.log("Data refresh completed");
+  } catch (error) {
+    console.error("Error during forced data refresh:", error);
+  }
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -88,4 +121,6 @@ export const queryClient = new QueryClient({
 // Expose the query client to window for use in event handlers
 if (typeof window !== 'undefined') {
   (window as any).reactQueryClient = queryClient;
+  // Also expose our helper function
+  (window as any).forceDataRefresh = forceDataRefresh;
 }
