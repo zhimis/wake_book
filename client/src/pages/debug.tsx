@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import BookingDebug from '../components/debug/booking-debug';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Define the component without default export
 function DebugPage() {
   // State for the booking reference input
   const [bookingRef, setBookingRef] = useState<string>('');
@@ -79,4 +80,5 @@ function DebugPage() {
   );
 };
 
+// Export the component at the end of the file
 export default DebugPage;
