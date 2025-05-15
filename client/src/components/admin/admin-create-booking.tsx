@@ -6,7 +6,7 @@ import { PlusCircle, Clock, X, Info, AlertCircle, Calendar as CalendarIcon } fro
 import { format, setHours, setMinutes, addMinutes, isSameDay } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { TimeSlot, AdminCustomBookingData, adminCustomBookingSchema } from "@shared/schema";
+import { TimeSlot, AdminCustomBookingData, adminCustomBookingSchema, generateTimeSlotId } from "@shared/schema";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -323,50 +323,88 @@ const AdminCreateBooking = ({
     // Log for debugging
     console.log("Form submitted with data:", data);
     console.log("Form validation errors:", form.formState.errors);
-    console.log("Selected date:", selectedDate);
-    console.log("Selected start time:", selectedStartTime);
-    console.log("Selected end time:", selectedEndTime);
     
-    // If time slots weren't pre-selected, generate them now
-    if (data.timeSlots.length === 0) {
-      if (!selectedDate || !selectedStartTime || !selectedEndTime) {
-        toast({
-          title: "Incomplete Time Selection",
-          description: "Please select a date, start time, and end time.",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      try {
-        // Generate time slots before submitting
-        console.log("Generating time slots...");
-        await generateTimeSlots();
-        
-        // Update the form with the newly generated time slots
-        if (timeSlots.length === 0) {
-          console.log("No time slots were generated");
-          // If slots weren't generated (possibly due to conflicts)
-          return;
-        }
-        
-        console.log("Generated time slots:", timeSlots);
-        
-        // Update the data with the new time slots
-        data.timeSlots = timeSlots;
-      } catch (error) {
-        console.error("Error generating time slots:", error);
-        toast({
-          title: "Error",
-          description: "Failed to generate time slots. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
+    // Direct slot generation on submit - skip the async timing issues
+    if (!selectedDate || !selectedStartTime || !selectedEndTime) {
+      toast({
+        title: "Incomplete Time Selection",
+        description: "Please select a date, start time, and end time.",
+        variant: "destructive"
+      });
+      return;
     }
     
-    console.log("Final data being submitted:", data);
-    createBookingMutation.mutate(data);
+    console.log("Generating time slots directly...");
+    
+    // Parse start time
+    const [startHour, startMinute] = selectedStartTime.split(":").map(Number);
+    // Parse end time
+    const [endHour, endMinute] = selectedEndTime.split(":").map(Number);
+    
+    // Create date objects for start and end times
+    const startDate = new Date(selectedDate);
+    startDate.setHours(startHour, startMinute, 0, 0);
+    
+    const endDate = new Date(selectedDate);
+    endDate.setHours(endHour, endMinute, 0, 0);
+    
+    console.log("Start date/time:", startDate);
+    console.log("End date/time:", endDate);
+    
+    // Check for valid time range
+    if (endDate <= startDate) {
+      toast({
+        title: "Invalid Time Range",
+        description: "End time must be after start time.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Generate slots
+    const generatedSlots: TimeSlot[] = [];
+    let currentStart = new Date(startDate);
+    
+    while (currentStart < endDate) {
+      const slotEnd = new Date(currentStart);
+      slotEnd.setMinutes(currentStart.getMinutes() + 30);
+      
+      // Create slot
+      generatedSlots.push({
+        id: generateTimeSlotId(currentStart) as string,
+        startTime: new Date(currentStart),
+        endTime: new Date(slotEnd),
+        price: 25, // Default price
+        status: "available",
+        storageTimezone: "UTC"
+      });
+      
+      // Move to next 30-min slot
+      currentStart = new Date(slotEnd);
+    }
+    
+    console.log("Generated slots:", generatedSlots);
+    
+    if (generatedSlots.length === 0) {
+      toast({
+        title: "No Time Slots Generated",
+        description: "Please check your date and time selection.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create a new booking data object with the generated slots
+    const bookingData: AdminCustomBookingData = {
+      customerName: data.customerName,
+      phoneNumber: data.phoneNumber,
+      email: data.email || "",
+      notes: data.notes || "",
+      timeSlots: generatedSlots
+    };
+    
+    console.log("Final data being submitted:", bookingData);
+    createBookingMutation.mutate(bookingData);
   };
   
   return (
@@ -560,6 +598,7 @@ const AdminCreateBooking = ({
                       type="submit" 
                       className="w-full"
                       disabled={createBookingMutation.isPending}
+                      onClick={() => console.log("Submit button clicked")}
                     >
                       {createBookingMutation.isPending ? "Creating..." : "Create Booking"}
                     </Button>
