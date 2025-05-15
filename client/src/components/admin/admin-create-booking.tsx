@@ -458,6 +458,7 @@ const AdminCreateBooking = ({
                 onSelect={setSelectedDate}
                 className="rounded-md border"
                 disabled={{ before: new Date() }}
+                weekStartsOn={1} // 1 = Monday
               />
               
               {isCheckingBookings && (
