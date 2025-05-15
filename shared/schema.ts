@@ -194,7 +194,7 @@ export const adminCustomBookingSchema = z.object({
     endTime: z.date(),
     price: z.number().optional(),
     status: z.string().optional(),
-  })).min(1, { message: "At least one time slot is required" }),
+  })), // Allow empty array since slots can be generated during submission
 });
 
 // Block time slot form

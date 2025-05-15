@@ -323,6 +323,9 @@ const AdminCreateBooking = ({
     // Log for debugging
     console.log("Form submitted with data:", data);
     console.log("Form validation errors:", form.formState.errors);
+    console.log("Selected date:", selectedDate);
+    console.log("Selected start time:", selectedStartTime);
+    console.log("Selected end time:", selectedEndTime);
     
     // If time slots weren't pre-selected, generate them now
     if (data.timeSlots.length === 0) {
@@ -543,13 +546,7 @@ const AdminCreateBooking = ({
             <div>
               <Form {...form}>
                 <form 
-                  onSubmit={(e) => {
-                    console.log("Form submission event triggered");
-                    form.handleSubmit((data) => {
-                      console.log("Form handleSubmit callback executed with data:", data);
-                      onSubmit(data);
-                    })(e);
-                  }} 
+                  onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"
                 >
                   {/* Use the shared BookingFormFields component */}
