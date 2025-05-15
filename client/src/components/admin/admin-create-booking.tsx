@@ -322,6 +322,7 @@ const AdminCreateBooking = ({
   const onSubmit = async (data: AdminCustomBookingData) => {
     // Log for debugging
     console.log("Form submitted with data:", data);
+    console.log("Form validation errors:", form.formState.errors);
     
     // If time slots weren't pre-selected, generate them now
     if (data.timeSlots.length === 0) {
@@ -541,20 +542,61 @@ const AdminCreateBooking = ({
             {/* Right side - Customer info form */}
             <div>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form 
+                  onSubmit={(e) => {
+                    console.log("Form submission event triggered");
+                    form.handleSubmit((data) => {
+                      console.log("Form handleSubmit callback executed with data:", data);
+                      onSubmit(data);
+                    })(e);
+                  }} 
+                  className="space-y-4"
+                >
                   {/* Use the shared BookingFormFields component */}
                   <BookingFormFields 
                     form={form}
                     nameLabel="Customer Name"
                   />
                   
-                  <Button 
-                    type="submit" 
-                    className="w-full mt-4"
-                    disabled={createBookingMutation.isPending}
-                  >
-                    {createBookingMutation.isPending ? "Creating..." : "Create Booking"}
-                  </Button>
+                  <div className="flex flex-col gap-2 mt-4">
+                    <Button 
+                      type="submit" 
+                      className="w-full"
+                      disabled={createBookingMutation.isPending}
+                    >
+                      {createBookingMutation.isPending ? "Creating..." : "Create Booking"}
+                    </Button>
+                    
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        console.log("Current form values:", form.getValues());
+                        console.log("Form validation state:", {
+                          isValid: form.formState.isValid,
+                          isDirty: form.formState.isDirty,
+                          errors: form.formState.errors,
+                          submitCount: form.formState.submitCount
+                        });
+                      }}
+                    >
+                      Debug Form Values
+                    </Button>
+                    
+                    <Button 
+                      type="button" 
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => {
+                        console.log("Manual submit button clicked");
+                        const values = form.getValues();
+                        onSubmit(values as AdminCustomBookingData);
+                      }}
+                    >
+                      Try Manual Submit
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </div>
