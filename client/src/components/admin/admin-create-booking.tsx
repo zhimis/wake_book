@@ -584,13 +584,7 @@ const AdminCreateBooking = ({
             <div>
               <Form {...form}>
                 <form 
-                  onSubmit={(e) => {
-                    console.log("Form onSubmit triggered");
-                    form.handleSubmit((data) => {
-                      console.log("Form handleSubmit callback executed");
-                      onSubmit(data);
-                    })(e);
-                  }}
+                  onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"
                 >
                   {/* Use the shared BookingFormFields component */}
@@ -613,30 +607,9 @@ const AdminCreateBooking = ({
                       type="button" 
                       variant="outline"
                       className="w-full"
-                      onClick={() => {
-                        console.log("Current form values:", form.getValues());
-                        console.log("Form validation state:", {
-                          isValid: form.formState.isValid,
-                          isDirty: form.formState.isDirty,
-                          errors: form.formState.errors,
-                          submitCount: form.formState.submitCount
-                        });
-                      }}
+                      onClick={() => setOpen(false)}
                     >
-                      Debug Form Values
-                    </Button>
-                    
-                    <Button 
-                      type="button" 
-                      variant="default"
-                      className="w-full"
-                      onClick={() => {
-                        console.log("Manual submit button clicked");
-                        const values = form.getValues();
-                        onSubmit(values as AdminCustomBookingData);
-                      }}
-                    >
-                      Create Booking (Manual)
+                      Cancel
                     </Button>
                   </div>
                 </form>
