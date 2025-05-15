@@ -10,7 +10,8 @@ import { TimeSlot, AdminCustomBookingData, adminCustomBookingSchema } from "@sha
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
+import { BookingFormFields } from "@/components/shared/booking-form-fields";
 import { Input } from "@/components/ui/input";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -319,6 +320,9 @@ const AdminCreateBooking = ({
   }, [selectedStartTime]);
   
   const onSubmit = async (data: AdminCustomBookingData) => {
+    // Log for debugging
+    console.log("Form submitted with data:", data);
+    
     // If time slots weren't pre-selected, generate them now
     if (data.timeSlots.length === 0) {
       if (!selectedDate || !selectedStartTime || !selectedEndTime) {
@@ -332,13 +336,17 @@ const AdminCreateBooking = ({
       
       try {
         // Generate time slots before submitting
+        console.log("Generating time slots...");
         await generateTimeSlots();
         
         // Update the form with the newly generated time slots
         if (timeSlots.length === 0) {
+          console.log("No time slots were generated");
           // If slots weren't generated (possibly due to conflicts)
           return;
         }
+        
+        console.log("Generated time slots:", timeSlots);
         
         // Update the data with the new time slots
         data.timeSlots = timeSlots;
@@ -353,6 +361,7 @@ const AdminCreateBooking = ({
       }
     }
     
+    console.log("Final data being submitted:", data);
     createBookingMutation.mutate(data);
   };
   
@@ -533,60 +542,10 @@ const AdminCreateBooking = ({
             <div>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="customerName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter customer name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="+371 12345678" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="customer@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Notes</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Any special requests or notes" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                  {/* Use the shared BookingFormFields component */}
+                  <BookingFormFields 
+                    form={form}
+                    nameLabel="Customer Name"
                   />
                   
                   <Button 
