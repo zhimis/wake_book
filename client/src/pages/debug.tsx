@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import BookingDebug from '../components/debug/booking-debug';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const DebugPage: React.FC = () => {
+function DebugPage() {
   // State for the booking reference input
   const [bookingRef, setBookingRef] = useState<string>('');
   // State for the active booking reference

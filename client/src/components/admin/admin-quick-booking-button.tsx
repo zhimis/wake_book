@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useState, Suspense } from "react";
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
 
 // Import the component as default import
 const AdminCreateBooking = React.lazy(() => import("./admin-create-booking"));
@@ -34,13 +33,14 @@ export function AdminQuickBookingButton() {
           <DialogTitle>Create New Booking</DialogTitle>
         </DialogHeader>
         
-        <React.Suspense fallback={<div className="p-8 text-center">Loading booking form...</div>}>
+        <Suspense fallback={<div className="p-8 text-center">Loading booking form...</div>}>
           <AdminCreateBooking 
             isStandalone={false}
             externalOpenState={open}
             onOpenChange={setOpen}
+            triggerButton={null}
           />
-        </React.Suspense>
+        </Suspense>
       </DialogContent>
     </Dialog>
   );

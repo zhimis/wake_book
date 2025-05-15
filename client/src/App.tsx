@@ -73,7 +73,7 @@ function App() {
               <ProtectedRoute path="/admin/new" component={NewAdminPage} />
               <ProtectedRoute path="/admin/system-config" component={SystemConfigPage} />
               <ProtectedRoute path="/admin/debug" component={DebugPage} />
-              <Route component={NotFound} />
+              <Route path="/:rest*" component={NotFound} />
             </Switch>
           </div>
           <Footer />
