@@ -20,14 +20,8 @@ import {
 } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { ArrowLeft, Clock, HelpCircle } from "lucide-react";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
+import { BookingFormFields } from "@/components/shared/booking-form-fields";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -217,8 +211,6 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
     bookingMutation.mutate(formData);
   };
 
-  // No need for reservation expiry handler
-
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center mb-6">
@@ -232,13 +224,13 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-2">
-        <h2 className="text-2xl font-heading font-bold text-gray-800 mb-2">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-heading font-bold text-gray-800 mb-4">
           Complete Your Booking
         </h2>
 
         {/* Reserved Slots Summary */}
-        <div className="mb-2 bg-primary-light bg-opacity-20 rounded-lg p-2">
+        <div className="mb-6 bg-primary-light bg-opacity-20 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-heading font-medium text-lg">
               Your Reserved Times
@@ -264,7 +256,7 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
           </div>
           
           <div className="space-y-2 mb-3">
-            {selectedTimeSlots.map((slot, index) => {
+            {selectedTimeSlots.map((slot) => {
               // Get actual time in Latvia timezone
               const startTime = new Date(slot.startTime);
               const endTime = new Date(slot.endTime);
@@ -357,100 +349,47 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4 mb-6"
           >
-            <FormField
-              control={form.control}
-              name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder={user && user.firstName && user.lastName ? "" : "Enter your full name"} 
-                      {...field} 
-                      readOnly={!!(user && user.firstName && user.lastName)}
-                      className={user && user.firstName && user.lastName ? "bg-muted cursor-not-allowed" : ""}
-                    />
-                  </FormControl>
-                  {user && user.firstName && user.lastName && (
-                    <p className="mt-1 text-xs text-gray-500">
-                      Name from your account will be used for this booking
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
+            {/* Use the shared BookingFormFields component */}
+            <BookingFormFields 
+              form={form}
+              nameLabel="Full Name"
+              readOnly={{
+                name: !!(user && user.firstName && user.lastName),
+                phone: !!user?.phoneNumber,
+                email: !!user
+              }}
             />
-
-            <FormField
-              control={form.control}
-              name="phoneNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="tel"
-                      placeholder={user?.phoneNumber ? "" : "Enter your phone number"}
-                      {...field}
-                      readOnly={!!user?.phoneNumber}
-                      className={user?.phoneNumber ? "bg-muted cursor-not-allowed" : ""}
-                    />
-                  </FormControl>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {user?.phoneNumber 
-                      ? "Phone number from your account will be used for this booking"
-                      : "We'll send your booking confirmation to this number"}
-                  </p>
-                  <FormMessage />
-                </FormItem>
+            
+            {/* Add any custom help text for the user */}
+            <div className="space-y-2">
+              {user && user.firstName && user.lastName && (
+                <p className="text-xs text-gray-500">
+                  Name from your account will be used for this booking
+                </p>
               )}
-            />
-
-            {/* Show email field as read-only when logged in or as editable when not logged in */}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{user ? "Email" : "Email (Optional)"}</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder={user ? "" : "Enter your email address"}
-                      {...field}
-                      readOnly={!!user}
-                      className={user ? "bg-muted cursor-not-allowed" : ""}
-                    />
-                  </FormControl>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {user 
-                      ? "Email from your account will be used for this booking" 
-                      : "For booking updates and future account registration"}
-                  </p>
-                  <FormMessage />
-                </FormItem>
+              
+              {user?.phoneNumber && (
+                <p className="text-xs text-gray-500">
+                  Phone number from your account will be used for this booking
+                </p>
               )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Any special requests or information"
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Please include any relevant information for your booking
-                  </p>
-                  <FormMessage />
-                </FormItem>
+              
+              {!user?.phoneNumber && (
+                <p className="text-xs text-gray-500">
+                  We'll send your booking confirmation to this number
+                </p>
               )}
-            />
+              
+              <p className="text-xs text-gray-500">
+                {user 
+                  ? "Email from your account will be used for this booking" 
+                  : "For booking updates and future account registration"}
+              </p>
+              
+              <p className="text-xs text-gray-500">
+                Please include any relevant information for your booking in the notes field
+              </p>
+            </div>
 
             <div className="p-4 rounded-md bg-muted mt-4">
               <h4 className="text-sm font-medium mb-2">Equipment Rental</h4>
@@ -468,32 +407,24 @@ const BookingForm = ({ onCancel }: BookingFormProps) => {
                 <br/>
                 • Cancellations less than 24 hours before session: 50% payment required
                 <br/>
-                • Earlier cancellations: No charge
+                • Earlier cancellations: Full refund
               </p>
             </div>
 
             <div className="pt-4 border-t border-gray-200">
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 px-4 rounded-lg transition duration-200"
+                className="w-full"
                 disabled={bookingMutation.isPending}
               >
                 {bookingMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Confirming...
+                    Processing...
                   </>
                 ) : (
-                  "Confirm Booking"
+                  "Complete Booking"
                 )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full mt-3"
-                onClick={onCancel}
-              >
-                Cancel
               </Button>
             </div>
           </form>
