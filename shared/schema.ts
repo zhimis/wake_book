@@ -175,9 +175,11 @@ export const manualBookingSchema = z.object({
 // Admin custom booking form - for creating bookings with custom time slots
 export const adminCustomBookingSchema = z.object({
   customerName: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  phoneNumber: z.string().regex(/^[+]?[0-9]{8,15}$/, {
-    message: "Phone number must be between 8-15 digits, with optional + prefix",
-  }),
+  phoneNumber: z.string()
+    .transform(val => val.replace(/[\s-]/g, '')) // Remove spaces and dashes
+    .refine(val => /^[+]?[0-9]{8,15}$/.test(val), {
+      message: "Phone number must be between 8-15 digits, with optional + prefix",
+    }),
   email: z.union([
     z.string().email({ message: "Invalid email format" }),
     z.string().length(0)
