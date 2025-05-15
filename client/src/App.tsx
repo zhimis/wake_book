@@ -22,6 +22,7 @@ import DebugPage from "@/pages/debug";
 import Header from "./components/header";
 import Footer from "./components/footer";
 import { FeedbackButton } from "./components/feedback-button";
+import { AdminQuickBookingButton } from "./components/admin/admin-quick-booking-button";
 import { BookingProvider } from "./context/booking-context";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -77,6 +78,7 @@ function App() {
           </div>
           <Footer />
           <FeedbackButton />
+          <AdminQuickBookingButton />
         </BookingProvider>
       </AuthProvider>
     </div>
