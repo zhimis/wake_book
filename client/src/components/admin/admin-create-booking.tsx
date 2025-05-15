@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -43,7 +43,7 @@ const AdminCreateBooking = ({
   const [internalOpen, setInternalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedStartTime, setSelectedStartTime] = useState("12:00");
-  const [duration, setDuration] = useState("30");
+  const [selectedEndTime, setSelectedEndTime] = useState("12:30");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [existingBookings, setExistingBookings] = useState<TimeSlot[]>([]);
   const [isCheckingBookings, setIsCheckingBookings] = useState(false);
@@ -137,25 +137,35 @@ const AdminCreateBooking = ({
   
   // Convert selected date and time to time slots
   const generateTimeSlots = async () => {
-    if (!selectedDate || !selectedStartTime) return;
+    if (!selectedDate || !selectedStartTime || !selectedEndTime) return;
     
     // Parse start time
-    const [hour, minute] = selectedStartTime.split(":").map(Number);
-    const durationMinutes = parseInt(duration);
+    const [startHour, startMinute] = selectedStartTime.split(":").map(Number);
+    // Parse end time
+    const [endHour, endMinute] = selectedEndTime.split(":").map(Number);
+    
     const slots: TimeSlot[] = [];
     
-    // Create a date object for the start time
+    // Create date objects for start and end times
     // When we set hours/minutes on the client, we're setting them in local time (Latvia time)
     // The date will be serialized to ISO format when sent to the server, preserving the time correctly
-    let startTime = setMinutes(setHours(selectedDate, hour), minute);
-    let endTime = addMinutes(startTime, 30); // Each slot is 30 minutes
+    let startTime = setMinutes(setHours(selectedDate, startHour), startMinute);
+    let overallEndTime = setMinutes(setHours(new Date(selectedDate), endHour), endMinute);
+    
+    // If end time is earlier than start time, assume it's the next day
+    if (overallEndTime < startTime) {
+      overallEndTime.setDate(overallEndTime.getDate() + 1);
+    }
+    
+    // Calculate total duration in minutes for validation
+    const durationMs = overallEndTime.getTime() - startTime.getTime();
+    const durationMinutes = Math.round(durationMs / (1000 * 60));
     
     // Calculate how many 30-minute slots we need
     const numSlots = Math.ceil(durationMinutes / 30);
     
-    // Calculate overall start and end times for the booking
+    // Calculate overall start time for the booking
     const overallStartTime = new Date(startTime);
-    const overallEndTime = addMinutes(startTime, durationMinutes);
     
     // Check for existing bookings within this time range
     try {
@@ -286,23 +296,61 @@ const AdminCreateBooking = ({
     };
   });
   
-  // Duration options in minutes
-  const durationOptions = [
-    { value: "30", label: "30 minutes" },
-    { value: "60", label: "1 hour" },
-    { value: "90", label: "1.5 hours" },
-    { value: "120", label: "2 hours" },
-    { value: "180", label: "3 hours" }
-  ];
+  // End time options (will be filtered based on start time)
+  const allTimeOptions = Array.from({ length: 48 }, (_, index) => {
+    const hour = Math.floor(index / 2);
+    const minute = (index % 2) * 30;
+    return {
+      value: `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`,
+      label: `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+    };
+  });
   
-  const onSubmit = (data: AdminCustomBookingData) => {
+  // Filter end time options to only show times after the selected start time
+  const endTimeOptions = useMemo(() => {
+    if (!selectedStartTime) return allTimeOptions;
+    
+    const [startHour, startMinute] = selectedStartTime.split(":").map(Number);
+    const startIndex = startHour * 2 + (startMinute / 30);
+    
+    // Return options starting from the next 30-minute slot after start time
+    // Include up to 10 hours (20 slots) after start time for longer sessions
+    return allTimeOptions.slice(startIndex + 1, startIndex + 21);
+  }, [selectedStartTime]);
+  
+  const onSubmit = async (data: AdminCustomBookingData) => {
+    // If time slots weren't pre-selected, generate them now
     if (data.timeSlots.length === 0) {
-      toast({
-        title: "No Time Selected",
-        description: "Please select a date, time, and duration first.",
-        variant: "destructive"
-      });
-      return;
+      if (!selectedDate || !selectedStartTime || !selectedEndTime) {
+        toast({
+          title: "Incomplete Time Selection",
+          description: "Please select a date, start time, and end time.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      try {
+        // Generate time slots before submitting
+        await generateTimeSlots();
+        
+        // Update the form with the newly generated time slots
+        if (timeSlots.length === 0) {
+          // If slots weren't generated (possibly due to conflicts)
+          return;
+        }
+        
+        // Update the data with the new time slots
+        data.timeSlots = timeSlots;
+      } catch (error) {
+        console.error("Error generating time slots:", error);
+        toast({
+          title: "Error",
+          description: "Failed to generate time slots. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
     
     createBookingMutation.mutate(data);
@@ -336,7 +384,7 @@ const AdminCreateBooking = ({
             <div>
               <DialogTitle>Create New Booking</DialogTitle>
               <DialogDescription>
-                Manually create a booking for any date and time.
+                Select date, start time, and end time. Time slots will be generated automatically when you submit the form.
               </DialogDescription>
             </div>
             {isStandalone && (
@@ -447,13 +495,13 @@ const AdminCreateBooking = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Duration</Label>
-                  <Select value={duration} onValueChange={setDuration}>
+                  <Label>End Time</Label>
+                  <Select value={selectedEndTime} onValueChange={setSelectedEndTime}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select duration" />
+                      <SelectValue placeholder="Select end time" />
                     </SelectTrigger>
                     <SelectContent>
-                      {durationOptions.map(option => (
+                      {endTimeOptions.map(option => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -463,26 +511,7 @@ const AdminCreateBooking = ({
                 </div>
               </div>
               
-              <Button 
-                type="button" 
-                variant="secondary" 
-                onClick={async () => {
-                  try {
-                    await generateTimeSlots();
-                  } catch (error) {
-                    console.error("Error generating time slots:", error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to generate time slots. Please try again.",
-                      variant: "destructive"
-                    });
-                  }
-                }}
-                className="w-full"
-              >
-                <Clock size={16} className="mr-2" />
-                Generate Time Slots
-              </Button>
+
               
               {timeSlots.length > 0 && (
                 <div className="border rounded-md p-3 mt-4 bg-muted/50">
