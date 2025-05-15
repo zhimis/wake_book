@@ -371,7 +371,7 @@ const AdminCreateBooking = ({
       
       // Create slot
       generatedSlots.push({
-        id: generateTimeSlotId(currentStart) as string,
+        id: -1, // Temporary ID, server will replace with real ID
         startTime: new Date(currentStart),
         endTime: new Date(slotEnd),
         price: 25, // Default price
@@ -584,7 +584,13 @@ const AdminCreateBooking = ({
             <div>
               <Form {...form}>
                 <form 
-                  onSubmit={form.handleSubmit(onSubmit)}
+                  onSubmit={(e) => {
+                    console.log("Form onSubmit triggered");
+                    form.handleSubmit((data) => {
+                      console.log("Form handleSubmit callback executed");
+                      onSubmit(data);
+                    })(e);
+                  }}
                   className="space-y-4"
                 >
                   {/* Use the shared BookingFormFields component */}
@@ -622,7 +628,7 @@ const AdminCreateBooking = ({
                     
                     <Button 
                       type="button" 
-                      variant="secondary"
+                      variant="default"
                       className="w-full"
                       onClick={() => {
                         console.log("Manual submit button clicked");
@@ -630,7 +636,7 @@ const AdminCreateBooking = ({
                         onSubmit(values as AdminCustomBookingData);
                       }}
                     >
-                      Try Manual Submit
+                      Create Booking (Manual)
                     </Button>
                   </div>
                 </form>
