@@ -141,9 +141,11 @@ export const insertLeadTimeSettingsSchema = createInsertSchema(leadTimeSettings)
 // Custom schemas
 export const bookingFormSchema = z.object({
   fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  phoneNumber: z.string().regex(/^[+]?[0-9]{8,15}$/, {
-    message: "Phone number must be between 8-15 digits, with optional + prefix",
-  }),
+  phoneNumber: z.string()
+    .transform(val => val.replace(/[\s-]/g, '')) // Remove spaces and dashes
+    .refine(val => /^[+]?[0-9]{8,15}$/.test(val), {
+      message: "Phone number must be between 8-15 digits, with optional + prefix",
+    }),
   email: z.union([
     z.string().email({ message: "Invalid email format" }),
     z.string().length(0)
@@ -155,9 +157,11 @@ export const bookingFormSchema = z.object({
 // Admin booking form - like the regular booking form but without experienceLevel requirement
 export const manualBookingSchema = z.object({
   customerName: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  phoneNumber: z.string().regex(/^[+]?[0-9]{8,15}$/, {
-    message: "Phone number must be between 8-15 digits, with optional + prefix",
-  }),
+  phoneNumber: z.string()
+    .transform(val => val.replace(/[\s-]/g, '')) // Remove spaces and dashes
+    .refine(val => /^[+]?[0-9]{8,15}$/.test(val), {
+      message: "Phone number must be between 8-15 digits, with optional + prefix",
+    }),
   email: z.union([
     z.string().email({ message: "Invalid email format" }),
     z.string().length(0)
