@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 import { feedbackFormSchema } from '@shared/schema';
 import {
   Dialog,
@@ -31,7 +32,10 @@ export function FeedbackButton() {
   const [email, setEmail] = useState('');
   const [category, setCategory] = useState('general');
   const { toast } = useToast();
-
+  
+  // Get current user from auth context
+  const { user } = useAuth();
+  
   const feedbackMutation = useMutation({
     mutationFn: (data: { rating: number; comment: string; email?: string; category: string }) => 
       apiRequest('POST', '/api/feedback', data),
@@ -88,6 +92,11 @@ export function FeedbackButton() {
       console.error("Validation error:", error);
     }
   };
+
+  // Only show feedback button for non-logged in users or athlete role
+  if (user && user.role !== "athlete") {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
