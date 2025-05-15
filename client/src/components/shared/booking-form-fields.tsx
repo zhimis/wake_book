@@ -29,34 +29,70 @@ export function BookingFormFields({
   readOnly = {}, 
   nameLabel = "Full Name" 
 }: BookingFormFieldsProps) {
-  // Determine the field names based on the form type (admin vs regular)
-  // AdminCustomBookingData uses "customerName", while BookingFormData uses "fullName"
-  const nameField = "customerName" in form.getValues() ? "customerName" : "fullName";
+  // We'll check each field individually using type guards
+  const hasCustomerName = () => {
+    try {
+      return form.getValues().hasOwnProperty("customerName");
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const hasFullName = () => {
+    try {
+      return form.getValues().hasOwnProperty("fullName");
+    } catch (e) {
+      return false;
+    }
+  };
   
   return (
     <>
-      <FormField
-        control={form.control}
-        // @ts-ignore - We're handling the field name dynamically
-        name={nameField}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{nameLabel}</FormLabel>
-            <FormControl>
-              <Input 
-                placeholder="Enter name" 
-                {...field} 
-                readOnly={readOnly.name}
-                className={readOnly.name ? "bg-muted cursor-not-allowed" : ""}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* Conditionally render either customerName or fullName field */}
+      {hasCustomerName() && (
+        <FormField
+          control={form.control as any}
+          name="customerName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{nameLabel}</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter name" 
+                  {...field} 
+                  readOnly={readOnly?.name}
+                  className={readOnly?.name ? "bg-muted cursor-not-allowed" : ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+      
+      {hasFullName() && (
+        <FormField
+          control={form.control as any}
+          name="fullName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{nameLabel}</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Enter name" 
+                  {...field} 
+                  readOnly={readOnly?.name}
+                  className={readOnly?.name ? "bg-muted cursor-not-allowed" : ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       
       <FormField
-        control={form.control}
+        control={form.control as any}
         name="phoneNumber"
         render={({ field }) => (
           <FormItem>
@@ -65,8 +101,8 @@ export function BookingFormFields({
               <Input 
                 placeholder="+371 12345678" 
                 {...field} 
-                readOnly={readOnly.phone}
-                className={readOnly.phone ? "bg-muted cursor-not-allowed" : ""}
+                readOnly={readOnly?.phone}
+                className={readOnly?.phone ? "bg-muted cursor-not-allowed" : ""}
               />
             </FormControl>
             <FormMessage />
@@ -75,7 +111,7 @@ export function BookingFormFields({
       />
       
       <FormField
-        control={form.control}
+        control={form.control as any}
         name="email"
         render={({ field }) => (
           <FormItem>
@@ -84,8 +120,8 @@ export function BookingFormFields({
               <Input 
                 placeholder="email@example.com" 
                 {...field} 
-                readOnly={readOnly.email}
-                className={readOnly.email ? "bg-muted cursor-not-allowed" : ""}
+                readOnly={readOnly?.email}
+                className={readOnly?.email ? "bg-muted cursor-not-allowed" : ""}
               />
             </FormControl>
             <FormMessage />
@@ -94,7 +130,7 @@ export function BookingFormFields({
       />
       
       <FormField
-        control={form.control}
+        control={form.control as any}
         name="notes"
         render={({ field }) => (
           <FormItem>
